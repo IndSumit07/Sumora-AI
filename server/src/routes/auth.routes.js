@@ -1,39 +1,52 @@
 import express from "express";
 import {
-  deleteUserController,
+  registerUserController,
+  verifyOtpController,
+  resendOtpController,
   loginUserController,
   logoutUserController,
-  registerUserController,
+  getCurrentUserController,
+  updateProfileController,
+  sendEmailChangeOtpController,
+  verifyEmailChangeController,
+  sendChangePasswordOtpController,
+  changePasswordController,
+  forgotPasswordController,
+  resetPasswordController,
+  deleteAccountController,
 } from "../controllers/auth.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { authLimiter, otpLimiter, apiLimiter } from "../middlewares/rateLimiter.middleware.js";
+import {
+  validateRegister,
+  validateLogin,
+  validateEmail,
+  validateOtp,
+  validateResetPassword,
+  validateChangePassword,
+  validateUpdateProfile,
+  validateNewEmail,
+  validateEmailChangeOtp,
+} from "../middlewares/validate.middleware.js";
 
 const authRouter = express.Router();
 
-/**
- * @route POST /api/auth/register
- * @desc Register a new user
- * @access Public
- */
-authRouter.post("/register", registerUserController);
-
-/**
- * @route POST /api/auth/login
- * @desc Login a user
- * @access Public
- */
-authRouter.post("/login", loginUserController);
-
-/**
- * @route POST /api/auth/logout
- * @desc Logout a user
- * @access Public
- */
+/* ── Public ── */
+authRouter.post("/register", authLimiter, validateRegister, registerUserController);
+authRouter.post("/verify-otp", authLimiter, validateOtp, verifyOtpController);
+authRouter.post("/resend-otp", otpLimiter, validateEmail, resendOtpController);
+authRouter.post("/login", authLimiter, validateLogin, loginUserController);
 authRouter.post("/logout", logoutUserController);
+authRouter.post("/forgot-password", otpLimiter, validateEmail, forgotPasswordController);
+authRouter.post("/reset-password", authLimiter, validateResetPassword, resetPasswordController);
 
-/**
- * @route GET /api/auth/delete
- * @desc Delete a user
- * @access Public
- */
-authRouter.get("/delete", deleteUserController);
+/* ── Protected ── */
+authRouter.get("/me", apiLimiter, authMiddleware, getCurrentUserController);
+authRouter.put("/update-profile", apiLimiter, authMiddleware, validateUpdateProfile, updateProfileController);
+authRouter.post("/send-email-change-otp", otpLimiter, authMiddleware, validateNewEmail, sendEmailChangeOtpController);
+authRouter.post("/verify-email-change", authLimiter, authMiddleware, validateEmailChangeOtp, verifyEmailChangeController);
+authRouter.post("/send-change-password-otp", otpLimiter, authMiddleware, sendChangePasswordOtpController);
+authRouter.post("/change-password", authLimiter, authMiddleware, validateChangePassword, changePasswordController);
+authRouter.delete("/delete-account", apiLimiter, authMiddleware, deleteAccountController);
 
 export default authRouter;

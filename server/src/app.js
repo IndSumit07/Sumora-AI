@@ -1,14 +1,33 @@
 import express from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+import helmet from "helmet";
 
 /* require all the routes here */
 import authRouter from "./routes/auth.routes.js";
 
 const app = express();
-app.use(express.json());
+
+/* ── Security headers ── */
+app.use(helmet());
+
+/* ── CORS ── */
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
+
+/* ── Body parsing with size limits ── */
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: false, limit: "16kb" }));
 app.use(cookieParser());
 
-/* using all the routes here */
+/* ── Disable fingerprinting ── */
+app.disable("x-powered-by");
+
+/* ── Routes ── */
 app.use("/api/auth", authRouter);
 
 export default app;
