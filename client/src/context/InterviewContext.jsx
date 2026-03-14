@@ -36,6 +36,19 @@ export const InterviewProvider = ({ children }) => {
     return data; // { session, report }
   };
 
+  const deleteSession = async (id) => {
+    await api.delete(`/session/${id}`);
+    setSessions((prev) => prev.filter((s) => s._id !== id));
+  };
+
+  const updateSession = async (id, payload) => {
+    const { data } = await api.patch(`/session/${id}`, payload);
+    setSessions((prev) =>
+      prev.map((s) => (s._id === id ? { ...s, ...data.session } : s)),
+    );
+    return data.session;
+  };
+
   // ── Report generation ─────────────────────────────────────────────────────────
 
   /**
@@ -98,6 +111,8 @@ export const InterviewProvider = ({ children }) => {
         createSession,
         getAllSessions,
         getSessionById,
+        deleteSession,
+        updateSession,
         generateReport,
         generatePdf,
       }}

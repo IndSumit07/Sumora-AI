@@ -66,6 +66,94 @@ export async function getAllSessionsController(req, res) {
 }
 
 /**
+ * DELETE /api/session/:sessionId
+ */
+export async function deleteSessionController(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+
+    const session = await Session.findOneAndDelete({
+      _id: sessionId,
+      user: req.user.id,
+    });
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    await InterviewReport.deleteOne({ session: sessionId, user: req.user.id });
+
+    return res.status(200).json({ message: "Session deleted" });
+  } catch (error) {
+    console.error("Delete session error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * PATCH /api/session/:sessionId
+ */
+export async function updateSessionController(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+
+    const { title, jobDescription } = req.body;
+    const update = {};
+
+    if (title !== undefined) {
+      if (!title.trim()) {
+        return res.status(400).json({ message: "Title cannot be empty" });
+      }
+      if (title.trim().length > 100) {
+        return res
+          .status(400)
+          .json({ message: "Title cannot exceed 100 characters" });
+      }
+      update.title = title.trim();
+    }
+
+    if (jobDescription !== undefined) {
+      if (!jobDescription.trim()) {
+        return res
+          .status(400)
+          .json({ message: "Job description cannot be empty" });
+      }
+      if (jobDescription.trim().length > 1000) {
+        return res
+          .status(400)
+          .json({ message: "Job description cannot exceed 1000 characters" });
+      }
+      update.jobDescription = jobDescription.trim();
+    }
+
+    if (!Object.keys(update).length) {
+      return res.status(400).json({ message: "No fields to update" });
+    }
+
+    const session = await Session.findOneAndUpdate(
+      { _id: sessionId, user: req.user.id },
+      { $set: update },
+      { new: true },
+    );
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    return res.status(200).json({ message: "Session updated", session });
+  } catch (error) {
+    console.error("Update session error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
  * GET /api/session/:sessionId
  */
 export async function getSessionByIdController(req, res) {

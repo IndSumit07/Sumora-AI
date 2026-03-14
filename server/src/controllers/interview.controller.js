@@ -23,23 +23,35 @@ export async function generateInterViewReportController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: "Invalid session ID" });
     }
-    if (selfDescription && selfDescription.length > 2000) {
-      return res.status(400).json({ message: "Self description cannot exceed 2000 characters" });
+    if (!selfDescription || !selfDescription.trim()) {
+      return res.status(400).json({ message: "Description is required" });
+    }
+    if (selfDescription.length > 2000) {
+      return res
+        .status(400)
+        .json({ message: "Self description cannot exceed 2000 characters" });
     }
 
-    const session = await Session.findOne({ _id: sessionId, user: req.user.id });
+    const session = await Session.findOne({
+      _id: sessionId,
+      user: req.user.id,
+    });
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
     if (session.hasReport) {
-      return res.status(409).json({ message: "Report already exists for this session" });
+      return res
+        .status(409)
+        .json({ message: "Report already exists for this session" });
     }
 
     // Resolve resume text: uploaded PDF takes priority over pasted text
     let resumeText = req.body.resume || "";
     if (req.file) {
       if (req.file.mimetype !== "application/pdf") {
-        return res.status(400).json({ message: "Only PDF files are supported" });
+        return res
+          .status(400)
+          .json({ message: "Only PDF files are supported" });
       }
       // pdf-parse v2 uses a class-based API: new PDFParse({ data }) + .getText()
       const { PDFParse } = _require("pdf-parse");
@@ -47,7 +59,9 @@ export async function generateInterViewReportController(req, res) {
       const result = await parser.getText();
       resumeText = (result.text || "").trim().slice(0, 8000);
     } else if (resumeText.length > 5000) {
-      return res.status(400).json({ message: "Resume text cannot exceed 5000 characters" });
+      return res
+        .status(400)
+        .json({ message: "Resume text cannot exceed 5000 characters" });
     }
 
     const report = await generateInterviewReport({
@@ -75,7 +89,9 @@ export async function generateInterViewReportController(req, res) {
     });
   } catch (error) {
     console.error("Generate interview report error:", error);
-    return res.status(500).json({ message: error?.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: error?.message || "Internal server error" });
   }
 }
 
@@ -90,7 +106,10 @@ export async function getInterviewReportByIdController(req, res) {
       return res.status(400).json({ message: "Invalid interview report ID" });
     }
 
-    const report = await InterviewReport.findOne({ _id: interviewId, user: req.user.id });
+    const report = await InterviewReport.findOne({
+      _id: interviewId,
+      user: req.user.id,
+    });
     if (!report) {
       return res.status(404).json({ message: "Interview report not found" });
     }
@@ -107,7 +126,9 @@ export async function getInterviewReportByIdController(req, res) {
  */
 export async function getAllInterviewReportsController(req, res) {
   try {
-    const reports = await InterviewReport.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const reports = await InterviewReport.find({ user: req.user.id }).sort({
+      createdAt: -1,
+    });
     return res.status(200).json({ reports });
   } catch (error) {
     console.error("Get all interview reports error:", error);
@@ -126,7 +147,10 @@ export async function generateResumePdfController(req, res) {
       return res.status(400).json({ message: "Invalid interview report ID" });
     }
 
-    const report = await InterviewReport.findOne({ _id: interviewReportId, user: req.user.id });
+    const report = await InterviewReport.findOne({
+      _id: interviewReportId,
+      user: req.user.id,
+    });
     if (!report) {
       return res.status(404).json({ message: "Interview report not found" });
     }
@@ -138,7 +162,10 @@ export async function generateResumePdfController(req, res) {
     });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=resume-${interviewReportId}.pdf`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=resume-${interviewReportId}.pdf`,
+    );
     return res.status(200).send(pdfBuffer);
   } catch (error) {
     console.error("Generate resume pdf error:", error);

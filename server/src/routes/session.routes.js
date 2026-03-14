@@ -5,6 +5,8 @@ import {
   createSessionController,
   getAllSessionsController,
   getSessionByIdController,
+  deleteSessionController,
+  updateSessionController,
 } from "../controllers/session.controller.js";
 
 const sessionRouter = express.Router();
@@ -33,6 +35,30 @@ sessionRouter.get(
   apiLimiter,
   authMiddleware,
   getSessionByIdController,
+);
+
+/**
+ * @route PATCH /api/session/:sessionId
+ * @description Update session title or job description
+ * @access private
+ */
+sessionRouter.patch(
+  "/:sessionId",
+  apiLimiter,
+  authMiddleware,
+  updateSessionController,
+);
+
+/**
+ * @route DELETE /api/session/:sessionId
+ * @description Delete a session and its report
+ * @access private
+ */
+sessionRouter.delete(
+  "/:sessionId",
+  apiLimiter,
+  authMiddleware,
+  deleteSessionController,
 );
 
 export default sessionRouter;

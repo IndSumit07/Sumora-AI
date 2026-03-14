@@ -8,6 +8,8 @@ import {
   Upload,
   FileText,
   X,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useInterview } from "../../context/InterviewContext";
 import toast from "react-hot-toast";
@@ -204,7 +206,7 @@ const GenerateReportForm = ({ session, onSuccess }) => {
       return;
     }
     if (!selfDescription.trim()) {
-      toast.error("Self description is required");
+      toast.error("Description is required");
       return;
     }
     setLoading(true);
@@ -344,10 +346,7 @@ const GenerateReportForm = ({ session, onSuccess }) => {
       {/* Self Description */}
       <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#222] rounded-2xl p-5 shadow-sm">
         <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          About You{" "}
-          <span className="text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 font-normal">
-            (optional)
-          </span>
+          Description <span className="text-[#ea580c]">*</span>
         </label>
         <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 mb-3">
           Share your experience, strengths, and anything you'd like the AI to
@@ -392,12 +391,19 @@ const GenerateReportForm = ({ session, onSuccess }) => {
 const ReportDetailView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getSessionById, generatePdf } = useInterview();
+  const { getSessionById, generatePdf, deleteSession, updateSession } =
+    useInterview();
 
   const [session, setSession] = useState(null);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -429,6 +435,44 @@ const ReportDetailView = () => {
     }
   };
 
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await deleteSession(id);
+      navigate("/dashboard/sessions", { replace: true });
+    } catch {
+      toast.error("Failed to delete session");
+      setDeleteLoading(false);
+      setDeleteConfirm(false);
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editTitle.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!editDesc.trim()) {
+      toast.error("Job description is required");
+      return;
+    }
+    setEditLoading(true);
+    try {
+      const updated = await updateSession(id, {
+        title: editTitle.trim(),
+        jobDescription: editDesc.trim(),
+      });
+      setSession((prev) => ({ ...prev, ...updated }));
+      setEditOpen(false);
+      toast.success("Session updated");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update session");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   if (loading) return <Skeleton />;
   if (!session) return null;
 
@@ -442,15 +486,135 @@ const ReportDetailView = () => {
         >
           <ArrowLeft size={15} /> Back to sessions
         </button>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-            {session.title}
-          </h1>
-          <p className="mt-1 text-sm text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500">
-            No report yet — fill in your resume details below to generate one.
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+              {session.title}
+            </h1>
+            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500">
+              No report yet — fill in your resume details below to generate one.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setEditTitle(session.title);
+                setEditDesc(session.jobDescription);
+                setEditOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#333] text-xs font-medium text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
+            >
+              <Pencil size={13} /> Edit
+            </button>
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-500/30 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
         </div>
         <GenerateReportForm session={session} onSuccess={load} />
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => !deleteLoading && setDeleteConfirm(false)}
+            />
+            <div className="relative bg-white dark:bg-[#121212] rounded-2xl border border-gray-200 dark:border-[#222] p-6 w-full max-w-sm shadow-2xl">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Delete session?
+              </h2>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
+                This will permanently delete{" "}
+                <span className="font-medium text-gray-700 dark:text-gray-200">
+                  "{session.title}"
+                </span>{" "}
+                and its report. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  disabled={deleteLoading}
+                  className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-[#333] text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteLoading}
+                  className="flex-1 h-10 rounded-xl bg-red-500 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {deleteLoading && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  )}
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {editOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => !editLoading && setEditOpen(false)}
+            />
+            <div className="relative bg-white dark:bg-[#121212] rounded-2xl border border-gray-200 dark:border-[#222] p-6 w-full max-w-lg shadow-2xl">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+                Edit Session
+              </h2>
+              <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">
+                    Title <span className="text-[#ea580c]">*</span>
+                  </label>
+                  <input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value.slice(0, 100))}
+                    placeholder="Session title"
+                    className="h-11 w-full rounded-xl bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] px-4 text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">
+                    Job Description <span className="text-[#ea580c]">*</span>
+                  </label>
+                  <textarea
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value.slice(0, 1000))}
+                    rows={6}
+                    placeholder="Job description"
+                    className="w-full rounded-xl bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] px-4 py-3 text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
+                  />
+                  <p className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    {editDesc.length} / 1000
+                  </p>
+                </div>
+                <div className="flex gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditOpen(false)}
+                    disabled={editLoading}
+                    className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-[#333] text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editLoading}
+                    className="flex-1 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {editLoading && (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    )}
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -469,10 +633,30 @@ const ReportDetailView = () => {
       <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#222] rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight leading-snug">
-              {session.title}
-            </h1>
-            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500">
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight leading-snug">
+                {session.title}
+              </h1>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    setEditTitle(session.title);
+                    setEditDesc(session.jobDescription);
+                    setEditOpen(true);
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-[#333] text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
+                >
+                  <Pencil size={12} /> Edit
+                </button>
+                <button
+                  onClick={() => setDeleteConfirm(true)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-500/30 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 size={12} /> Delete
+                </button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500 dark:text-gray-500">
               {new Date(session.createdAt).toLocaleDateString("en-US", {
                 weekday: "short",
                 year: "numeric",
@@ -614,6 +798,108 @@ const ReportDetailView = () => {
           <Sparkles size={13} /> Start a new session
         </Link>
       </div>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => !deleteLoading && setDeleteConfirm(false)}
+          />
+          <div className="relative bg-white dark:bg-[#121212] rounded-2xl border border-gray-200 dark:border-[#222] p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Delete session?
+            </h2>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
+              This will permanently delete{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-200">
+                "{session.title}"
+              </span>{" "}
+              and its report. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                disabled={deleteLoading}
+                className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-[#333] text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="flex-1 h-10 rounded-xl bg-red-500 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {deleteLoading && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                )}
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => !editLoading && setEditOpen(false)}
+          />
+          <div className="relative bg-white dark:bg-[#121212] rounded-2xl border border-gray-200 dark:border-[#222] p-6 w-full max-w-lg shadow-2xl">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+              Edit Session
+            </h2>
+            <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">
+                  Title <span className="text-[#ea580c]">*</span>
+                </label>
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value.slice(0, 100))}
+                  placeholder="Session title"
+                  className="h-11 w-full rounded-xl bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] px-4 text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">
+                  Job Description <span className="text-[#ea580c]">*</span>
+                </label>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value.slice(0, 1000))}
+                  rows={6}
+                  placeholder="Job description"
+                  className="w-full rounded-xl bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] px-4 py-3 text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
+                />
+                <p className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {editDesc.length} / 1000
+                </p>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  disabled={editLoading}
+                  className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-[#333] text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="flex-1 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {editLoading && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  )}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
