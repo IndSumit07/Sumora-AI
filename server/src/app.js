@@ -34,4 +34,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/interview", interviewRouter);
 app.use("/api/session", sessionRouter);
 
+/* ── Health check (used by client to detect cold-start) ── */
+app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
+
 export default app;
