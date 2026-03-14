@@ -268,17 +268,20 @@ const GenerateReportForm = ({ session, onSuccess }) => {
 
         {resumeMode === MODES.upload ? (
           resumeFile ? (
-            <div className="flex items-center justify-between px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
+            <div className="flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 rounded-xl">
               <div className="flex items-center gap-2">
-                <FileText size={15} className="text-green-600" />
-                <span className="text-sm text-green-700 font-medium truncate max-w-[200px]">
+                <FileText
+                  size={15}
+                  className="text-green-600 dark:text-green-400"
+                />
+                <span className="text-sm text-green-700 dark:text-green-300 font-medium truncate max-w-[200px]">
                   {resumeFile.name}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setResumeFile(null)}
-                className="text-green-500 hover:text-green-700"
+                className="text-green-500 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
               >
                 <X size={14} />
               </button>
@@ -298,8 +301,8 @@ const GenerateReportForm = ({ session, onSuccess }) => {
               onClick={() => fileRef.current?.click()}
               className={`flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
                 dragging
-                  ? "border-[#ea580c] bg-orange-50"
-                  : "border-gray-200 dark:border-[#222] hover:border-gray-300 bg-gray-50 dark:bg-[#1a1a1a]/50 dark:bg-[#1a1a1a]/50"
+                  ? "border-[#ea580c] bg-orange-50 dark:bg-[#ea580c]/10"
+                  : "border-gray-200 dark:border-[#333] hover:border-gray-300 dark:hover:border-gray-500 bg-gray-50 dark:bg-[#1a1a1a]/50"
               }`}
             >
               <Upload
@@ -329,7 +332,7 @@ const GenerateReportForm = ({ session, onSuccess }) => {
               onChange={(e) => setResumeText(e.target.value.slice(0, 5000))}
               rows={8}
               placeholder="Paste your resume here…"
-              className="w-full rounded-xl border border-gray-200 dark:border-[#222] px-4 py-3 text-sm focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none outline-none"
+              className="w-full rounded-xl bg-transparent dark:bg-[#1a1a1a]/50 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#222] px-4 py-3 text-sm focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none outline-none placeholder-gray-400 dark:placeholder-gray-500"
             />
             <span className="absolute bottom-3 right-3 text-[10px] text-gray-700 dark:text-gray-300">
               {resumeText.length}/5000
@@ -356,7 +359,7 @@ const GenerateReportForm = ({ session, onSuccess }) => {
             onChange={(e) => setSelfDescription(e.target.value.slice(0, 2000))}
             rows={4}
             placeholder="e.g. 3 years of backend experience, strong in system design…"
-            className="w-full rounded-xl border border-gray-200 dark:border-[#222] px-4 py-3 text-sm focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none outline-none"
+            className="w-full rounded-xl bg-transparent dark:bg-[#1a1a1a]/50 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-[#222] px-4 py-3 text-sm focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none outline-none placeholder-gray-400 dark:placeholder-gray-500"
           />
           <span className="absolute bottom-3 right-3 text-[10px] text-gray-700 dark:text-gray-300">
             {selfDescription.length}/2000
@@ -368,7 +371,7 @@ const GenerateReportForm = ({ session, onSuccess }) => {
       <button
         type="submit"
         disabled={loading}
-        className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-gray-900 dark:text-white hover:bg-[#d24e0b] transition-colors disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+        className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
