@@ -199,13 +199,15 @@ const AccountModal = ({ open, onClose }) => {
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-white dark:bg-white dark:bg-[#111111] shadow-2xl">
+      <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-gray-200 dark:border-white/10 bg-white dark:bg-white dark:bg-[#111111] px-6 py-5 rounded-t-3xl">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Manage account</h2>
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] px-6 py-5 rounded-t-3xl">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+            Manage account
+          </h2>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-gray-600 dark:text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
           >
             <X size={18} />
           </button>
@@ -214,7 +216,7 @@ const AccountModal = ({ open, onClose }) => {
         <div className="flex flex-col gap-6 p-6">
           {/* ── Username ── */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600 dark:text-gray-600 dark:text-gray-400">
+            <label className="mb-2 block text-sm font-medium text-gray-600 dark:text-gray-400">
               Username
             </label>
             <div className="flex gap-3">
@@ -222,7 +224,7 @@ const AccountModal = ({ open, onClose }) => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="h-11 flex-1 rounded-xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:border-gray-300 dark:border-white/20 focus:border-[#ea580c] focus:bg-white dark:bg-white dark:bg-[#1A1A1A] focus:ring-1 focus:ring-[#ea580c]"
+                className="h-11 flex-1 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:dark:border-[#ea580c] focus:bg-white dark:focus:bg-[#1A1A1A] focus:ring-1 focus:ring-[#ea580c]"
               />
               <button
                 onClick={handleSaveUsername}
@@ -231,7 +233,7 @@ const AccountModal = ({ open, onClose }) => {
                   username === user.username ||
                   !username.trim()
                 }
-                className="h-11 rounded-xl bg-white px-5 text-sm font-medium text-black transition-colors hover:bg-gray-200 disabled:pointer-events-none disabled:opacity-40"
+                className="h-11 rounded-xl bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 px-5 text-sm font-medium text-black dark:text-white transition-colors hover:bg-gray-200 dark:hover:bg-white/10 disabled:pointer-events-none disabled:opacity-40"
               >
                 {savingUsername ? "..." : "Save"}
               </button>
@@ -240,7 +242,7 @@ const AccountModal = ({ open, onClose }) => {
 
           {/* ── Email ── */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600 dark:text-gray-600 dark:text-gray-400">
+            <label className="mb-2 block text-sm font-medium text-gray-600 dark:text-gray-400">
               Email
             </label>
             <div className="flex gap-3">
@@ -257,7 +259,7 @@ const AccountModal = ({ open, onClose }) => {
                 disabled={
                   emailStep === "otp-sent" || emailStep === "submitting"
                 }
-                className="h-11 flex-1 rounded-xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:border-gray-300 dark:border-white/20 focus:border-[#ea580c] focus:bg-white dark:bg-white dark:bg-[#1A1A1A] focus:ring-1 focus:ring-[#ea580c] disabled:opacity-50"
+                className="h-11 flex-1 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:dark:border-[#ea580c] focus:bg-white dark:focus:bg-[#1A1A1A] focus:ring-1 focus:ring-[#ea580c] disabled:opacity-50"
               />
               <button
                 onClick={handleSendEmailOtp}
@@ -268,7 +270,7 @@ const AccountModal = ({ open, onClose }) => {
                   emailStep === "otp-sent" ||
                   emailStep === "submitting"
                 }
-                className="h-11 rounded-xl bg-white px-5 text-sm font-medium text-black transition-colors hover:bg-gray-200 disabled:pointer-events-none disabled:opacity-40"
+                className="h-11 rounded-xl bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 px-5 text-sm font-medium text-black dark:text-white transition-colors hover:bg-gray-200 dark:hover:bg-white/10 disabled:pointer-events-none disabled:opacity-40"
               >
                 {sendingEmailOtp ? "..." : "Save"}
               </button>
@@ -276,10 +278,12 @@ const AccountModal = ({ open, onClose }) => {
 
             {/* OTP verification area (appears after Save is clicked) */}
             {(emailStep === "otp-sent" || emailStep === "submitting") && (
-              <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-gray-50 dark:bg-[#1c1c1c] p-5">
-                <p className="text-sm text-gray-600 dark:text-gray-600 dark:text-gray-400">
+              <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#1c1c1c] p-5">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   A verification code has been sent to{" "}
-                  <span className="font-medium text-gray-900 dark:text-white">{email}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {email}
+                  </span>
                 </p>
 
                 {/* OTP Inputs */}
@@ -294,7 +298,7 @@ const AccountModal = ({ open, onClose }) => {
                       value={digit}
                       onChange={(e) => handleEmailOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleEmailOtpKeyDown(i, e)}
-                      className="h-12 w-12 rounded-xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-white dark:bg-white dark:bg-[#111111] text-center text-lg font-semibold text-white outline-none transition-all hover:border-gray-300 dark:border-gray-300 dark:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                      className="h-12 w-12 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
                     />
                   ))}
                 </div>
@@ -303,7 +307,7 @@ const AccountModal = ({ open, onClose }) => {
                   <button
                     onClick={handleVerifyEmailChange}
                     disabled={emailStep === "submitting"}
-                    className="h-9 rounded-lg bg-gray-900 px-4 text-sm font-medium text-gray-900 dark:text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+                    className="h-9 rounded-lg bg-gray-900 border border-gray-900 dark:border-white/10 dark:bg-black/20 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
                   >
                     {emailStep === "submitting" ? "..." : "Verify & update"}
                   </button>
@@ -313,7 +317,7 @@ const AccountModal = ({ open, onClose }) => {
                       setEmailOtp(["", "", "", "", "", ""]);
                       setEmail(user.email);
                     }}
-                    className="h-9 rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                    className="h-9 rounded-lg border border-gray-200 dark:border-white/10 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                   >
                     Cancel
                   </button>
@@ -355,7 +359,7 @@ const AccountModal = ({ open, onClose }) => {
 
           {/* ── Password ── */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600 dark:text-gray-600 dark:text-gray-400">
+            <label className="mb-2 block text-sm font-medium text-gray-600 dark:text-gray-400">
               Password
             </label>
 
@@ -363,20 +367,22 @@ const AccountModal = ({ open, onClose }) => {
               <button
                 onClick={handleSendPwOtp}
                 disabled={sendingOtp}
-                className="flex h-11 items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm font-medium text-gray-900 dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-50"
+                className="flex h-11 items-center gap-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm font-medium text-gray-900 dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 {sendingOtp ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 dark:border-gray-300 dark:border-white/20 border-t-[#ea580c]" />
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 dark:border-white/20 border-t-[#ea580c]" />
                 ) : null}
                 Change password
               </button>
             )}
 
             {(pwStep === "otp-sent" || pwStep === "submitting") && (
-              <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-gray-50 dark:bg-[#1c1c1c] p-5 mt-2">
-                <p className="text-sm text-gray-600 dark:text-gray-600 dark:text-gray-400">
+              <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#1c1c1c] p-5 mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   A verification code has been sent to{" "}
-                  <span className="font-medium text-gray-900 dark:text-white">{user.email}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {user.email}
+                  </span>
                 </p>
 
                 {/* OTP Inputs */}
@@ -391,7 +397,7 @@ const AccountModal = ({ open, onClose }) => {
                       value={digit}
                       onChange={(e) => handlePwOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handlePwOtpKeyDown(i, e)}
-                      className="h-12 w-12 rounded-xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-white dark:bg-white dark:bg-[#111111] text-center text-lg font-semibold text-white outline-none transition-all hover:border-gray-300 dark:border-gray-300 dark:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                      className="h-12 w-12 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
                     />
                   ))}
                 </div>
@@ -403,7 +409,7 @@ const AccountModal = ({ open, onClose }) => {
                     placeholder="New password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-white dark:bg-white dark:bg-[#111111] px-4 pr-10 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 dark:text-gray-400 dark:placeholder:text-gray-400 dark:placeholder:text-gray-600 hover:border-gray-300 dark:border-gray-300 dark:border-white/20 focus:border-[#ea580c] focus:bg-white dark:bg-white dark:bg-[#1A1A1A] focus:ring-1 focus:ring-[#ea580c]"
+                    className="h-11 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] px-4 pr-10 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:dark:border-[#ea580c] focus:bg-white dark:focus:bg-[#1A1A1A] focus:ring-1 focus:ring-[#ea580c]"
                   />
                   <button
                     type="button"
@@ -418,7 +424,7 @@ const AccountModal = ({ open, onClose }) => {
                   <button
                     onClick={handleChangePassword}
                     disabled={pwStep === "submitting"}
-                    className="h-9 rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-gray-200 disabled:opacity-50"
+                    className="h-9 rounded-lg bg-gray-900 border border-gray-900 dark:border-white/10 dark:bg-black/20 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
                   >
                     {pwStep === "submitting" ? "..." : "Update password"}
                   </button>
@@ -428,7 +434,7 @@ const AccountModal = ({ open, onClose }) => {
                       setPwOtp(["", "", "", "", "", ""]);
                       setNewPassword("");
                     }}
-                    className="h-9 rounded-lg border border-gray-200 dark:border-gray-200 dark:border-white/10 px-4 text-sm font-medium text-gray-600 dark:text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:text-white"
+                    className="h-9 rounded-lg border border-gray-200 dark:border-white/10 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   >
                     Cancel
                   </button>
@@ -452,7 +458,7 @@ const AccountModal = ({ open, onClose }) => {
                       }
                     }}
                     disabled={resendingPwOtp || pwCooldown > 0}
-                    className="font-medium text-gray-900 dark:text-white transition-colors hover:text-gray-300 disabled:opacity-50"
+                    className="font-medium text-gray-900 dark:text-white transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50"
                   >
                     {resendingPwOtp
                       ? "Sending..."
@@ -466,7 +472,7 @@ const AccountModal = ({ open, onClose }) => {
           </div>
 
           {/* ── Divider ── */}
-          <div className="h-px bg-white/10" />
+          <div className="h-px bg-black/10 dark:bg-white/10" />
 
           {/* ── Danger zone ── */}
           <div>
@@ -474,18 +480,18 @@ const AccountModal = ({ open, onClose }) => {
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="flex h-11 items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20 hover:border-red-500/30"
+                className="flex h-11 items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 dark:bg-red-500/10 px-4 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 dark:hover:bg-red-500/20 hover:border-red-500/30"
               >
                 Delete account
               </button>
             ) : (
-              <div className="flex flex-col gap-4 rounded-2xl border border-red-500/20 bg-gray-50 dark:bg-gray-50 dark:bg-[#1c1c1c] p-5">
+              <div className="flex flex-col gap-4 rounded-2xl border border-red-500/20 bg-red-50/50 dark:bg-[#1c1c1c] p-5">
                 <div className="flex items-start gap-3">
                   <AlertTriangle
                     size={18}
                     className="mt-0.5 shrink-0 text-red-500"
                   />
-                  <p className="text-sm text-gray-300 leading-relaxed">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                     This will permanently delete your account and all data. This
                     action cannot be undone.
                   </p>
@@ -494,13 +500,13 @@ const AccountModal = ({ open, onClose }) => {
                   <button
                     onClick={handleDeleteAccount}
                     disabled={deleting}
-                    className="h-9 rounded-lg bg-red-500 px-4 text-sm font-medium text-gray-900 dark:text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                    className="h-9 rounded-lg bg-red-500 px-4 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
                   >
                     {deleting ? "Deleting..." : "Yes, delete my account"}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
-                    className="h-9 rounded-lg border border-gray-200 dark:border-gray-200 dark:border-white/10 bg-transparent px-4 text-sm font-medium text-gray-600 dark:text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-900 dark:hover:text-white"
+                    className="h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-transparent px-4 text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   >
                     Cancel
                   </button>

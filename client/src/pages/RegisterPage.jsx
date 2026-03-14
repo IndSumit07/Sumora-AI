@@ -33,11 +33,11 @@ const RegisterPage = () => {
         <div className="hidden lg:flex w-1/2 bg-[#090909] m-3 rounded-[1.5rem] flex-col justify-between p-12 relative overflow-hidden">
           <div className="relative z-10">
             <h1 className="text-[2.5rem] leading-[1.1] font-medium text-white mb-2 tracking-tight">
-              Convert your ideas
+              Start your interview
               <br />
-              into successful
+              prep journey
               <br />
-              business.
+              today.
             </h1>
           </div>
 

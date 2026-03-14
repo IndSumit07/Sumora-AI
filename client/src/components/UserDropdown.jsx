@@ -34,19 +34,19 @@ const UserDropdown = ({ onManageAccount }) => {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative z-10 flex items-center gap-2 rounded-full border border-black/10 dark:border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/5 dark:bg-white/5 px-2 py-1.5 transition-colors hover:bg-black/10 dark:hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+        className="relative z-10 flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-2 py-1.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-[#ea580c] to-[#f97316] text-[11px] font-bold text-white shadow-sm">
           {user.username?.charAt(0).toUpperCase()}
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-800 dark:text-gray-200 pr-1 pl-1">
+        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 pr-1 pl-1">
           {user.username}
         </span>
         <svg
           width="12"
           height="12"
           viewBox="0 0 12 12"
-          className={`text-gray-600 dark:text-gray-600 dark:text-gray-400 mr-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`text-gray-600 dark:text-gray-400 mr-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         >
           <path
             d="M3 4.5L6 7.5L9 4.5"
@@ -61,12 +61,14 @@ const UserDropdown = ({ onManageAccount }) => {
 
       {/* Dropdown Menu */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-black/10 dark:border-black/10 dark:border-white/10 bg-white dark:bg-white dark:bg-[#1A1A1A] shadow-2xl backdrop-blur-xl">
-          <div className="border-b border-black/10 dark:border-black/10 dark:border-white/10 px-4 py-3">
-            <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-900 dark:text-white">
+        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A1A1A] shadow-2xl backdrop-blur-xl">
+          <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
+            <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
               {user.username}
             </p>
-            <p className="truncate text-xs text-gray-600 dark:text-gray-600 dark:text-gray-400">{user.email}</p>
+            <p className="truncate text-xs text-gray-600 dark:text-gray-400">
+              {user.email}
+            </p>
           </div>
           <div className="p-1.5 flex flex-col gap-1">
             <button
@@ -76,9 +78,12 @@ const UserDropdown = ({ onManageAccount }) => {
                 setOpen(false);
                 onManageAccount();
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-700 dark:text-gray-300 transition-colors hover:bg-black/10 dark:hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-900 dark:text-gray-900 dark:text-white cursor-pointer"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 transition-colors hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white cursor-pointer"
             >
-              <Settings size={15} className="text-gray-600 dark:text-gray-600 dark:text-gray-400" />
+              <Settings
+                size={15}
+                className="text-gray-600 dark:text-gray-400"
+              />
               Manage account
             </button>
             <button

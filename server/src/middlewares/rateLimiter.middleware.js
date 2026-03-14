@@ -7,7 +7,6 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many attempts, please try again in 15 minutes" },
-
 });
 
 // OTP sending — prevent spam
@@ -17,7 +16,6 @@ export const otpLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many OTP requests, please try again in 15 minutes" },
-
 });
 
 // General API — loose limit for authenticated endpoints
@@ -27,5 +25,13 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests, please slow down" },
+});
 
+// AI endpoints — expensive calls, strict per-user limit
+export const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "AI request limit reached, please try again in an hour" },
 });

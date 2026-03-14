@@ -36,7 +36,11 @@ export async function registerUserController(req, res) {
     // Remove unverified user with same email/username so they can re-register
     const existing = await User.findOne({ $or: [{ username }, { email }] });
     if (existing && existing.isVerified) {
-      return res.status(400).json({ message: "An account with that username or email already exists" });
+      return res
+        .status(400)
+        .json({
+          message: "An account with that username or email already exists",
+        });
     }
     if (existing && !existing.isVerified) {
       await User.findByIdAndDelete(existing._id);
@@ -55,7 +59,9 @@ export async function registerUserController(req, res) {
     await Otp.create({ email, otp, type: "registration" });
     await sendOtpEmail(email, otp, "registration");
 
-    res.status(201).json({ message: "OTP sent to your email", email: newUser.email });
+    res
+      .status(201)
+      .json({ message: "OTP sent to your email", email: newUser.email });
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -87,7 +93,12 @@ export async function verifyOtpController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
-    res.status(200).json({ message: "Email verified successfully", user: userPayload(user) });
+    res
+      .status(200)
+      .json({
+        message: "Email verified successfully",
+        user: userPayload(user),
+      });
   } catch (error) {
     console.error("Verify OTP error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -103,7 +114,9 @@ export async function resendOtpController(req, res) {
 
     const user = await User.findOne({ email, isVerified: false });
     if (!user) {
-      return res.status(400).json({ message: "No pending verification for this email" });
+      return res
+        .status(400)
+        .json({ message: "No pending verification for this email" });
     }
 
     const otp = generateOtp();
@@ -131,7 +144,9 @@ export async function loginUserController(req, res) {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ message: "Please verify your email first" });
+      return res
+        .status(403)
+        .json({ message: "Please verify your email first" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -142,7 +157,9 @@ export async function loginUserController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
-    res.status(200).json({ message: "Login successful", user: userPayload(user) });
+    res
+      .status(200)
+      .json({ message: "Login successful", user: userPayload(user) });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -200,19 +217,30 @@ export async function updateProfileController(req, res) {
       return res.status(400).json({ message: "Username already taken" });
     }
 
-    const user = await User.findByIdAndUpdate(userId, { username }, {
-      new: true,
-      runValidators: true,
-    }).select("-password");
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { username },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).select("-password");
 
     const token = signToken(user);
     setTokenCookie(res, token);
 
-    res.status(200).json({ message: "Profile updated successfully", user: userPayload(user) });
+    res
+      .status(200)
+      .json({
+        message: "Profile updated successfully",
+        user: userPayload(user),
+      });
   } catch (error) {
     console.error("Update profile error:", error);
     if (error.name === "ValidationError") {
-      const msg = Object.values(error.errors).map((e) => e.message).join(", ");
+      const msg = Object.values(error.errors)
+        .map((e) => e.message)
+        .join(", ");
       return res.status(400).json({ message: msg });
     }
     res.status(500).json({ message: "Internal server error" });
@@ -234,7 +262,9 @@ export async function sendEmailChangeOtpController(req, res) {
     }
 
     if (newEmail === user.email) {
-      return res.status(400).json({ message: "New email is the same as your current email" });
+      return res
+        .status(400)
+        .json({ message: "New email is the same as your current email" });
     }
 
     // Check if the new email is already taken by another verified user
@@ -270,24 +300,36 @@ export async function verifyEmailChangeController(req, res) {
     }
 
     // Double-check the email isn't taken (race condition guard)
-    const existing = await User.findOne({ email: newEmail, isVerified: true, _id: { $ne: userId } });
+    const existing = await User.findOne({
+      email: newEmail,
+      isVerified: true,
+      _id: { $ne: userId },
+    });
     if (existing) {
       return res.status(400).json({ message: "Email already in use" });
     }
 
-    const user = await User.findByIdAndUpdate(userId, { email: newEmail }, {
-      new: true,
-      runValidators: true,
-    }).select("-password");
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { email: newEmail },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).select("-password");
 
     const token = signToken(user);
     setTokenCookie(res, token);
 
-    res.status(200).json({ message: "Email updated successfully", user: userPayload(user) });
+    res
+      .status(200)
+      .json({ message: "Email updated successfully", user: userPayload(user) });
   } catch (error) {
     console.error("Verify email change error:", error);
     if (error.name === "ValidationError") {
-      const msg = Object.values(error.errors).map((e) => e.message).join(", ");
+      const msg = Object.values(error.errors)
+        .map((e) => e.message)
+        .join(", ");
       return res.status(400).json({ message: msg });
     }
     res.status(500).json({ message: "Internal server error" });
@@ -353,7 +395,9 @@ export async function forgotPasswordController(req, res) {
     const user = await User.findOne({ email, isVerified: true });
     if (!user) {
       // Don't reveal whether the email exists — same response either way
-      return res.status(200).json({ message: "If an account exists, an OTP has been sent" });
+      return res
+        .status(200)
+        .json({ message: "If an account exists, an OTP has been sent" });
     }
 
     const otp = generateOtp();
@@ -361,7 +405,9 @@ export async function forgotPasswordController(req, res) {
     await Otp.create({ email, otp, type: "forgot-password" });
     await sendOtpEmail(email, otp, "forgot-password");
 
-    res.status(200).json({ message: "If an account exists, an OTP has been sent" });
+    res
+      .status(200)
+      .json({ message: "If an account exists, an OTP has been sent" });
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -401,11 +447,15 @@ export async function resetPasswordController(req, res) {
 export async function deleteAccountController(req, res) {
   try {
     const token = req.cookies.token;
+    const user = await User.findById(req.user.id).select("email");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
     if (token) {
       await Blacklist.create({ token });
     }
     await User.findByIdAndDelete(req.user.id);
-    await Otp.deleteMany({ email: req.user.email });
+    await Otp.deleteMany({ email: user.email });
     res.clearCookie("token");
     res.status(200).json({ message: "Account deleted successfully" });
   } catch (error) {

@@ -18,7 +18,7 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
     } finally {
@@ -33,11 +33,11 @@ const LoginPage = () => {
         <div className="hidden lg:flex w-1/2 bg-[#090909] m-3 rounded-[1.5rem] flex-col justify-between p-12 relative overflow-hidden">
           <div className="relative z-10">
             <h1 className="text-[2.5rem] leading-[1.1] font-medium text-white mb-2 tracking-tight">
-              Turn your vision
+              Ace your next
               <br />
-              into successful
+              interview with
               <br />
-              reality.
+              AI preparation.
             </h1>
           </div>
 
