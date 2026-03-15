@@ -8,7 +8,15 @@ import {
 } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useInterview } from "../context/InterviewContext";
-import { Layers, Plus, Search, Sun, Moon, ChevronLeft } from "lucide-react";
+import {
+  Layers,
+  Plus,
+  Sun,
+  Moon,
+  ChevronLeft,
+  FileText,
+  Mic,
+} from "lucide-react";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
@@ -18,7 +26,6 @@ const DashboardPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") !== "light";
@@ -33,6 +40,8 @@ const DashboardPage = () => {
   const currentSessionId = sessionMatch?.[1] ?? null;
   const isInSession = !!currentSessionId;
   const currentSession = sessions?.find((s) => s._id === currentSessionId);
+  const activeSection =
+    new URLSearchParams(location.search).get("tab") || "reports";
 
   useEffect(() => {
     if (isDark) {
@@ -59,10 +68,6 @@ const DashboardPage = () => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-
-  const filteredSessions = sessions?.filter((s) =>
-    s.title?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0d0d0d] text-gray-900 dark:text-white">
@@ -122,83 +127,58 @@ const DashboardPage = () => {
         </div>
       </aside>
 
-      {/* ── Secondary sidebar: sessions list — only when inside a session ── */}
+      {/* ── Secondary sidebar: session nav — only when inside a session ── */}
       {isInSession && (
-        <aside className="hidden md:flex w-72 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex-col flex-shrink-0 z-10">
+        <aside className="hidden md:flex w-64 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex-col flex-shrink-0 z-10">
+          {/* Session identity */}
           <div className="p-4 border-b border-gray-200 dark:border-[#222]">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                Sessions
-              </h2>
-              <Link
-                to="/dashboard/new"
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-                title="New Session"
-              >
-                <Plus size={16} />
-              </Link>
-            </div>
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-                size={14}
-              />
-              <input
-                type="text"
-                placeholder="Search sessions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-8 pr-3 rounded-xl bg-gray-100 dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
-              />
-            </div>
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+              Session
+            </p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug truncate">
+              {currentSession?.title ?? "Loading…"}
+            </p>
+            {currentSession?.jobTitle && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                {currentSession.jobTitle}
+              </p>
+            )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-            {filteredSessions?.length === 0 ? (
-              <p className="px-3 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
-                No sessions found
-              </p>
-            ) : (
-              filteredSessions?.map((session) => {
-                const isActive = session._id === currentSessionId;
-                const score = session.latestReport?.matchScore ?? null;
-                return (
-                  <Link
-                    key={session._id}
-                    to={`/dashboard/sessions/${session._id}`}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                      isActive
-                        ? "bg-[#ea580c]/10 dark:bg-[#ea580c]/15"
-                        : "hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
-                    }`}
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                        isActive
-                          ? "bg-[#ea580c] text-white"
-                          : "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400"
-                      }`}
-                    >
-                      {getInitials(session.title)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-xs font-medium truncate ${
-                          isActive
-                            ? "text-[#ea580c]"
-                            : "text-gray-700 dark:text-gray-200"
-                        }`}
-                      >
-                        {session.title}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                        {score != null ? `${score}% match` : "No report yet"}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })
-            )}
+          {/* Navigation items */}
+          <nav className="p-2 flex flex-col gap-0.5 flex-1">
+            {[
+              { id: "reports", icon: FileText, label: "Reports" },
+              { id: "interview", icon: Mic, label: "Live Interview" },
+            ].map(({ id, icon: Icon, label }) => {
+              const active = activeSection === id;
+              return (
+                <Link
+                  key={id}
+                  to={`/dashboard/sessions/${currentSessionId}?tab=${id}`}
+                  className={[
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    active
+                      ? "bg-[#ea580c]/10 dark:bg-[#ea580c]/15 text-[#ea580c]"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] hover:text-gray-900 dark:hover:text-gray-200",
+                  ].join(" ")}
+                >
+                  <Icon size={16} className="flex-shrink-0" />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Back link */}
+          <div className="p-4 border-t border-gray-100 dark:border-[#222]">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              <ChevronLeft size={14} />
+              All Sessions
+            </Link>
           </div>
         </aside>
       )}
@@ -222,9 +202,7 @@ const DashboardPage = () => {
           </header>
         )}
 
-        <main
-          className={`flex-1 overflow-y-auto${isInSession ? " p-4 md:p-6 lg:p-8" : ""}`}
-        >
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

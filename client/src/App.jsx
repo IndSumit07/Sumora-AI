@@ -9,9 +9,9 @@ import VerifyOtpPage from "./pages/VerifyOtpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
-import NewInterviewView from "./components/dashboard/NewInterviewView";
-import ReportsListView from "./components/dashboard/ReportsListView";
-import ReportDetailView from "./components/dashboard/ReportDetailView";
+import SessionsListView from "./components/dashboard/views/SessionsListView";
+import NewSessionView from "./components/dashboard/views/NewSessionView";
+import SessionDetailView from "./components/dashboard/views/SessionDetailView";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -69,13 +69,13 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<ReportsListView />} />
-          <Route path="new" element={<NewInterviewView />} />
+          <Route index element={<SessionsListView />} />
+          <Route path="new" element={<NewSessionView />} />
           <Route
             path="sessions"
             element={<Navigate to="/dashboard" replace />}
           />
-          <Route path="sessions/:id" element={<ReportDetailView />} />
+          <Route path="sessions/:sessionId" element={<SessionDetailView />} />
         </Route>
 
         {/* Fallback */}

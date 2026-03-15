@@ -23,33 +23,33 @@ const SessionCard = ({ session }) => {
   return (
     <Link
       to={`/dashboard/sessions/${session._id}`}
-      className="group bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:border-[#ea580c]/40 hover:shadow-md transition-all flex flex-col gap-3"
+      className="group bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-5 shadow-sm hover:border-[#ea580c]/40 hover:shadow-md transition-all flex flex-col gap-3"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug group-hover:text-[#ea580c] transition-colors line-clamp-2 flex-1">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug group-hover:text-[#ea580c] transition-colors line-clamp-2 flex-1">
           {session.title}
         </h3>
-        {session.report ? (
+        {session.latestReport ? (
           <span
             className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${scoreStyle(
-              session.report.matchScore,
+              session.latestReport.matchScore,
             )}`}
           >
-            {session.report.matchScore}%
+            {session.latestReport.matchScore}%
           </span>
         ) : (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 flex-shrink-0 whitespace-nowrap">
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-[#2a2a2a] text-gray-400 dark:text-gray-500 flex-shrink-0 whitespace-nowrap">
             No report yet
           </span>
         )}
       </div>
 
-      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+      <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 leading-relaxed">
         {excerpt}
       </p>
 
       <div className="flex items-center justify-between mt-auto pt-1">
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <Calendar size={11} />
           {date}
         </div>
@@ -83,10 +83,10 @@ const SessionsListView = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
             My Sessions
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {sessions.length} session{sessions.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -102,13 +102,13 @@ const SessionsListView = () => {
       {sessions.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-28 text-center">
-          <div className="h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-            <Layers size={22} className="text-gray-400" />
+          <div className="h-14 w-14 rounded-2xl bg-gray-100 dark:bg-[#222] flex items-center justify-center mb-4">
+            <Layers size={22} className="text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
             No sessions yet
           </h3>
-          <p className="text-sm text-gray-400 mb-6 max-w-[260px]">
+          <p className="text-sm text-gray-400 dark:text-gray-500 mb-6 max-w-[260px]">
             Create your first session and let AI prepare you for any interview.
           </p>
           <Link

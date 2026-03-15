@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
+import InterviewHistoryView from "../interview/InterviewHistoryView";
 import {
   ArrowLeft,
   Upload,
   FileText,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
+  Plus,
   Download,
   Loader2,
   CheckCircle2,
@@ -107,39 +110,47 @@ const MatchScoreRing = ({ score }) => {
 // ── Question Accordion ────────────────────────────────────────────────────────
 
 const QuestionCard = ({ q, index, open, onToggle }) => (
-  <div className="border border-gray-200 rounded-xl overflow-hidden">
+  <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden">
     <button
       onClick={onToggle}
-      className="w-full flex items-start justify-between gap-3 p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+      className="w-full flex items-start justify-between gap-3 p-4 text-left bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
     >
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <span className="flex-shrink-0 h-6 w-6 rounded-full bg-[#ea580c]/10 text-[#ea580c] text-xs font-bold flex items-center justify-center mt-0.5">
           {index + 1}
         </span>
-        <span className="text-sm font-medium text-gray-900 leading-snug">
+        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">
           {q.question}
         </span>
       </div>
       {open ? (
-        <ChevronUp size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+        <ChevronUp
+          size={16}
+          className="text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5"
+        />
       ) : (
-        <ChevronDown size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+        <ChevronDown
+          size={16}
+          className="text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5"
+        />
       )}
     </button>
 
     {open && (
-      <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 space-y-3">
+      <div className="px-4 pb-4 bg-gray-50 dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-[#222] space-y-3">
         <div className="pt-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ea580c] mb-1">
             Why they ask this
           </p>
-          <p className="text-sm text-gray-600 leading-relaxed">{q.intention}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            {q.intention}
+          </p>
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500 mb-1">
             How to answer
           </p>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
             {q.answer}
           </p>
         </div>
@@ -151,14 +162,16 @@ const QuestionCard = ({ q, index, open, onToggle }) => (
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
 const Section = ({ title, badge, icon: Icon, children }) => (
-  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+  <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] shadow-sm overflow-hidden">
+    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#222]">
       <div className="flex items-center gap-2.5">
         <Icon size={16} className="text-[#ea580c]" />
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h2>
       </div>
       {badge !== undefined && (
-        <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">
+        <span className="text-xs font-medium bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
           {badge}
         </span>
       )}
@@ -166,6 +179,46 @@ const Section = ({ title, badge, icon: Icon, children }) => (
     <div className="p-4 sm:p-6">{children}</div>
   </div>
 );
+
+// ── Report summary card ───────────────────────────────────────────────────────
+
+const ReportCard = ({ report, onClick }) => {
+  const date = new Date(report.createdAt).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+  const { label, badge } = scoreConfig(report.matchScore ?? 0);
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left group bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-5 shadow-sm hover:border-[#ea580c]/40 hover:shadow-md transition-all flex items-center gap-4"
+    >
+      <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-[#ea580c]/10 flex items-center justify-center">
+        <span className="text-sm font-bold text-[#ea580c]">{report.matchScore ?? 0}</span>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+          {report.title || "Interview Report"}
+        </p>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+            <Calendar size={11} />
+            {date}
+          </div>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge}`}>
+            {label}
+          </span>
+        </div>
+      </div>
+
+      <ChevronRight
+        size={16}
+        className="text-gray-300 dark:text-gray-600 group-hover:text-[#ea580c] transition-colors flex-shrink-0"
+      />
+    </button>
+  );
+};
 
 // ── Severity badge ────────────────────────────────────────────────────────────
 
@@ -228,11 +281,11 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">
+      <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-6 shadow-sm mb-5">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
           Generate AI Report
         </h2>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
           Provide your resume and a brief self-introduction. The AI will analyze
           your fit for the role and generate a personalized prep report.
         </p>
@@ -240,13 +293,13 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Resume section */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <p className="text-sm font-semibold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-6 shadow-sm">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
             Your Resume
           </p>
 
           {/* Mode tabs */}
-          <div className="flex rounded-xl bg-gray-100 p-1 mb-5 gap-1">
+          <div className="flex rounded-xl bg-gray-100 dark:bg-[#222] p-1 mb-5 gap-1">
             {[
               { id: "upload", label: "Upload PDF" },
               { id: "text", label: "Paste Text" },
@@ -258,8 +311,8 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
                 className={[
                   "flex-1 py-1.5 rounded-lg text-xs font-medium transition-all",
                   resumeMode === id
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700",
+                    ? "bg-white dark:bg-[#333] text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
                 ].join(" ")}
               >
                 {label}
@@ -274,7 +327,7 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
                 "border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors",
                 resumeFile
                   ? "border-[#ea580c]/40 bg-[#ea580c]/5"
-                  : "border-gray-200 hover:border-[#ea580c]/40 hover:bg-gray-50",
+                  : "border-gray-200 dark:border-[#2a2a2a] hover:border-[#ea580c]/40 hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
               ].join(" ")}
             >
               <input
@@ -290,24 +343,27 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
                     <FileText size={20} className="text-[#ea580c]" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {resumeFile.name}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {(resumeFile.size / 1024).toFixed(0)} KB · Click to change
                     </p>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center">
-                    <Upload size={20} className="text-gray-400" />
+                  <div className="h-10 w-10 rounded-xl bg-gray-100 dark:bg-[#2a2a2a] flex items-center justify-center">
+                    <Upload
+                      size={20}
+                      className="text-gray-400 dark:text-gray-500"
+                    />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-700">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Click to upload PDF
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       PDF up to 3 MB
                     </p>
                   </div>
@@ -321,18 +377,20 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
               placeholder="Paste your full resume content here…"
               rows={10}
               maxLength={5000}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
+              className="w-full rounded-xl border border-gray-200 dark:border-[#333] px-4 py-3 text-sm text-gray-900 dark:text-gray-200 bg-transparent dark:bg-[#1e1e1e] outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
             />
           )}
         </div>
 
         {/* Self description */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
               Self Description
             </p>
-            <span className="text-xs text-gray-400">Optional</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              Optional
+            </span>
           </div>
           <textarea
             value={selfDescription}
@@ -340,9 +398,9 @@ const GenerateReportForm = ({ session, onReportGenerated }) => {
             placeholder="Briefly describe your background, years of experience, key skills, or anything else you'd like the AI to know…"
             rows={5}
             maxLength={2000}
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
+            className="w-full rounded-xl border border-gray-200 dark:border-[#333] px-4 py-3 text-sm text-gray-900 dark:text-gray-200 bg-transparent dark:bg-[#1e1e1e] outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
           />
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             {selfDescription.length}/2000
           </p>
         </div>
@@ -503,20 +561,20 @@ const ReportDisplay = ({ session, report, onDownloadPdf, pdfLoading }) => {
                   </span>
                 </div>
                 {i < report.preparationPlan.length - 1 && (
-                  <div className="w-px flex-1 bg-gray-200 mt-1" />
+                  <div className="w-px flex-1 bg-gray-200 dark:bg-[#333] mt-1" />
                 )}
               </div>
 
               {/* Day content */}
               <div className="pb-5 flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 mb-2">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   {day.focus}
                 </p>
                 <ul className="space-y-1.5">
                   {day.tasks?.map((task, j) => (
                     <li
                       key={j}
-                      className="flex items-start gap-2 text-sm text-gray-600"
+                      className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
                     >
                       <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#ea580c] flex-shrink-0" />
                       {task}
@@ -539,16 +597,22 @@ const SessionDetailView = () => {
   const { getSessionById, generatePdf } = useInterview();
 
   const [session, setSession] = useState(null);
-  const [report, setReport] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [reportView, setReportView] = useState("list"); // "list" | "form" | "detail"
+  const [selectedReport, setSelectedReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const section = searchParams.get("tab") || "reports";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await getSessionById(sessionId);
         setSession(data.session);
-        setReport(data.report);
+        const list = data.reports || [];
+        setReports(list);
+        if (list.length === 0) setReportView("form");
       } catch {
         toast.error("Failed to load session");
       } finally {
@@ -562,7 +626,7 @@ const SessionDetailView = () => {
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
     try {
-      await generatePdf(report._id, report.title || session.title);
+      await generatePdf(selectedReport._id, selectedReport.title || session.title);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to generate PDF");
     } finally {
@@ -581,7 +645,9 @@ const SessionDetailView = () => {
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center py-28 text-center">
-        <p className="text-sm text-gray-500 mb-4">Session not found.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Session not found.
+        </p>
         <Link
           to="/dashboard/sessions"
           className="flex items-center gap-2 text-sm font-medium text-[#ea580c] hover:underline"
@@ -595,51 +661,105 @@ const SessionDetailView = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 mb-6">
-        <Link
-          to="/dashboard/sessions"
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
-        >
-          <ArrowLeft size={13} />
-          My Sessions
-        </Link>
-        <span className="text-gray-300">/</span>
-        <span className="text-xs text-gray-600 font-medium truncate max-w-[200px]">
-          {session.title}
-        </span>
-      </div>
-
       {/* Session info card (always visible) */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm mb-6">
+      <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-5 shadow-sm mb-5">
         <div className="flex items-start gap-3">
           <div className="h-9 w-9 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
             <FileText size={16} className="text-[#ea580c]" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-gray-900 leading-tight">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
               {session.title}
             </h2>
-            <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 line-clamp-2">
               {session.jobDescription}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Render generate form or full report */}
-      {report ? (
-        <ReportDisplay
-          session={session}
-          report={report}
-          onDownloadPdf={handleDownloadPdf}
-          pdfLoading={pdfLoading}
-        />
+      {/* Render active section */}
+      {section === "reports" ? (
+        reportView === "detail" && selectedReport ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => { setReportView("list"); setSelectedReport(null); }}
+                className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                ← All Reports
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportView("form")}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#ea580c] text-xs font-medium text-white hover:bg-[#d24e0b] transition-colors"
+              >
+                <Plus size={13} />
+                New Report
+              </button>
+            </div>
+            <ReportDisplay
+              session={session}
+              report={selectedReport}
+              onDownloadPdf={handleDownloadPdf}
+              pdfLoading={pdfLoading}
+            />
+          </div>
+        ) : reportView === "form" ? (
+          <div className="space-y-4">
+            {reports.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setReportView("list")}
+                className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                ← All Reports
+              </button>
+            )}
+            <GenerateReportForm
+              session={session}
+              onReportGenerated={(newReport) => {
+                setReports((prev) => [newReport, ...prev]);
+                setSelectedReport(newReport);
+                setReportView("detail");
+              }}
+            />
+          </div>
+        ) : (
+          /* reportView === "list" */
+          <div className="space-y-4 max-w-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Reports
+                </h3>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {reports.length} report{reports.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReportView("form")}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
+              >
+                <Plus size={14} />
+                New Report
+              </button>
+            </div>
+            <div className="space-y-3">
+              {reports.map((r) => (
+                <ReportCard
+                  key={r._id}
+                  report={r}
+                  onClick={() => { setSelectedReport(r); setReportView("detail"); }}
+                />
+              ))}
+            </div>
+          </div>
+        )
       ) : (
-        <GenerateReportForm
-          session={session}
-          onReportGenerated={(newReport) => setReport(newReport)}
-        />
+        <InterviewHistoryView session={session} />
       )}
     </div>
   );

@@ -69,17 +69,83 @@ export const InterviewProvider = ({ children }) => {
     return data.report;
   };
 
+  // ── Live interview ────────────────────────────────────────────────────────────
+
+  /**
+   * uploadResume — parses a PDF on the server and returns extracted text.
+   * @param {File} file
+   * @returns {Promise<string>} resumeText
+   */
+  const uploadResume = async (file) => {
+    const fd = new FormData();
+    fd.append("resume", file);
+    const { data } = await api.post("/interview/upload-resume", fd);
+    return data.resumeText;
+  };
+
+  /**
+   * startInterview — creates a LiveInterview on the server and returns the first question.
+   * @param {{ sessionId, resumeText, role, jobDescription }} payload
+   * @returns {{ interviewId: string, question: string }}
+   */
+  const startInterview = async (payload) => {
+    const { data } = await api.post("/interview/start", payload);
+    return data;
+  };
+
+  /**
+   * answerInterview — submits an answer and returns the AI's next question.
+   * @param {string} interviewId
+   * @param {string} userAnswer
+   * @returns {{ question: string }}
+   */
+  const answerInterview = async (interviewId, userAnswer) => {
+    const { data } = await api.post("/interview/answer", {
+      interviewId,
+      userAnswer,
+    });
+    return data;
+  };
+
+  /**
+   * endInterview — ends the interview and returns structured feedback + score.
+   * @param {string} interviewId
+   * @returns {{ feedback: object, score: number }}
+   */
+  const endInterview = async (interviewId) => {
+    const { data } = await api.post("/interview/end", { interviewId });
+    return data;
+  };
+
+  /**
+   * getLiveInterviewsBySession — returns all live interviews for a session (summary, newest first).
+   * @param {string} sessionId
+   * @returns {Promise<Array>}
+   */
+  const getLiveInterviewsBySession = async (sessionId) => {
+    const { data } = await api.get(`/interview/live/session/${sessionId}`);
+    return data.interviews;
+  };
+
+  /**
+   * getLiveInterviewById — returns a single live interview with full conversation + feedback.
+   * @param {string} interviewId
+   * @returns {Promise<object>}
+   */
+  const getLiveInterviewById = async (interviewId) => {
+    const { data } = await api.get(`/interview/live/${interviewId}`);
+    return data.interview;
+  };
+
   // ── PDF generation ────────────────────────────────────────────────────────────
 
   /**
    * generatePdf — generates a tailored resume PDF and downloads it directly.
    */
   const generatePdf = async (reportId) => {
-    const response = await api.post(
-      `/interview/resume/pdf/${reportId}`,
-      null,
-      { responseType: "blob" },
-    );
+    const response = await api.post(`/interview/resume/pdf/${reportId}`, null, {
+      responseType: "blob",
+    });
     const url = URL.createObjectURL(response.data);
     const a = document.createElement("a");
     a.href = url;
@@ -101,6 +167,12 @@ export const InterviewProvider = ({ children }) => {
         updateSession,
         generateReport,
         generatePdf,
+        uploadResume,
+        startInterview,
+        answerInterview,
+        endInterview,
+        getLiveInterviewsBySession,
+        getLiveInterviewById,
       }}
     >
       {children}
