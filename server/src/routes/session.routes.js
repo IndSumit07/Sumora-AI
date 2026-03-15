@@ -5,60 +5,21 @@ import {
   createSessionController,
   getAllSessionsController,
   getSessionByIdController,
-  deleteSessionController,
   updateSessionController,
+  deleteSessionController,
 } from "../controllers/session.controller.js";
 
 const sessionRouter = express.Router();
 
-/**
- * @route POST /api/session/
- * @description Create a new interview prep session
- * @access private
- */
+// POST   /api/session/     — create session (JSON body)
 sessionRouter.post("/", apiLimiter, authMiddleware, createSessionController);
-
-/**
- * @route GET /api/session/
- * @description Get all sessions for logged-in user (with report summaries)
- * @access private
- */
+// GET    /api/session/     — list all sessions with report summaries
 sessionRouter.get("/", apiLimiter, authMiddleware, getAllSessionsController);
-
-/**
- * @route GET /api/session/:sessionId
- * @description Get a single session with its full report (if any)
- * @access private
- */
-sessionRouter.get(
-  "/:sessionId",
-  apiLimiter,
-  authMiddleware,
-  getSessionByIdController,
-);
-
-/**
- * @route PATCH /api/session/:sessionId
- * @description Update session title or job description
- * @access private
- */
-sessionRouter.patch(
-  "/:sessionId",
-  apiLimiter,
-  authMiddleware,
-  updateSessionController,
-);
-
-/**
- * @route DELETE /api/session/:sessionId
- * @description Delete a session and its report
- * @access private
- */
-sessionRouter.delete(
-  "/:sessionId",
-  apiLimiter,
-  authMiddleware,
-  deleteSessionController,
-);
+// GET    /api/session/:id  — get session + all its reports
+sessionRouter.get("/:sessionId", apiLimiter, authMiddleware, getSessionByIdController);
+// PATCH  /api/session/:id  — update session fields (JSON body)
+sessionRouter.patch("/:sessionId", apiLimiter, authMiddleware, updateSessionController);
+// DELETE /api/session/:id  — delete session and all its reports
+sessionRouter.delete("/:sessionId", apiLimiter, authMiddleware, deleteSessionController);
 
 export default sessionRouter;

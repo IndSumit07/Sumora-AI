@@ -8,23 +8,9 @@ import {
 } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useInterview } from "../context/InterviewContext";
-import {
-  MessageSquare,
-  Layers,
-  Plus,
-  Search,
-  Bell,
-  MoreHorizontal,
-  FileText,
-  Sun,
-  Moon,
-} from "lucide-react";
+import { Layers, Plus, Search, Sun, Moon, ChevronLeft } from "lucide-react";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
-
-// Score formatting from reports list view
-const getScoreColor = (s) =>
-  s >= 75 ? "#16a34a" : s >= 50 ? "#d97706" : "#dc2626";
 
 const DashboardPage = () => {
   const { user, loading: authLoading, logout } = useAuth();
@@ -39,6 +25,14 @@ const DashboardPage = () => {
     }
     return true;
   });
+
+  // Detect if we're inside a specific session workspace
+  const sessionMatch = location.pathname.match(
+    /\/dashboard\/sessions\/([^/]+)/,
+  );
+  const currentSessionId = sessionMatch?.[1] ?? null;
+  const isInSession = !!currentSessionId;
+  const currentSession = sessions?.find((s) => s._id === currentSessionId);
 
   useEffect(() => {
     if (isDark) {
@@ -72,57 +66,43 @@ const DashboardPage = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0d0d0d] text-gray-900 dark:text-white">
-      {/* 1. Left Slim Sidebar */}
+      {/* ── Slim icon sidebar — always visible ── */}
       <aside className="w-16 md:w-20 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex flex-col items-center py-4 flex-shrink-0 z-20">
         <Link
-          to="/"
+          to="/dashboard"
           className="w-10 h-10 bg-[#ea580c] rounded-xl flex items-center justify-center mb-8"
         >
-          <span className="text-gray-900 dark:text-white font-bold text-lg">
-            S
-          </span>
+          <span className="text-white font-bold text-lg">S</span>
         </Link>
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-2">
           <Link
-            to="/dashboard/new"
+            to="/dashboard"
+            title="All Sessions"
             className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors ${
-              location.pathname === "/dashboard/new"
+              !isInSession && location.pathname !== "/dashboard/new"
                 ? "text-[#ea580c]"
-                : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:bg-[#222]"
+                : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222]"
             }`}
           >
-            <MessageSquare
-              size={22}
-              fill={
-                location.pathname === "/dashboard/new" ? "currentColor" : "none"
-              }
-            />
-            <span className="text-[10px] font-medium">Practice</span>
+            <Layers size={22} />
+            <span className="text-[10px] font-medium">Sessions</span>
           </Link>
 
           <Link
-            to="/dashboard/sessions"
+            to="/dashboard/new"
+            title="New Session"
             className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors ${
-              location.pathname.startsWith("/dashboard/sessions") &&
-              location.pathname !== "/dashboard/sessions/new"
+              location.pathname === "/dashboard/new"
                 ? "text-[#ea580c]"
-                : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:bg-[#222]"
+                : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222]"
             }`}
           >
-            <Layers
-              size={22}
-              fill={
-                location.pathname.startsWith("/dashboard/sessions")
-                  ? "currentColor"
-                  : "none"
-              }
-            />
-            <span className="text-[10px] font-medium">Sessions</span>
+            <Plus size={22} />
+            <span className="text-[10px] font-medium">New</span>
           </Link>
         </nav>
 
-        {/* User Theme/Logout toggle */}
         <div className="mt-auto flex flex-col items-center gap-4">
           <button
             onClick={() => setIsDark(!isDark)}
@@ -135,103 +115,119 @@ const DashboardPage = () => {
           <button
             onClick={logout}
             title="Logout"
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-[#333] flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-red-500 transition-colors"
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-[#333] flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-300 hover:border-red-500 hover:text-red-500 transition-colors"
           >
             {getInitials(user?.username)}
           </button>
         </div>
       </aside>
 
-      {/* 2. Secondary Sidebar (Sessions List) */}
-      <aside className="hidden md:flex w-80 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex-col flex-shrink-0 z-10">
-        <div className="p-4 border-b border-gray-200 dark:border-[#222]">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Sessions
-            </h2>
-            <Link
-              to="/dashboard/new"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-            >
-              <Plus size={20} />
-            </Link>
-          </div>
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-              size={16}
-            />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 rounded-xl bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-[#333] text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-6">
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-1">
-              MY SESSIONS
-            </h3>
-            <div className="space-y-1">
-              {filteredSessions?.length === 0 ? (
-                <div className="px-3 py-4 text-center text-sm text-gray-400 dark:text-gray-500">
-                  No sessions found
-                </div>
-              ) : (
-                filteredSessions?.map((session) => {
-                  const isActive =
-                    location.pathname === `/dashboard/sessions/${session._id}`;
-                  const score = session.report?.score || 0;
-                  return (
-                    <Link
-                      key={session._id}
-                      to={`/dashboard/sessions/${session._id}`}
-                      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        isActive
-                          ? "bg-gray-100 dark:bg-[#222] ring-1 ring-gray-200 dark:ring-[#333]"
-                          : "hover:bg-gray-50 dark:bg-[#1a1a1a]"
-                      }`}
-                    >
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isActive ? "bg-[#ea580c]" : "bg-gray-200 dark:bg-[#2a2a2a]"}`}
-                      >
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {getInitials(session.title)}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline mb-0.5">
-                          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                            # {session.title}
-                          </h4>
-                          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
-                            {new Date(session.createdAt).toLocaleDateString(
-                              undefined,
-                              { month: "short", day: "numeric" },
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400 dark:text-gray-400 truncate">
-                          {score > 0 ? `Score: ${score}%` : "Not started yet"}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })
-              )}
+      {/* ── Secondary sidebar: sessions list — only when inside a session ── */}
+      {isInSession && (
+        <aside className="hidden md:flex w-72 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex-col flex-shrink-0 z-10">
+          <div className="p-4 border-b border-gray-200 dark:border-[#222]">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                Sessions
+              </h2>
+              <Link
+                to="/dashboard/new"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+                title="New Session"
+              >
+                <Plus size={16} />
+              </Link>
+            </div>
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                size={14}
+              />
+              <input
+                type="text"
+                placeholder="Search sessions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-9 pl-8 pr-3 rounded-xl bg-gray-100 dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] text-sm text-gray-800 dark:text-gray-200 outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
             </div>
           </div>
-        </div>
-      </aside>
 
-      {/* 3. Main Layout Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-gray-50 dark:bg-[#0d0d0d] p-4 md:p-6 lg:p-8">
-        <Outlet />
-      </main>
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {filteredSessions?.length === 0 ? (
+              <p className="px-3 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+                No sessions found
+              </p>
+            ) : (
+              filteredSessions?.map((session) => {
+                const isActive = session._id === currentSessionId;
+                const score = session.latestReport?.matchScore ?? null;
+                return (
+                  <Link
+                    key={session._id}
+                    to={`/dashboard/sessions/${session._id}`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                      isActive
+                        ? "bg-[#ea580c]/10 dark:bg-[#ea580c]/15"
+                        : "hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        isActive
+                          ? "bg-[#ea580c] text-white"
+                          : "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
+                      {getInitials(session.title)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-xs font-medium truncate ${
+                          isActive
+                            ? "text-[#ea580c]"
+                            : "text-gray-700 dark:text-gray-200"
+                        }`}
+                      >
+                        {session.title}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {score != null ? `${score}% match` : "No report yet"}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* ── Main content area ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top navbar — only when inside a session */}
+        {isInSession && (
+          <header className="flex-shrink-0 h-12 flex items-center gap-3 px-4 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222]">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
+              title="Back to all sessions"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <div className="w-px h-5 bg-gray-200 dark:bg-[#333]" />
+            <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {currentSession?.title ?? "Loading…"}
+            </span>
+          </header>
+        )}
+
+        <main
+          className={`flex-1 overflow-y-auto${isInSession ? " p-4 md:p-6 lg:p-8" : ""}`}
+        >
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };

@@ -69,9 +69,12 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="new" replace />} />
+          <Route index element={<ReportsListView />} />
           <Route path="new" element={<NewInterviewView />} />
-          <Route path="sessions" element={<ReportsListView />} />
+          <Route
+            path="sessions"
+            element={<Navigate to="/dashboard" replace />}
+          />
           <Route path="sessions/:id" element={<ReportDetailView />} />
         </Route>
 

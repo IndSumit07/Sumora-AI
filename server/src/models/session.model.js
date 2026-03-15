@@ -14,15 +14,23 @@ const sessionSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100, "Title cannot exceed 100 characters"],
     },
+    jobTitle: {
+      type: String,
+      required: [true, "Job title is required"],
+      trim: true,
+      maxlength: [100, "Job title cannot exceed 100 characters"],
+    },
     jobDescription: {
       type: String,
       required: [true, "Job description is required"],
       trim: true,
-      maxlength: [1000, "Job description cannot exceed 1000 characters"],
+      maxlength: [5000, "Job description cannot exceed 5000 characters"],
     },
-    hasReport: {
-      type: Boolean,
-      default: false,
+    selfDescription: {
+      type: String,
+      required: [true, "Self description is required"],
+      trim: true,
+      maxlength: [2000, "Self description cannot exceed 2000 characters"],
     },
   },
   { timestamps: true },

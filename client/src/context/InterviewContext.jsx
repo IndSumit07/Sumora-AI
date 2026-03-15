@@ -4,19 +4,16 @@ import toast from "react-hot-toast";
 
 const InterviewContext = createContext(null);
 
-const api = axios.create({
-  baseURL: "/api",
-  withCredentials: true,
-});
+const api = axios.create({ baseURL: "/api", withCredentials: true });
 
 export const InterviewProvider = ({ children }) => {
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
 
-  // ── Session CRUD ─────────────────────────────────────────────────────────────
+  // ── Session CRUD ──────────────────────────────────────────────────────────────
 
-  const createSession = async (title, jobDescription) => {
-    const { data } = await api.post("/session", { title, jobDescription });
+  const createSession = async (payload) => {
+    const { data } = await api.post("/session", payload);
     return data.session;
   };
 
@@ -31,9 +28,12 @@ export const InterviewProvider = ({ children }) => {
     }
   };
 
+  /**
+   * getSessionById — returns { session, reports: InterviewReport[] }.
+   */
   const getSessionById = async (id) => {
     const { data } = await api.get(`/session/${id}`);
-    return data; // { session, report }
+    return data;
   };
 
   const deleteSession = async (id) => {
@@ -41,6 +41,9 @@ export const InterviewProvider = ({ children }) => {
     setSessions((prev) => prev.filter((s) => s._id !== id));
   };
 
+  /**
+   * updateSession — JSON body, no file upload.
+   */
   const updateSession = async (id, payload) => {
     const { data } = await api.patch(`/session/${id}`, payload);
     setSessions((prev) =>
@@ -52,55 +55,38 @@ export const InterviewProvider = ({ children }) => {
   // ── Report generation ─────────────────────────────────────────────────────────
 
   /**
-   * generateReport:  sends multipart/form-data so the server can receive
-   * an optional PDF file (field name "resume") alongside text fields.
-   * @param {string}  sessionId
-   * @param {File|null} resumeFile  – PDF file object (optional)
-   * @param {string}  resumeText   – pasted resume text (used when no file)
-   * @param {string}  selfDescription
+   * generateReport — sends sessionId + optional resume PDF to the server.
+   * Resume is parsed and forwarded to Gemini but never stored.
+   * @param {string} sessionId
+   * @param {File|null} resumeFile — optional PDF for better analysis
    */
-  const generateReport = async (
-    sessionId,
-    resumeFile,
-    resumeText,
-    selfDescription,
-  ) => {
+  const generateReport = async (sessionId, resumeFile = null) => {
     const fd = new FormData();
     fd.append("sessionId", sessionId);
-    fd.append("selfDescription", selfDescription || "");
-
-    if (resumeFile) {
-      fd.append("resume", resumeFile);
-    } else {
-      fd.append("resume", resumeText || "");
-    }
-
-    const { data } = await api.post("/interview", fd, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    if (resumeFile) fd.append("resume", resumeFile);
+    const { data } = await api.post("/interview", fd);
     toast.success("Report generated!");
     return data.report;
   };
 
-  // ── PDF download ──────────────────────────────────────────────────────────────
+  // ── PDF generation ────────────────────────────────────────────────────────────
 
-  const generatePdf = async (reportId, title) => {
-    const { data } = await api.post(
+  /**
+   * generatePdf — generates a tailored resume PDF and downloads it directly.
+   */
+  const generatePdf = async (reportId) => {
+    const response = await api.post(
       `/interview/resume/pdf/${reportId}`,
-      {},
+      null,
       { responseType: "blob" },
     );
-    const url = URL.createObjectURL(
-      new Blob([data], { type: "application/pdf" }),
-    );
+    const url = URL.createObjectURL(response.data);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `resume-${title || reportId}.pdf`;
-    document.body.appendChild(a);
+    a.download = `resume-${reportId}.pdf`;
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("PDF downloaded!");
+    toast.success("Resume downloaded!");
   };
 
   return (
