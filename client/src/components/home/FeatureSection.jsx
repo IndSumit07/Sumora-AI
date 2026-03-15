@@ -48,10 +48,14 @@ const FeatureSection = () => (
     </div>
 
     {/* Full Dashboard preview */}
-    <div className="relative h-[540px] lg:-mr-6 xl:-mr-12">
+    <div className="relative h-[760px] hidden lg:block">
       <DashboardMockup
-        className="w-full rounded-[24px] border border-gray-200 dark:border-white/5 bg-white/30 dark:bg-[#161616]/30 p-0 shadow-2xl overflow-hidden backdrop-blur-sm"
-        style={{}}
+        className="absolute inset-y-0 left-0 right-[-55%] rounded-l-[24px] rounded-r-none border border-r-0 border-gray-200 dark:border-white/5 bg-white/30 dark:bg-[#161616]/30 p-0 shadow-2xl overflow-hidden backdrop-blur-sm"
+        style={{
+          maskImage: "linear-gradient(to bottom, black 60%, transparent 90%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, black 60%, transparent 90%)",
+        }}
       />
     </div>
   </section>
