@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   FileText,
   Mic,
+  Menu,
 } from "lucide-react";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
@@ -32,6 +33,10 @@ const DashboardPage = () => {
     }
     return true;
   });
+
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 768,
+  );
 
   // Detect if we're inside a specific session workspace
   const sessionMatch = location.pathname.match(
@@ -71,8 +76,10 @@ const DashboardPage = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0d0d0d] text-gray-900 dark:text-white">
-      {/* ── Slim icon sidebar — always visible ── */}
-      <aside className="w-16 md:w-20 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex flex-col items-center py-4 flex-shrink-0 z-20">
+      {/* ── Slim icon sidebar — collapsible on mobile ── */}
+      <aside
+        className={`${sidebarOpen ? "w-16" : "w-0"} md:w-20 overflow-hidden transition-[width] duration-200 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex flex-col items-center py-4 flex-shrink-0 z-20`}
+      >
         <Link
           to="/dashboard"
           className="w-10 h-10 bg-[#ea580c] rounded-xl flex items-center justify-center mb-8"
@@ -185,9 +192,31 @@ const DashboardPage = () => {
 
       {/* ── Main content area ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile top bar — non-session views only (hamburger to toggle sidebar) */}
+        {!isInSession && (
+          <div className="md:hidden flex-shrink-0 h-11 flex items-center px-3 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222]">
+            <button
+              onClick={() => setSidebarOpen((o) => !o)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              <Menu size={17} />
+            </button>
+          </div>
+        )}
+
         {/* Top navbar — only when inside a session */}
         {isInSession && (
-          <header className="flex-shrink-0 h-12 flex items-center gap-3 px-4 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222]">
+          <header className="flex-shrink-0 h-12 flex items-center gap-2 px-4 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222]">
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setSidebarOpen((o) => !o)}
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              <Menu size={17} />
+            </button>
+            <div className="md:hidden w-px h-5 bg-gray-200 dark:bg-[#333]" />
             <button
               onClick={() => navigate("/dashboard")}
               className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
@@ -200,6 +229,30 @@ const DashboardPage = () => {
               {currentSession?.title ?? "Loading…"}
             </span>
           </header>
+        )}
+
+        {/* Mobile tab bar — visible only on small screens when inside a session */}
+        {isInSession && (
+          <div className="md:hidden flex-shrink-0 flex bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222]">
+            {[
+              { id: "reports", icon: FileText, label: "Reports" },
+              { id: "interview", icon: Mic, label: "Live Interview" },
+            ].map(({ id, icon: Icon, label }) => (
+              <Link
+                key={id}
+                to={`/dashboard/sessions/${currentSessionId}?tab=${id}`}
+                className={[
+                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors",
+                  activeSection === id
+                    ? "border-[#ea580c] text-[#ea580c]"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
+                ].join(" ")}
+              >
+                <Icon size={13} />
+                {label}
+              </Link>
+            ))}
+          </div>
         )}
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">

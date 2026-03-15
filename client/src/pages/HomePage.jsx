@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
-import { MessageSquare, Sun, Moon } from "lucide-react";
+import { MessageSquare, Sun, Moon, Menu, X } from "lucide-react";
 import BackgroundGradient from "../components/home/BackgroundGradient";
 import DashboardMockup from "../components/home/DashboardMockup";
 import IntegrationsSection from "../components/home/IntegrationsSection";
@@ -14,6 +14,7 @@ import Footer from "../components/home/Footer";
 const HomePage = () => {
   const { user, loading } = useAuth();
   const [showAccount, setShowAccount] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("theme") || "dark";
   });
@@ -135,14 +136,50 @@ const HomePage = () => {
             ) : (
               <Link
                 to="/login"
-                className="w-[36px] h-[36px] rounded-full bg-black dark:bg-white text-white dark:text-black font-bold flex items-center justify-center hover:opacity-80 transition-opacity text-sm"
+                className="hidden md:flex w-[36px] h-[36px] rounded-full bg-black dark:bg-white text-white dark:text-black font-bold items-center justify-center hover:opacity-80 transition-opacity text-sm"
               >
                 S
               </Link>
             )}
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md text-gray-700 dark:text-gray-300"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </header>
       </div>
+
+      {/* Mobile nav menu */}
+      {mobileMenuOpen && (
+        <div className="fixed top-[82px] inset-x-0 z-40 md:hidden px-4">
+          <nav className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md shadow-xl p-4 flex flex-col gap-1">
+            {["Features", "Pricing", "Blog", "Docs"].map((item) => (
+              <a
+                key={item}
+                href="#"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-4 py-3 rounded-xl text-[15px] font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              >
+                {item}
+              </a>
+            ))}
+            {!user && (
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-2 flex items-center justify-center h-11 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:opacity-80 transition-opacity"
+              >
+                Get Started
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
 
       {/* Main Content Sections */}
       <main className="relative z-10 flex-1 flex flex-col w-full">

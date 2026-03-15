@@ -184,7 +184,9 @@ const Section = ({ title, badge, icon: Icon, children }) => (
 
 const ReportCard = ({ report, onClick }) => {
   const date = new Date(report.createdAt).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
   const { label, badge } = scoreConfig(report.matchScore ?? 0);
 
@@ -194,7 +196,9 @@ const ReportCard = ({ report, onClick }) => {
       className="w-full text-left group bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-5 shadow-sm hover:border-[#ea580c]/40 hover:shadow-md transition-all flex items-center gap-4"
     >
       <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-[#ea580c]/10 flex items-center justify-center">
-        <span className="text-sm font-bold text-[#ea580c]">{report.matchScore ?? 0}</span>
+        <span className="text-sm font-bold text-[#ea580c]">
+          {report.matchScore ?? 0}
+        </span>
       </div>
 
       <div className="flex-1 min-w-0">
@@ -206,7 +210,9 @@ const ReportCard = ({ report, onClick }) => {
             <Calendar size={11} />
             {date}
           </div>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge}`}>
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge}`}
+          >
             {label}
           </span>
         </div>
@@ -626,7 +632,10 @@ const SessionDetailView = () => {
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
     try {
-      await generatePdf(selectedReport._id, selectedReport.title || session.title);
+      await generatePdf(
+        selectedReport._id,
+        selectedReport.title || session.title,
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to generate PDF");
     } finally {
@@ -685,7 +694,10 @@ const SessionDetailView = () => {
             <div className="flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => { setReportView("list"); setSelectedReport(null); }}
+                onClick={() => {
+                  setReportView("list");
+                  setSelectedReport(null);
+                }}
                 className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 ← All Reports
@@ -729,7 +741,7 @@ const SessionDetailView = () => {
         ) : (
           /* reportView === "list" */
           <div className="space-y-4 max-w-2xl">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
               <div>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                   Reports
@@ -752,7 +764,10 @@ const SessionDetailView = () => {
                 <ReportCard
                   key={r._id}
                   report={r}
-                  onClick={() => { setSelectedReport(r); setReportView("detail"); }}
+                  onClick={() => {
+                    setSelectedReport(r);
+                    setReportView("detail");
+                  }}
                 />
               ))}
             </div>

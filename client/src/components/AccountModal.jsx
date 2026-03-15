@@ -287,7 +287,7 @@ const AccountModal = ({ open, onClose }) => {
                 </p>
 
                 {/* OTP Inputs */}
-                <div className="flex gap-2" onPaste={handleEmailOtpPaste}>
+                <div className="flex gap-1.5" onPaste={handleEmailOtpPaste}>
                   {emailOtp.map((digit, i) => (
                     <input
                       key={i}
@@ -298,7 +298,7 @@ const AccountModal = ({ open, onClose }) => {
                       value={digit}
                       onChange={(e) => handleEmailOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleEmailOtpKeyDown(i, e)}
-                      className="h-12 w-12 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                      className="flex-1 min-w-0 h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
                     />
                   ))}
                 </div>
@@ -386,7 +386,7 @@ const AccountModal = ({ open, onClose }) => {
                 </p>
 
                 {/* OTP Inputs */}
-                <div className="flex gap-2" onPaste={handlePwOtpPaste}>
+                <div className="flex gap-1.5" onPaste={handlePwOtpPaste}>
                   {pwOtp.map((digit, i) => (
                     <input
                       key={i}
@@ -397,7 +397,7 @@ const AccountModal = ({ open, onClose }) => {
                       value={digit}
                       onChange={(e) => handlePwOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handlePwOtpKeyDown(i, e)}
-                      className="h-12 w-12 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                      className="flex-1 min-w-0 h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
                     />
                   ))}
                 </div>

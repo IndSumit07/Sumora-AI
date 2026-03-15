@@ -41,7 +41,9 @@ function speakText(text, voiceURI) {
     if (found) utter.voice = found;
   } else {
     const preferred = voices.find(
-      (v) => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural")),
+      (v) =>
+        v.lang.startsWith("en") &&
+        (v.name.includes("Google") || v.name.includes("Natural")),
     );
     if (preferred) utter.voice = preferred;
   }
@@ -138,24 +140,32 @@ export default function InterviewChat({
   const textareaRef = useRef(null);
   // Keep a ref so the autoplay effect always reads the latest voice
   const voiceURIRef = useRef(selectedVoiceURI);
-  useEffect(() => { voiceURIRef.current = selectedVoiceURI; }, [selectedVoiceURI]);
+  useEffect(() => {
+    voiceURIRef.current = selectedVoiceURI;
+  }, [selectedVoiceURI]);
 
   // Load available English voices (async in most browsers)
   useEffect(() => {
     const load = () => {
-      const all = window.speechSynthesis?.getVoices().filter((v) => v.lang.startsWith("en")) ?? [];
+      const all =
+        window.speechSynthesis
+          ?.getVoices()
+          .filter((v) => v.lang.startsWith("en")) ?? [];
       setVoices(all);
       if (!voiceURIRef.current && all.length) {
         const preferred =
-          all.find((v) => v.name.includes("Google") || v.name.includes("Natural")) || all[0];
+          all.find(
+            (v) => v.name.includes("Google") || v.name.includes("Natural"),
+          ) || all[0];
         setSelectedVoiceURI(preferred.voiceURI);
         voiceURIRef.current = preferred.voiceURI;
       }
     };
     load();
     window.speechSynthesis?.addEventListener("voiceschanged", load);
-    return () => window.speechSynthesis?.removeEventListener("voiceschanged", load);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () =>
+      window.speechSynthesis?.removeEventListener("voiceschanged", load);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleVoiceChange = (uri) => {
@@ -244,7 +254,8 @@ export default function InterviewChat({
     }
   };
 
-  const handleReplayQuestion = () => speakText(currentQuestion, voiceURIRef.current);
+  const handleReplayQuestion = () =>
+    speakText(currentQuestion, voiceURIRef.current);
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -252,7 +263,7 @@ export default function InterviewChat({
       <div className="bg-[#0a0a0a] rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between flex-wrap gap-y-2 mb-4">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c]">
               Question {questionIndex}
             </span>
@@ -261,10 +272,14 @@ export default function InterviewChat({
                 <select
                   value={selectedVoiceURI}
                   onChange={(e) => handleVoiceChange(e.target.value)}
-                  className="text-[11px] bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-gray-300 focus:outline-none focus:border-[#ea580c] max-w-[140px] truncate cursor-pointer"
+                  className="text-[11px] bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-gray-300 focus:outline-none focus:border-[#ea580c] max-w-[120px] sm:max-w-[140px] truncate cursor-pointer"
                 >
                   {voices.map((v) => (
-                    <option key={v.voiceURI} value={v.voiceURI} className="bg-[#1a1a1a] text-gray-200">
+                    <option
+                      key={v.voiceURI}
+                      value={v.voiceURI}
+                      className="bg-[#1a1a1a] text-gray-200"
+                    >
                       {v.name}
                     </option>
                   ))}
@@ -336,7 +351,7 @@ export default function InterviewChat({
       </div>
 
       {/* ── Action buttons ── */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <button
           type="button"
           onClick={handleSubmitAnswer}
@@ -345,8 +360,9 @@ export default function InterviewChat({
         >
           {submitLoading ? (
             <>
-              <Loader2 size={15} className="animate-spin" /> Getting next
-              question…
+              <Loader2 size={15} className="animate-spin" />
+              <span className="hidden sm:inline">Getting next question…</span>
+              <span className="sm:hidden">Loading…</span>
             </>
           ) : (
             <>
@@ -359,12 +375,13 @@ export default function InterviewChat({
           type="button"
           onClick={handleEndInterview}
           disabled={submitLoading || endLoading}
-          className="h-12 px-5 rounded-xl bg-gray-100 dark:bg-[#222] text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:bg-gray-200 dark:hover:bg-[#2a2a2a] focus:outline-none disabled:opacity-50 flex items-center justify-center gap-2"
+          className="h-12 px-5 rounded-xl bg-gray-100 dark:bg-[#222] text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:bg-gray-200 dark:hover:bg-[#2a2a2a] focus:outline-none disabled:opacity-50 flex items-center justify-center gap-2 flex-shrink-0"
         >
           {endLoading ? (
             <>
-              <Loader2 size={15} className="animate-spin" /> Generating
-              feedback…
+              <Loader2 size={15} className="animate-spin" />
+              <span className="hidden sm:inline">Generating feedback…</span>
+              <span className="sm:hidden">Loading…</span>
             </>
           ) : (
             <>

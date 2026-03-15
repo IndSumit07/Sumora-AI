@@ -81,7 +81,7 @@ const SessionsListView = () => {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
             My Sessions

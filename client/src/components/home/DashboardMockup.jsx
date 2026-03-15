@@ -76,39 +76,46 @@ const defaultStyle = {
 
 const DashboardMockup = ({ className, style } = {}) => (
   <div className={className ?? defaultClass} style={style ?? defaultStyle}>
-    <div className="rounded-[18px] border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#0d0d0d] flex h-[750px] overflow-hidden">
+    <div className="rounded-[18px] border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#0d0d0d] flex h-[300px] sm:h-[500px] lg:h-[750px] overflow-hidden">
       {/* ── Slim icon sidebar ── */}
-      <aside className="w-[68px] bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex flex-col items-center py-4 flex-shrink-0">
+      <aside className="w-[44px] sm:w-[68px] bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex flex-col items-center py-3 sm:py-4 flex-shrink-0">
         {/* Logo */}
-        <div className="w-10 h-10 bg-[#ea580c] rounded-xl flex items-center justify-center mb-8">
-          <span className="text-white font-bold text-lg">S</span>
+        <div className="w-7 h-7 sm:w-10 sm:h-10 bg-[#ea580c] rounded-lg sm:rounded-xl flex items-center justify-center mb-4 sm:mb-8">
+          <span className="text-white font-bold text-xs sm:text-lg">S</span>
         </div>
 
         {/* Nav */}
-        <div className="flex flex-col gap-4 w-full px-2">
-          <div className="flex flex-col items-center gap-1 p-2 rounded-xl text-[#ea580c]">
-            <Layers size={20} />
-            <span className="text-[9px] font-medium">Sessions</span>
+        <div className="flex flex-col gap-3 sm:gap-4 w-full px-1 sm:px-2">
+          <div className="flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-xl text-[#ea580c]">
+            <Layers size={15} className="sm:hidden" />
+            <Layers size={20} className="hidden sm:block" />
+            <span className="text-[7px] sm:text-[9px] font-medium hidden sm:block">
+              Sessions
+            </span>
           </div>
-          <div className="flex flex-col items-center gap-1 p-2 rounded-xl text-gray-400">
-            <Plus size={20} />
-            <span className="text-[9px] font-medium">New</span>
+          <div className="flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-xl text-gray-400">
+            <Plus size={15} className="sm:hidden" />
+            <Plus size={20} className="hidden sm:block" />
+            <span className="text-[7px] sm:text-[9px] font-medium hidden sm:block">
+              New
+            </span>
           </div>
         </div>
 
         {/* Bottom */}
-        <div className="mt-auto flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400">
-            <Sun size={18} />
+        <div className="mt-auto flex flex-col items-center gap-3 sm:gap-4">
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-gray-400">
+            <Sun size={13} className="sm:hidden" />
+            <Sun size={18} className="hidden sm:block" />
           </div>
-          <div className="w-10 h-10 rounded-full bg-[#1e1e1e] border border-[#333] flex items-center justify-center text-xs font-bold text-gray-300">
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#1e1e1e] border border-[#333] flex items-center justify-center text-[9px] sm:text-xs font-bold text-gray-300">
             JD
           </div>
         </div>
       </aside>
 
-      {/* ── Session nav sidebar ── */}
-      <aside className="w-[220px] bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex flex-col flex-shrink-0">
+      {/* ── Session nav sidebar — hidden on mobile ── */}
+      <aside className="hidden sm:flex w-[180px] lg:w-[220px] bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] flex-col flex-shrink-0">
         {/* Session identity */}
         <div className="p-4 border-b border-gray-200 dark:border-[#222]">
           <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">

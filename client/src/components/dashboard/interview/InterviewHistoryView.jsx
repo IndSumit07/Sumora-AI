@@ -184,7 +184,7 @@ export default function InterviewHistoryView({ session }) {
   return (
     <div className="space-y-4 max-w-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
         <div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">
             Interview History

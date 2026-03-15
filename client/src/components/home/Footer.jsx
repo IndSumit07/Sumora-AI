@@ -202,7 +202,7 @@ const Footer = () => (
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
         <p>© 2026 Sumora. All rights reserved.</p>
-        <div className="flex items-center gap-8">
+        <div className="flex items-center flex-wrap justify-center gap-x-8 gap-y-2">
           <a
             href="#"
             className="hover:text-gray-900 dark:hover:text-white transition-colors"
