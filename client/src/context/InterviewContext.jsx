@@ -94,6 +94,16 @@ export const InterviewProvider = ({ children }) => {
   };
 
   /**
+   * startPrepareInterview — creates a standalone topic-focused prepare session.
+   * @param {{ subject: string, topic: string, resumeText?: string }} payload
+   * @returns {{ interviewId: string, question: string }}
+   */
+  const startPrepareInterview = async (payload) => {
+    const { data } = await api.post("/interview/prepare/start", payload);
+    return data;
+  };
+
+  /**
    * answerInterview — submits an answer and returns the AI's next question.
    * @param {string} interviewId
    * @param {string} userAnswer
@@ -169,6 +179,7 @@ export const InterviewProvider = ({ children }) => {
         generatePdf,
         uploadResume,
         startInterview,
+        startPrepareInterview,
         answerInterview,
         endInterview,
         getLiveInterviewsBySession,

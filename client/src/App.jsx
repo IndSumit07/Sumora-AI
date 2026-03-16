@@ -12,6 +12,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SessionsListView from "./components/dashboard/views/SessionsListView";
 import NewSessionView from "./components/dashboard/views/NewSessionView";
 import SessionDetailView from "./components/dashboard/views/SessionDetailView";
+import PrepareView from "./components/dashboard/prepare/PrepareView";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -71,6 +72,7 @@ const App = () => {
         >
           <Route index element={<SessionsListView />} />
           <Route path="new" element={<NewSessionView />} />
+          <Route path="prepare" element={<PrepareView />} />
           <Route
             path="sessions"
             element={<Navigate to="/dashboard" replace />}

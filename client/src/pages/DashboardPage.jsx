@@ -17,6 +17,7 @@ import {
   FileText,
   Mic,
   Menu,
+  BookOpen,
 } from "lucide-react";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
@@ -92,7 +93,9 @@ const DashboardPage = () => {
             to="/dashboard"
             title="All Sessions"
             className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors ${
-              !isInSession && location.pathname !== "/dashboard/new"
+              !isInSession &&
+              location.pathname !== "/dashboard/new" &&
+              location.pathname !== "/dashboard/prepare"
                 ? "text-[#ea580c]"
                 : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222]"
             }`}
@@ -112,6 +115,19 @@ const DashboardPage = () => {
           >
             <Plus size={22} />
             <span className="text-[10px] font-medium">New</span>
+          </Link>
+
+          <Link
+            to="/dashboard/prepare"
+            title="Prepare"
+            className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors ${
+              location.pathname === "/dashboard/prepare"
+                ? "text-[#ea580c]"
+                : "text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#222]"
+            }`}
+          >
+            <BookOpen size={22} />
+            <span className="text-[10px] font-medium">Prepare</span>
           </Link>
         </nav>
 

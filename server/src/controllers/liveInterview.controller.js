@@ -17,6 +17,7 @@ import LiveInterview from "../models/liveInterview.model.js";
 import Session from "../models/session.model.js";
 import {
   initInterview,
+  initPrepareInterview,
   sendAnswer,
   recoverChain,
   cleanupChain,
@@ -126,6 +127,55 @@ export async function startInterviewController(req, res) {
     });
   } catch (error) {
     console.error("Start interview error:", error);
+    return res
+      .status(500)
+      .json({ message: error?.message || "Internal server error" });
+  }
+}
+
+// ── 2b. Start prepare-mode interview ─────────────────────────────────────────
+
+/**
+ * POST /api/interview/prepare/start
+ * Body: { subject, topic, resumeText? }
+ *
+ * Creates a standalone (no session) LiveInterview in prepare mode, launches
+ * the topic-locked LangChain chain, and returns the first question.
+ */
+export async function startPrepareController(req, res) {
+  try {
+    const { subject, topic, resumeText = "" } = req.body;
+
+    if (!subject?.trim())
+      return res.status(400).json({ message: "subject is required." });
+    if (!topic?.trim())
+      return res.status(400).json({ message: "topic is required." });
+
+    const interview = await LiveInterview.create({
+      user: req.user.id,
+      mode: "prepare",
+      subject: subject.trim().slice(0, 100),
+      topic: topic.trim().slice(0, 200),
+      resumeText: resumeText.trim().slice(0, 8000),
+      conversation: [],
+    });
+
+    const firstQuestion = await initPrepareInterview(
+      interview._id,
+      interview.subject,
+      interview.topic,
+      interview.resumeText,
+    );
+
+    interview.conversation.push({ question: firstQuestion, answer: "" });
+    await interview.save();
+
+    return res.status(201).json({
+      interviewId: interview._id,
+      question: firstQuestion,
+    });
+  } catch (error) {
+    console.error("Start prepare interview error:", error);
     return res
       .status(500)
       .json({ message: error?.message || "Internal server error" });

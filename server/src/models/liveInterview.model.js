@@ -10,10 +10,16 @@ const conversationTurnSchema = new mongoose.Schema(
 
 const liveInterviewSchema = new mongoose.Schema(
   {
+    // "job" = session-based live interview, "prepare" = standalone topic drill
+    mode: {
+      type: String,
+      enum: ["job", "prepare"],
+      default: "job",
+    },
     session: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Session",
-      required: true,
+      default: null,
       index: true,
     },
     user: {
@@ -22,13 +28,12 @@ const liveInterviewSchema = new mongoose.Schema(
       required: true,
     },
     resumeText: { type: String, default: "" },
-    role: { type: String, required: true, trim: true, maxlength: 150 },
-    jobDescription: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 5000,
-    },
+    // job-mode fields
+    role: { type: String, default: "", trim: true, maxlength: 150 },
+    jobDescription: { type: String, default: "", trim: true, maxlength: 5000 },
+    // prepare-mode fields
+    subject: { type: String, default: "", trim: true, maxlength: 100 },
+    topic: { type: String, default: "", trim: true, maxlength: 200 },
     conversation: [conversationTurnSchema],
     feedback: { type: String, default: "" },
     score: { type: Number, default: 0, min: 0, max: 100 },

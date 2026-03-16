@@ -13,6 +13,7 @@ import {
 import {
   uploadResumeController,
   startInterviewController,
+  startPrepareController,
   answerInterviewController,
   endInterviewController,
   getLiveInterviewController,
@@ -72,6 +73,13 @@ interviewRouter.post(
 );
 // POST /api/interview/end                — end interview, generate & return feedback
 interviewRouter.post("/end", aiLimiter, authMiddleware, endInterviewController);
+// POST /api/interview/prepare/start      — start a standalone topic-focused prepare session
+interviewRouter.post(
+  "/prepare/start",
+  aiLimiter,
+  authMiddleware,
+  startPrepareController,
+);
 // GET  /api/interview/live/session/:sessionId       — list all LiveInterviews for a session
 interviewRouter.get(
   "/live/session/:sessionId",
