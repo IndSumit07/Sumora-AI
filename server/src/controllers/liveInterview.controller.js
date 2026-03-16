@@ -10,6 +10,7 @@
  *   POST /api/interview/end                 → finish & generate structured feedback
  *   GET  /api/interview/live                → list all live interviews for user
  *   GET  /api/interview/live/:id            → get one live interview
+ *   POST /api/interview/tts                 → Sarvam AI text-to-speech proxy
  */
 
 import { createRequire } from "module";
@@ -32,8 +33,14 @@ const _require = createRequire(import.meta.url);
 async function parsePdf(buffer) {
   try {
     const mod = _require("pdf-parse");
-    const pdfParse = typeof mod === "function" ? mod : mod.default || mod;
-    const result = await pdfParse(buffer);
+    const fn =
+      typeof mod === "function"
+        ? mod
+        : typeof mod?.default === "function"
+          ? mod.default
+          : null;
+    if (!fn) throw new Error("pdf-parse module not callable");
+    const result = await fn(buffer);
     return (result.text || "").trim().slice(0, 8000);
   } catch (err) {
     console.warn("PDF parse failed:", err.message);
@@ -370,7 +377,64 @@ export async function getAllLiveInterviewsController(req, res) {
   }
 }
 
-// ── 7. Analyze a single question (teaching walkthrough) ───────────────────────
+// ── 7. Text-to-speech via Sarvam AI ──────────────────────────────────────────
+
+/**
+ * POST /api/interview/tts
+ * Body: { text }
+ *
+ * Proxies the text to Sarvam AI TTS (female English voice) and returns the
+ * resulting audio as a base64-encoded WAV string.
+ */
+export async function ttsController(req, res) {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) {
+      return res.status(400).json({ message: "text is required." });
+    }
+
+    const apiKey = process.env.SARVAM_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ message: "TTS service not configured." });
+    }
+
+    const response = await fetch("https://api.sarvam.ai/text-to-speech", {
+      method: "POST",
+      headers: {
+        "api-subscription-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inputs: [text.trim().slice(0, 500)],
+        target_language_code: "en-IN",
+        speaker: "sophia",
+        pace: 1.0,
+        speech_sample_rate: 22050,
+        enable_preprocessing: true,
+        model: "bulbul:v3",
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Sarvam TTS error:", err);
+      return res.status(502).json({ message: "TTS service error." });
+    }
+
+    const data = await response.json();
+    const audio = data.audios?.[0];
+    if (!audio) {
+      return res.status(502).json({ message: "No audio returned from TTS." });
+    }
+
+    return res.status(200).json({ audio });
+  } catch (error) {
+    console.error("TTS controller error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// ── 8. Analyze a single question (teaching walkthrough) ───────────────────────
 
 /**
  * POST /api/interview/analyze-question
@@ -389,7 +453,9 @@ export async function analyzeQuestionController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(interviewId))
       return res.status(400).json({ message: "Invalid interviewId." });
     if (typeof questionIndex !== "number" || questionIndex < 0)
-      return res.status(400).json({ message: "questionIndex must be a non-negative number." });
+      return res
+        .status(400)
+        .json({ message: "questionIndex must be a non-negative number." });
 
     const interview = await LiveInterview.findOne({
       _id: interviewId,

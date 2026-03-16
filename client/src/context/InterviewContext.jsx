@@ -154,6 +154,16 @@ export const InterviewProvider = ({ children }) => {
     return data.teaching;
   };
 
+  /**
+   * tts — converts text to speech via backend Sarvam AI proxy.
+   * @param {string} text
+   * @returns {Promise<string>} base64 WAV audio
+   */
+  const tts = async (text) => {
+    const { data } = await api.post("/interview/tts", { text });
+    return data.audio;
+  };
+
   return (
     <InterviewContext.Provider
       value={{
@@ -169,6 +179,7 @@ export const InterviewProvider = ({ children }) => {
         getAllLiveInterviews,
         getLiveInterviewById,
         analyzeQuestion,
+        tts,
       }}
     >
       {children}

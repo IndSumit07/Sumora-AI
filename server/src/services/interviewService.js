@@ -39,7 +39,7 @@ Rules you must follow at all times:
 - Gradually increase the difficulty of questions throughout the interview.
 - Focus on skills and experiences mentioned in the resume or required by the job description.
 - Be concise, professional, and neutral in tone.
-- Output ONLY the question text — no preamble, no labels, no additional commentary.
+- CRITICAL: Output ONLY the question text. Never acknowledge the answer. Never say "Got it", "I see", "Understood", "Interesting", or ANY other acknowledgment phrase. Start your response directly with the question word (e.g. "What", "How", "Can you", "Describe", "Walk me through", etc.).
 
 Resume:
 {resume}
@@ -71,8 +71,8 @@ RULE 2 — ONE QUESTION PER TURN:
 
 RULE 3 — RESPONSE FORMAT (strictly enforce):
   - Your very first message: say exactly "Starting your preparation session on {topic}." then ask Q1.
-  - After each candidate answer: write ONE brief acknowledgment sentence (e.g., "Got it.", "Understood.", "Good answer.", "Interesting approach.", "Noted.") then immediately ask the next question.
-  - Output NOTHING else — no "Question:", no numbering, no preamble, no meta-commentary, no praise beyond the one-sentence acknowledgment.
+  - After each candidate answer: output ONLY the next question. Do NOT say "Got it", "Understood", "Interesting", or any other acknowledgment. Start your response directly with the question.
+  - Output NOTHING else — no "Question:", no numbering, no preamble, no meta-commentary, no praise, no filler phrases of any kind.
 
 RULE 4 — NO HINTS, NO TEACHING:
   You are a strict interviewer, NOT a tutor. Do not explain, correct, lecture, or give feedback during the interview.
@@ -374,7 +374,9 @@ Reply with ONLY valid JSON — no markdown fences, no extra text.
       ? response.content
       : JSON.stringify(response);
 
-  const match = raw.match(/\{[\s\S]*\}/);
+  // Strip markdown code fences then extract first JSON object
+  const cleaned = raw.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("Model returned non-JSON analysis.");
 
   const parsed = JSON.parse(match[0]);

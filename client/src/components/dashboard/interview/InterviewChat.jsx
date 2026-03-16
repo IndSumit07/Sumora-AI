@@ -27,62 +27,6 @@ import {
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 
-// ── Speech synthesis ───────────────────────────────────────────────────────────
-
-/**
- * Priority order for female soothing voices:
- * Google UK English Female → Samantha (macOS) → Victoria (macOS) →
- * Google US English Female → any "Female" en voice → Google/Natural → first en voice
- */
-function pickFemaleVoice(voices) {
-  return (
-    voices.find((v) => v.name === "Google UK English Female") ||
-    voices.find((v) => v.name === "Samantha") ||
-    voices.find((v) => v.name === "Victoria") ||
-    voices.find((v) => v.name === "Google US English Female") ||
-    voices.find(
-      (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female"),
-    ) ||
-    voices.find(
-      (v) =>
-        v.lang.startsWith("en") &&
-        (v.name.includes("Google") || v.name.includes("Natural")),
-    ) ||
-    voices.find((v) => v.lang.startsWith("en"))
-  );
-}
-
-function speakText(text, voiceURI, { onStart, onEnd } = {}) {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  // Soothing: slightly slower rate, gentle pitch lift
-  utter.rate = 0.88;
-  utter.pitch = 1.08;
-  utter.volume = 1;
-
-  const voices = window.speechSynthesis.getVoices();
-
-  if (voiceURI) {
-    const found = voices.find((v) => v.voiceURI === voiceURI);
-    if (found) utter.voice = found;
-    else {
-      const fallback = pickFemaleVoice(voices);
-      if (fallback) utter.voice = fallback;
-    }
-  } else {
-    const preferred = pickFemaleVoice(voices);
-    if (preferred) utter.voice = preferred;
-  }
-
-  if (onStart) utter.onstart = onStart;
-  if (onEnd) {
-    utter.onend = onEnd;
-    utter.onerror = onEnd;
-  }
-  window.speechSynthesis.speak(utter);
-}
-
 // ── Speech recognition factory ────────────────────────────────────────────────
 
 function createRecognition(onResult, onEnd) {
@@ -183,98 +127,68 @@ export default function InterviewChat({
   onAnswer,
   onEnd,
 }) {
-  const { answerInterview, endInterview } = useInterview();
+  const { answerInterview, endInterview, tts } = useInterview();
 
   const [answer, setAnswer] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [endLoading, setEndLoading] = useState(false);
   const [hasSpeechRec] = useState(
     () => !!(window.SpeechRecognition || window.webkitSpeechRecognition),
   );
-  const [voices, setVoices] = useState([]);
-  const [selectedVoiceURI, setSelectedVoiceURI] = useState(
-    () => localStorage.getItem("iv_voice") || "",
-  );
 
   const recRef = useRef(null);
+  const audioRef = useRef(null);
   const textareaRef = useRef(null);
-  const voiceURIRef = useRef(selectedVoiceURI);
-  useEffect(() => {
-    voiceURIRef.current = selectedVoiceURI;
-  }, [selectedVoiceURI]);
 
-  // Load available English voices — sort female voices first
-  useEffect(() => {
-    const load = () => {
-      const all =
-        window.speechSynthesis
-          ?.getVoices()
-          .filter((v) => v.lang.startsWith("en")) ?? [];
-
-      // Sort: known female names > "Female" keyword > Google/Natural > rest
-      const sorted = [...all].sort((a, b) => {
-        const rank = (v) => {
-          if (
-            v.name === "Google UK English Female" ||
-            v.name === "Samantha" ||
-            v.name === "Victoria" ||
-            v.name === "Google US English Female"
-          )
-            return 0;
-          if (v.name.toLowerCase().includes("female")) return 1;
-          if (v.name.includes("Google") || v.name.includes("Natural")) return 2;
-          return 3;
-        };
-        return rank(a) - rank(b);
-      });
-
-      setVoices(sorted);
-
-      if (!voiceURIRef.current && sorted.length) {
-        const preferred = pickFemaleVoice(sorted);
-        if (preferred) {
-          setSelectedVoiceURI(preferred.voiceURI);
-          voiceURIRef.current = preferred.voiceURI;
-          localStorage.setItem("iv_voice", preferred.voiceURI);
-        }
-      }
-    };
-    load();
-    window.speechSynthesis?.addEventListener("voiceschanged", load);
-    return () =>
-      window.speechSynthesis?.removeEventListener("voiceschanged", load);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsVoiceLoading(false);
+    setIsSpeaking(false);
   }, []);
 
-  const handleVoiceChange = (uri) => {
-    setSelectedVoiceURI(uri);
-    localStorage.setItem("iv_voice", uri);
-  };
+  const speakWithSarvam = useCallback(
+    async (text) => {
+      stopAudio();
+      setIsVoiceLoading(true);
+      try {
+        const base64 = await tts(text);
+        const audio = new Audio(`data:audio/wav;base64,${base64}`);
+        audioRef.current = audio;
+        setIsVoiceLoading(false);
+        setIsSpeaking(true);
+        audio.onended = () => setIsSpeaking(false);
+        audio.onerror = () => setIsSpeaking(false);
+        await audio.play();
+      } catch {
+        setIsVoiceLoading(false);
+        setIsSpeaking(false);
+      }
+    },
+    [tts, stopAudio],
+  );
 
   // Auto-play the question when it changes
   useEffect(() => {
-    setIsSpeaking(true);
-    speakText(currentQuestion, voiceURIRef.current, {
-      onStart: () => setIsSpeaking(true),
-      onEnd: () => setIsSpeaking(false),
-    });
+    speakWithSarvam(currentQuestion);
     setAnswer("");
     textareaRef.current?.focus();
-    return () => {
-      window.speechSynthesis?.cancel();
-      setIsSpeaking(false);
-    };
+    return () => stopAudio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       recRef.current?.stop();
-      window.speechSynthesis?.cancel();
-      setIsSpeaking(false);
+      stopAudio();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleRecording = useCallback(() => {
@@ -329,8 +243,7 @@ export default function InterviewChat({
       recRef.current?.stop();
       setIsRecording(false);
     }
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
+    stopAudio();
 
     setEndLoading(true);
     try {
@@ -343,18 +256,7 @@ export default function InterviewChat({
     }
   };
 
-  const handleReplayQuestion = () => {
-    setIsSpeaking(true);
-    speakText(currentQuestion, voiceURIRef.current, {
-      onStart: () => setIsSpeaking(true),
-      onEnd: () => setIsSpeaking(false),
-    });
-  };
-
-  const handleStopSpeaking = () => {
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
-  };
+  const handleReplayQuestion = () => speakWithSarvam(currentQuestion);
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -362,7 +264,7 @@ export default function InterviewChat({
       <div className="bg-[#0a0a0a] rounded-2xl p-6 relative overflow-hidden">
         {/* Background glow */}
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
-        {isSpeaking && (
+        {(isSpeaking || isVoiceLoading) && (
           <div className="absolute top-0 left-0 w-full h-full bg-[#ea580c]/[0.03] rounded-2xl pointer-events-none" />
         )}
 
@@ -373,54 +275,45 @@ export default function InterviewChat({
               Question {questionIndex}
             </span>
 
-            <div className="flex items-center gap-3">
-              {/* Speaking indicator + waveform */}
-              <div className="flex items-center gap-2">
-                {isSpeaking ? (
-                  <button
-                    type="button"
-                    onClick={handleStopSpeaking}
-                    title="Stop speaking"
-                    className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
-                  >
-                    <VolumeX size={13} />
-                    <VoiceWaveform active={isSpeaking} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleReplayQuestion}
-                    title="Replay question"
-                    className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
-                  >
-                    <Volume2 size={13} />
-                    <VoiceWaveform active={false} />
-                  </button>
-                )}
-              </div>
-
-              {/* Voice selector */}
-              {voices.length > 0 && (
-                <select
-                  value={selectedVoiceURI}
-                  onChange={(e) => handleVoiceChange(e.target.value)}
-                  className="text-[11px] bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-gray-300 focus:outline-none focus:border-[#ea580c] max-w-[130px] truncate cursor-pointer"
+            {/* Voice state indicator */}
+            <div className="flex items-center gap-2">
+              {isVoiceLoading ? (
+                <span className="flex items-center gap-1.5 text-[11px] text-[#ea580c]/70">
+                  <Loader2 size={12} className="animate-spin" />
+                </span>
+              ) : isSpeaking ? (
+                <button
+                  type="button"
+                  onClick={stopAudio}
+                  title="Stop speaking"
+                  className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
                 >
-                  {voices.map((v) => (
-                    <option
-                      key={v.voiceURI}
-                      value={v.voiceURI}
-                      className="bg-[#1a1a1a] text-gray-200"
-                    >
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
+                  <VolumeX size={13} />
+                  <VoiceWaveform active={isSpeaking} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleReplayQuestion}
+                  title="Replay question"
+                  className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
+                >
+                  <Volume2 size={13} />
+                  <VoiceWaveform active={false} />
+                </button>
               )}
             </div>
           </div>
 
-          {/* Speaking pill */}
+          {/* Status pill */}
+          {isVoiceLoading && (
+            <div className="inline-flex items-center gap-1.5 bg-gray-700/40 border border-gray-600/30 rounded-full px-3 py-1 mb-3">
+              <Loader2 size={10} className="animate-spin text-gray-400" />
+              <span className="text-[10px] font-medium text-gray-400 tracking-wide">
+                Preparing voice…
+              </span>
+            </div>
+          )}
           {isSpeaking && (
             <div className="inline-flex items-center gap-1.5 bg-[#ea580c]/15 border border-[#ea580c]/25 rounded-full px-3 py-1 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse" />

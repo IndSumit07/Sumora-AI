@@ -11,7 +11,7 @@
  *   interview — full LiveInterview document (with parsed feedback object)
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -33,46 +33,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useInterview } from "../../../context/InterviewContext";
-
-// ── TTS helper (reads iv_voice preference set by InterviewChat) ───────────────
-
-function speakText(text, { onStart, onEnd } = {}) {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.88;
-  utter.pitch = 1.08;
-  utter.volume = 1;
-
-  const voices = window.speechSynthesis.getVoices();
-  const savedURI = localStorage.getItem("iv_voice");
-  const find = (fn) => voices.find(fn);
-
-  const voice =
-    (savedURI && find((v) => v.voiceURI === savedURI)) ||
-    find((v) => v.name === "Google UK English Female") ||
-    find((v) => v.name === "Samantha") ||
-    find((v) => v.name === "Victoria") ||
-    find((v) => v.name === "Google US English Female") ||
-    find(
-      (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female"),
-    ) ||
-    find(
-      (v) =>
-        v.lang.startsWith("en") &&
-        (v.name.includes("Google") || v.name.includes("Natural")),
-    ) ||
-    find((v) => v.lang.startsWith("en"));
-
-  if (voice) utter.voice = voice;
-  if (onStart) utter.onstart = onStart;
-  if (onEnd) {
-    utter.onend = onEnd;
-    utter.onerror = onEnd;
-  }
-  window.speechSynthesis.speak(utter);
-}
 
 // ── Animated waveform ─────────────────────────────────────────────────────────
 
@@ -251,7 +211,9 @@ const FeedbackSection = ({
     </div>
     <ul className="p-5 space-y-2.5">
       {items.length === 0 ? (
-        <li className="text-sm text-gray-400 dark:text-gray-500">{emptyText}</li>
+        <li className="text-sm text-gray-400 dark:text-gray-500">
+          {emptyText}
+        </li>
       ) : (
         items.map((item, i) => (
           <li
@@ -270,7 +232,7 @@ const FeedbackSection = ({
 // ── Walkthrough view ──────────────────────────────────────────────────────────
 
 function WalkthroughView({ interview, onClose }) {
-  const { analyzeQuestion } = useInterview();
+  const { analyzeQuestion, tts } = useInterview();
   const conversation = interview.conversation || [];
   const total = conversation.length;
 
@@ -280,14 +242,40 @@ function WalkthroughView({ interview, onClose }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
   const cacheRef = useRef({});
+  const audioRef = useRef(null);
 
   const turn = conversation[walkIdx];
+
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsSpeaking(false);
+  }, []);
+
+  const speakWithSarvam = useCallback(
+    async (text) => {
+      stopAudio();
+      setIsSpeaking(true);
+      try {
+        const base64 = await tts(text);
+        const audio = new Audio(`data:audio/wav;base64,${base64}`);
+        audioRef.current = audio;
+        audio.onended = () => setIsSpeaking(false);
+        audio.onerror = () => setIsSpeaking(false);
+        await audio.play();
+      } catch {
+        setIsSpeaking(false);
+      }
+    },
+    [tts, stopAudio],
+  );
 
   // Fetch teaching for the current question (cached per index)
   useEffect(() => {
     if (!turn) return;
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
+    stopAudio();
     setAnswerOpen(false);
 
     if (cacheRef.current[walkIdx]) {
@@ -309,34 +297,22 @@ function WalkthroughView({ interview, onClose }) {
 
   // Auto-play the sample answer when teaching loads
   useEffect(() => {
-    if (teaching?.sampleAnswer) {
-      speakText(teaching.sampleAnswer, {
-        onStart: () => setIsSpeaking(true),
-        onEnd: () => setIsSpeaking(false),
-      });
-    }
+    if (teaching?.sampleAnswer) speakWithSarvam(teaching.sampleAnswer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teaching]);
 
-  // Stop TTS on unmount
+  // Stop audio on unmount
   useEffect(() => {
-    return () => window.speechSynthesis?.cancel();
+    return () => stopAudio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePlaySample = () => {
-    if (!teaching?.sampleAnswer) return;
-    speakText(teaching.sampleAnswer, {
-      onStart: () => setIsSpeaking(true),
-      onEnd: () => setIsSpeaking(false),
-    });
-  };
-
-  const handleStopSpeaking = () => {
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
+    if (teaching?.sampleAnswer) speakWithSarvam(teaching.sampleAnswer);
   };
 
   const handleClose = () => {
-    window.speechSynthesis?.cancel();
+    stopAudio();
     onClose();
   };
 
@@ -502,7 +478,7 @@ function WalkthroughView({ interview, onClose }) {
                     </p>
                     {isSpeaking ? (
                       <button
-                        onClick={handleStopSpeaking}
+                        onClick={stopAudio}
                         className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-red-500 transition-colors"
                       >
                         <VolumeX size={12} /> Stop
