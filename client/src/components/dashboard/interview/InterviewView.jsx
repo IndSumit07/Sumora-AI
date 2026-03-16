@@ -20,7 +20,10 @@ import InterviewHistoryDetail from "./InterviewHistoryDetail";
 
 const statusBadge = (interview) => {
   if (interview.status !== "completed")
-    return { label: "In Progress", cls: "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400" };
+    return {
+      label: "In Progress",
+      cls: "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400",
+    };
   const s = interview.score ?? 0;
   if (s >= 70) return { label: "Strong", cls: "bg-green-50 text-green-700" };
   if (s >= 45) return { label: "Good", cls: "bg-amber-50 text-amber-700" };
@@ -56,7 +59,9 @@ const InterviewCard = ({ interview, active, onClick }) => {
           <Calendar size={10} />
           {date}
         </span>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>
+        <span
+          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
+        >
           {interview.status === "completed" ? `${interview.score ?? 0} · ` : ""}
           {label}
         </span>
@@ -79,8 +84,14 @@ const SetupForm = ({ onStarted }) => {
 
   const handleFile = async (file) => {
     if (!file) return;
-    if (file.type !== "application/pdf") { toast.error("Only PDF accepted."); return; }
-    if (file.size > 3 * 1024 * 1024) { toast.error("Resume must be under 3 MB."); return; }
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF accepted.");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Resume must be under 3 MB.");
+      return;
+    }
     setResumeFile(file);
     setUploadLoading(true);
     try {
@@ -97,8 +108,14 @@ const SetupForm = ({ onStarted }) => {
   };
 
   const handleStart = async () => {
-    if (!role.trim()) { toast.error("Role is required."); return; }
-    if (!jobDescription.trim()) { toast.error("Job description is required."); return; }
+    if (!role.trim()) {
+      toast.error("Role is required.");
+      return;
+    }
+    if (!jobDescription.trim()) {
+      toast.error("Job description is required.");
+      return;
+    }
     setStartLoading(true);
     try {
       const { interviewId, question } = await startInterview({
@@ -152,7 +169,9 @@ const SetupForm = ({ onStarted }) => {
             <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
               Job Description
             </label>
-            <span className="text-[11px] text-gray-400">{jobDescription.length}/5000</span>
+            <span className="text-[11px] text-gray-400">
+              {jobDescription.length}/5000
+            </span>
           </div>
           <textarea
             value={jobDescription}
@@ -167,21 +186,29 @@ const SetupForm = ({ onStarted }) => {
         {/* Resume (optional) */}
         <div>
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Resume{" "}
-            <span className="normal-case font-normal">(optional)</span>
+            Resume <span className="normal-case font-normal">(optional)</span>
           </p>
           {resumeFile ? (
             <div className="flex items-center gap-3 h-11 px-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-              <FileText size={14} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+              <FileText
+                size={14}
+                className="text-green-600 dark:text-green-400 flex-shrink-0"
+              />
               <span className="text-sm text-green-700 dark:text-green-300 truncate flex-1">
                 {resumeFile.name}
               </span>
               {uploadLoading ? (
-                <Loader2 size={14} className="animate-spin text-green-600 flex-shrink-0" />
+                <Loader2
+                  size={14}
+                  className="animate-spin text-green-600 flex-shrink-0"
+                />
               ) : (
                 <button
                   type="button"
-                  onClick={() => { setResumeFile(null); setResumeText(""); }}
+                  onClick={() => {
+                    setResumeFile(null);
+                    setResumeText("");
+                  }}
                   className="text-green-600 hover:text-red-500 transition-colors flex-shrink-0"
                 >
                   <X size={14} />
@@ -209,13 +236,22 @@ const SetupForm = ({ onStarted }) => {
         <button
           type="button"
           onClick={handleStart}
-          disabled={startLoading || uploadLoading || !role.trim() || !jobDescription.trim()}
+          disabled={
+            startLoading ||
+            uploadLoading ||
+            !role.trim() ||
+            !jobDescription.trim()
+          }
           className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {startLoading ? (
-            <><Loader2 size={15} className="animate-spin" /> Starting interview…</>
+            <>
+              <Loader2 size={15} className="animate-spin" /> Starting interview…
+            </>
           ) : (
-            <><Mic size={14} /> Start Interview</>
+            <>
+              <Mic size={14} /> Start Interview
+            </>
           )}
         </button>
       </div>
@@ -314,13 +350,23 @@ export default function InterviewView() {
     setView("new-interview");
     // add optimistic entry to list
     setInterviews((prev) => [
-      { _id: id, mode: "job", role, score: 0, status: "active", createdAt: new Date().toISOString() },
+      {
+        _id: id,
+        mode: "job",
+        role,
+        score: 0,
+        status: "active",
+        createdAt: new Date().toISOString(),
+      },
       ...prev,
     ]);
   };
 
   const handleAnswer = (nextQuestion, submittedAnswer) => {
-    setHistory((prev) => [...prev, { question: currentQuestion, answer: submittedAnswer }]);
+    setHistory((prev) => [
+      ...prev,
+      { question: currentQuestion, answer: submittedAnswer },
+    ]);
     setCurrentQuestion(nextQuestion);
     setQuestionIndex((i) => i + 1);
   };
@@ -332,9 +378,7 @@ export default function InterviewView() {
     // update the optimistic entry with final score
     setInterviews((prev) =>
       prev.map((iv) =>
-        iv._id === interviewId
-          ? { ...iv, score: sc, status: "completed" }
-          : iv,
+        iv._id === interviewId ? { ...iv, score: sc, status: "completed" } : iv,
       ),
     );
   };
@@ -399,19 +443,16 @@ export default function InterviewView() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
-        {view === "detail" && (
-          detailLoading ? (
+        {view === "detail" &&
+          (detailLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 size={24} className="animate-spin text-[#ea580c]" />
             </div>
           ) : selectedInterview ? (
             <InterviewHistoryDetail interview={selectedInterview} />
-          ) : null
-        )}
+          ) : null)}
 
-        {view === "new-setup" && (
-          <SetupForm onStarted={handleStarted} />
-        )}
+        {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
 
         {view === "new-interview" && (
           <div>
@@ -422,7 +463,8 @@ export default function InterviewView() {
               <ChevronRight size={12} className="text-gray-400" />
               <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <Briefcase size={11} />
-                {interviews.find((iv) => iv._id === interviewId)?.role || "Mock Interview"}
+                {interviews.find((iv) => iv._id === interviewId)?.role ||
+                  "Mock Interview"}
               </span>
             </div>
             <InterviewChat

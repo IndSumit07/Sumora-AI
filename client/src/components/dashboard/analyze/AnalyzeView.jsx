@@ -24,9 +24,23 @@ const RADIUS = 42;
 const CIRC = 2 * Math.PI * RADIUS;
 
 const scoreConfig = (s) => {
-  if (s >= 75) return { stroke: "#22c55e", label: "Strong Match", badge: "bg-green-50 text-green-700" };
-  if (s >= 50) return { stroke: "#f59e0b", label: "Good Match", badge: "bg-amber-50 text-amber-700" };
-  return { stroke: "#ef4444", label: "Low Match", badge: "bg-red-50 text-red-600" };
+  if (s >= 75)
+    return {
+      stroke: "#22c55e",
+      label: "Strong Match",
+      badge: "bg-green-50 text-green-700",
+    };
+  if (s >= 50)
+    return {
+      stroke: "#f59e0b",
+      label: "Good Match",
+      badge: "bg-amber-50 text-amber-700",
+    };
+  return {
+    stroke: "#ef4444",
+    label: "Low Match",
+    badge: "bg-red-50 text-red-600",
+  };
 };
 
 const MatchScoreRing = ({ score }) => {
@@ -35,23 +49,54 @@ const MatchScoreRing = ({ score }) => {
   return (
     <div className="flex flex-col items-center gap-2">
       <svg width="110" height="110" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="#f3f4f6" strokeWidth="9" />
         <circle
-          cx="50" cy="50" r={RADIUS}
-          fill="none" stroke={stroke} strokeWidth="9"
+          cx="50"
+          cy="50"
+          r={RADIUS}
+          fill="none"
+          stroke="#f3f4f6"
+          strokeWidth="9"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r={RADIUS}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="9"
           strokeLinecap="round"
-          strokeDasharray={CIRC} strokeDashoffset={offset}
+          strokeDasharray={CIRC}
+          strokeDashoffset={offset}
           transform="rotate(-90 50 50)"
           style={{ transition: "stroke-dashoffset 1.2s ease" }}
         />
-        <text x="50" y="47" textAnchor="middle" dominantBaseline="middle" fontSize="22" fontWeight="700" fill="#111827">
+        <text
+          x="50"
+          y="47"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="22"
+          fontWeight="700"
+          fill="#111827"
+        >
           {score}
         </text>
-        <text x="50" y="62" textAnchor="middle" dominantBaseline="middle" fontSize="10" fill="#9ca3af">
+        <text
+          x="50"
+          y="62"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="10"
+          fill="#9ca3af"
+        >
           / 100
         </text>
       </svg>
-      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badge}`}>{label}</span>
+      <span
+        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badge}`}
+      >
+        {label}
+      </span>
     </div>
   );
 };
@@ -72,19 +117,29 @@ const QuestionCard = ({ q, index, open, onToggle }) => (
           {q.question}
         </span>
       </div>
-      {open
-        ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
-        : <ChevronDown size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />}
+      {open ? (
+        <ChevronUp size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+      ) : (
+        <ChevronDown size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+      )}
     </button>
     {open && (
       <div className="px-4 pb-4 bg-gray-50 dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-[#222] space-y-3">
         <div className="pt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ea580c] mb-1">Why they ask this</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{q.intention}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ea580c] mb-1">
+            Why they ask this
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            {q.intention}
+          </p>
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">How to answer</p>
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">{q.answer}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+            How to answer
+          </p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+            {q.answer}
+          </p>
         </div>
       </div>
     )}
@@ -98,7 +153,9 @@ const Section = ({ title, badge, icon: Icon, children }) => (
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#222]">
       <div className="flex items-center gap-2.5">
         <Icon size={16} className="text-[#ea580c]" />
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h2>
       </div>
       {badge !== undefined && (
         <span className="text-xs font-medium bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full">
@@ -125,7 +182,9 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
   const [openBehavIdx, setOpenBehavIdx] = useState(null);
 
   const date = new Date(report.createdAt).toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
 
   return (
@@ -156,7 +215,11 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
               disabled={pdfLoading}
               className="flex items-center gap-2 h-10 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors disabled:opacity-50 border border-white/10"
             >
-              {pdfLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              {pdfLoading ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
               Download Resume PDF
             </button>
           </div>
@@ -164,27 +227,49 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
       </div>
 
       {/* Technical Questions */}
-      <Section title="Technical Questions" badge={report.technicalQuestions?.length} icon={Briefcase}>
+      <Section
+        title="Technical Questions"
+        badge={report.technicalQuestions?.length}
+        icon={Briefcase}
+      >
         <div className="space-y-3">
           {report.technicalQuestions?.map((q, i) => (
-            <QuestionCard key={i} q={q} index={i} open={openTechIdx === i}
-              onToggle={() => setOpenTechIdx(openTechIdx === i ? null : i)} />
+            <QuestionCard
+              key={i}
+              q={q}
+              index={i}
+              open={openTechIdx === i}
+              onToggle={() => setOpenTechIdx(openTechIdx === i ? null : i)}
+            />
           ))}
         </div>
       </Section>
 
       {/* Behavioral Questions */}
-      <Section title="Behavioral Questions" badge={report.behavioralQuestions?.length} icon={User}>
+      <Section
+        title="Behavioral Questions"
+        badge={report.behavioralQuestions?.length}
+        icon={User}
+      >
         <div className="space-y-3">
           {report.behavioralQuestions?.map((q, i) => (
-            <QuestionCard key={i} q={q} index={i} open={openBehavIdx === i}
-              onToggle={() => setOpenBehavIdx(openBehavIdx === i ? null : i)} />
+            <QuestionCard
+              key={i}
+              q={q}
+              index={i}
+              open={openBehavIdx === i}
+              onToggle={() => setOpenBehavIdx(openBehavIdx === i ? null : i)}
+            />
           ))}
         </div>
       </Section>
 
       {/* Skill Gaps */}
-      <Section title="Skill Gaps" badge={report.skillGaps?.length} icon={AlertTriangle}>
+      <Section
+        title="Skill Gaps"
+        badge={report.skillGaps?.length}
+        icon={AlertTriangle}
+      >
         {report.skillGaps?.length === 0 ? (
           <div className="flex items-center gap-2 text-sm text-green-600">
             <CheckCircle2 size={16} /> No significant skill gaps identified!
@@ -192,7 +277,10 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
         ) : (
           <div className="flex flex-wrap gap-2">
             {report.skillGaps?.map((sg, i) => (
-              <div key={i} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${severityStyle[sg.severity] || severityStyle.medium}`}>
+              <div
+                key={i}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${severityStyle[sg.severity] || severityStyle.medium}`}
+              >
                 {sg.skill}
                 <span className="opacity-60 capitalize">· {sg.severity}</span>
               </div>
@@ -202,23 +290,34 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
       </Section>
 
       {/* Preparation Plan */}
-      <Section title="Preparation Plan" badge={`${report.preparationPlan?.length} days`} icon={CheckCircle2}>
+      <Section
+        title="Preparation Plan"
+        badge={`${report.preparationPlan?.length} days`}
+        icon={CheckCircle2}
+      >
         <div className="space-y-3">
           {report.preparationPlan?.map((day, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex flex-col items-center flex-shrink-0">
                 <div className="h-8 w-8 rounded-full bg-[#ea580c] flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">{day.day}</span>
+                  <span className="text-xs font-bold text-white">
+                    {day.day}
+                  </span>
                 </div>
                 {i < report.preparationPlan.length - 1 && (
                   <div className="w-px flex-1 bg-gray-200 dark:bg-[#333] mt-1" />
                 )}
               </div>
               <div className="pb-5 flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">{day.focus}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  {day.focus}
+                </p>
                 <ul className="space-y-1.5">
                   {day.tasks?.map((task, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li
+                      key={j}
+                      className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                    >
                       <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#ea580c] flex-shrink-0" />
                       {task}
                     </li>
@@ -237,7 +336,9 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
 
 const ReportCard = ({ report, active, onClick }) => {
   const date = new Date(report.createdAt).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
   const { label, badge } = scoreConfig(report.matchScore ?? 0);
 
@@ -259,7 +360,9 @@ const ReportCard = ({ report, active, onClick }) => {
         <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
           <Calendar size={10} /> {date}
         </span>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge}`}>
+        <span
+          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge}`}
+        >
           {report.matchScore ?? 0} · {label}
         </span>
       </div>
@@ -283,16 +386,31 @@ const AnalysisForm = ({ onReportGenerated }) => {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== "application/pdf") { toast.error("Only PDF files are supported."); return; }
-    if (file.size > 3 * 1024 * 1024) { toast.error("File must be under 3 MB."); return; }
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are supported.");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("File must be under 3 MB.");
+      return;
+    }
     setResumeFile(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!jobDescription.trim()) { toast.error("Job description is required."); return; }
-    if (resumeMode === "upload" && !resumeFile) { toast.error("Please upload a PDF resume."); return; }
-    if (resumeMode === "text" && !resumeText.trim()) { toast.error("Please paste your resume text."); return; }
+    if (!jobDescription.trim()) {
+      toast.error("Job description is required.");
+      return;
+    }
+    if (resumeMode === "upload" && !resumeFile) {
+      toast.error("Please upload a PDF resume.");
+      return;
+    }
+    if (resumeMode === "text" && !resumeText.trim()) {
+      toast.error("Please paste your resume text.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -315,9 +433,12 @@ const AnalysisForm = ({ onReportGenerated }) => {
           <BarChart2 size={16} className="text-[#ea580c]" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">New Analysis</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+            New Analysis
+          </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Gemini AI will analyze your resume fit, surface skill gaps, and generate a prep plan.
+            Gemini AI will analyze your resume fit, surface skill gaps, and
+            generate a prep plan.
           </p>
         </div>
       </div>
@@ -326,7 +447,8 @@ const AnalysisForm = ({ onReportGenerated }) => {
         {/* Role */}
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Role / Position <span className="normal-case font-normal">(optional)</span>
+            Role / Position{" "}
+            <span className="normal-case font-normal">(optional)</span>
           </label>
           <input
             type="text"
@@ -344,7 +466,9 @@ const AnalysisForm = ({ onReportGenerated }) => {
             <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
               Job Description
             </label>
-            <span className="text-[11px] text-gray-400">{jobDescription.length}/5000</span>
+            <span className="text-[11px] text-gray-400">
+              {jobDescription.length}/5000
+            </span>
           </div>
           <textarea
             value={jobDescription}
@@ -359,11 +483,16 @@ const AnalysisForm = ({ onReportGenerated }) => {
 
         {/* Resume */}
         <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-5">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Your Resume</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+            Your Resume
+          </p>
 
           {/* Mode toggle */}
           <div className="flex rounded-xl bg-gray-100 dark:bg-[#222] p-1 mb-4 gap-1">
-            {[{ id: "upload", label: "Upload PDF" }, { id: "text", label: "Paste Text" }].map(({ id, label }) => (
+            {[
+              { id: "upload", label: "Upload PDF" },
+              { id: "text", label: "Paste Text" },
+            ].map(({ id, label }) => (
               <button
                 key={id}
                 type="button"
@@ -390,14 +519,22 @@ const AnalysisForm = ({ onReportGenerated }) => {
                   : "border-gray-200 dark:border-[#2a2a2a] hover:border-[#ea580c]/40 hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
               ].join(" ")}
             >
-              <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
               {resumeFile ? (
                 <>
                   <div className="h-10 w-10 rounded-xl bg-[#ea580c]/10 flex items-center justify-center">
                     <FileText size={20} className="text-[#ea580c]" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{resumeFile.name}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {resumeFile.name}
+                    </p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {(resumeFile.size / 1024).toFixed(0)} KB · Click to change
                     </p>
@@ -409,8 +546,12 @@ const AnalysisForm = ({ onReportGenerated }) => {
                     <Upload size={20} className="text-gray-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Click to upload PDF</p>
-                    <p className="text-xs text-gray-400 mt-0.5">PDF up to 3 MB</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Click to upload PDF
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      PDF up to 3 MB
+                    </p>
                   </div>
                 </>
               )}
@@ -430,7 +571,9 @@ const AnalysisForm = ({ onReportGenerated }) => {
         {/* Self description */}
         <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">About You</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              About You
+            </p>
             <span className="text-xs text-gray-400">Optional</span>
           </div>
           <textarea
@@ -441,7 +584,9 @@ const AnalysisForm = ({ onReportGenerated }) => {
             maxLength={2000}
             className="w-full rounded-xl border border-gray-200 dark:border-[#333] px-4 py-3 text-sm text-gray-900 dark:text-gray-200 bg-transparent dark:bg-[#1e1e1e] outline-none transition-all placeholder:text-gray-400 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none"
           />
-          <p className="text-xs text-gray-400 mt-1">{selfDescription.length}/2000</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {selfDescription.length}/2000
+          </p>
         </div>
 
         <button
@@ -450,8 +595,13 @@ const AnalysisForm = ({ onReportGenerated }) => {
           className="w-full h-12 rounded-xl bg-[#ea580c] text-sm font-medium text-white transition-all hover:bg-[#d24e0b] focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? (
-            <><Loader2 size={16} className="animate-spin" /> Generating report — this may take ~30 seconds…</>
-          ) : "Generate AI Report →"}
+            <>
+              <Loader2 size={16} className="animate-spin" /> Generating report —
+              this may take ~30 seconds…
+            </>
+          ) : (
+            "Generate AI Report →"
+          )}
         </button>
       </form>
     </div>
@@ -525,7 +675,13 @@ export default function AnalyzeView() {
 
   const handleReportGenerated = (report) => {
     setReports((prev) => [
-      { _id: report._id, title: report.title, role: report.role, matchScore: report.matchScore, createdAt: report.createdAt },
+      {
+        _id: report._id,
+        title: report.title,
+        role: report.role,
+        matchScore: report.matchScore,
+        createdAt: report.createdAt,
+      },
       ...prev,
     ]);
     setSelectedReport(report);
@@ -552,7 +708,9 @@ export default function AnalyzeView() {
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
           <div className="flex items-center gap-2">
             <BarChart2 size={14} className="text-[#ea580c]" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Analyses</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              Analyses
+            </p>
           </div>
           <button
             type="button"
@@ -571,7 +729,9 @@ export default function AnalyzeView() {
             </div>
           ) : reports.length === 0 ? (
             <div className="text-center py-10 px-3">
-              <p className="text-xs text-gray-400 dark:text-gray-500">No analyses yet.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                No analyses yet.
+              </p>
               <button
                 type="button"
                 onClick={handleNew}
@@ -603,8 +763,8 @@ export default function AnalyzeView() {
           <AnalysisForm onReportGenerated={handleReportGenerated} />
         )}
 
-        {view === "detail" && (
-          detailLoading ? (
+        {view === "detail" &&
+          (detailLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 size={24} className="animate-spin text-[#ea580c]" />
             </div>
@@ -625,8 +785,7 @@ export default function AnalyzeView() {
                 pdfLoading={pdfLoading}
               />
             </div>
-          ) : null
-        )}
+          ) : null)}
       </div>
     </div>
   );

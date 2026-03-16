@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
 import { createRequire } from "module";
 import InterviewReport from "../models/interviewReport.model.js";
-import { generateInterviewReport, generateResumePdf } from "../services/ai.service.js";
+import {
+  generateInterviewReport,
+  generateResumePdf,
+} from "../services/ai.service.js";
 
 const _require = createRequire(import.meta.url);
 
