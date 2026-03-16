@@ -1,37 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-// ─── PREVIEW MODE ────────────────────────────────────────────────────────────
-// Set to true to always show the overlay (ignores sessionStorage + uses a fake
-// offline URL so the spinner stays up). Revert to false before deploying.
+// ─── PREVIEW MODE ─────────────────────────────────────────────────────────────
+// Set to true to always show the overlay (ignores sessionStorage + grace period).
+// Revert to false before deploying.
 const PREVIEW_MODE = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
+const GRACE_MS = 800; // don't show overlay if server responds within this
 const RETRY_INTERVAL_MS = 3000;
-const MAX_ATTEMPTS = 20; // ~60s total
+const MAX_ATTEMPTS = 20; // ~60 s total
 
 const ServerWakeOverlay = () => {
-  const [visible, setVisible] = useState(
-    () => PREVIEW_MODE || !sessionStorage.getItem("server_awake"),
-  );
+  const [visible, setVisible] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
 
-  useEffect(() => {
-    if (!visible) return;
+  // stable refs so timers & async loop see the latest values without re-renders
+  const cancelledRef = useRef(false);
+  const dismissedRef = useRef(false);
 
-    let cancelled = false;
+  useEffect(() => {
+    // Within the same browser session, once confirmed awake, skip the check
+    if (!PREVIEW_MODE && sessionStorage.getItem("server_awake")) return;
 
     const dismiss = () => {
-      if (cancelled) return;
+      if (dismissedRef.current) return;
+      dismissedRef.current = true;
       if (!PREVIEW_MODE) sessionStorage.setItem("server_awake", "1");
       setFadeOut(true);
       setTimeout(() => setVisible(false), 700);
     };
 
+    // Show overlay after grace period (only if server hasn't responded yet)
+    const graceTimer = setTimeout(() => {
+      if (!dismissedRef.current) setVisible(true);
+    }, GRACE_MS);
+
     const wake = async () => {
       let attempts = 0;
-      // In preview mode point to a route that 404s so the overlay stays up
+      // In preview mode use a URL that will never respond so overlay stays up
       const url = PREVIEW_MODE ? "/api/__preview_offline__" : "/api/health";
-      while (attempts < MAX_ATTEMPTS && !cancelled) {
+
+      while (attempts < MAX_ATTEMPTS && !cancelledRef.current) {
         try {
           const res = await fetch(url);
           if (res.ok) {
@@ -44,14 +53,17 @@ const ServerWakeOverlay = () => {
         attempts++;
         await new Promise((r) => setTimeout(r, RETRY_INTERVAL_MS));
       }
+      // After max attempts give up and unblock the user
       dismiss();
     };
 
     wake();
+
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
+      clearTimeout(graceTimer);
     };
-  }, [visible]);
+  }, []);
 
   if (!visible) return null;
 
@@ -71,8 +83,8 @@ const ServerWakeOverlay = () => {
         playsInline
       />
 
-      {/* Dark scrim */}
-      <div className="absolute inset-0 bg-black/55" />
+      {/* Dark scrim so the status badge is always readable */}
+      <div className="absolute inset-0 bg-black/50" />
 
       {/* ── Status badge — top right ── */}
       <div className="absolute right-6 top-6 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-3.5 shadow-2xl backdrop-blur-md">
