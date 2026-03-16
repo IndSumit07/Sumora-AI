@@ -31,13 +31,13 @@ const ScoreRing = ({ value, max, label, color }) => {
   const offset = CIRC - pct * CIRC;
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <svg width="84" height="84" viewBox="0 0 90 90">
+      <svg width="84" height="84" viewBox="0 0 90 90" className="text-gray-900 dark:text-white">
         <circle
           cx="45"
           cy="45"
           r={RADIUS}
           fill="none"
-          stroke="#ffffff15"
+          stroke="#e5e7eb"
           strokeWidth="8"
         />
         <circle
@@ -60,7 +60,7 @@ const ScoreRing = ({ value, max, label, color }) => {
           dominantBaseline="middle"
           fontSize="17"
           fontWeight="700"
-          fill="#ffffff"
+          fill="currentColor"
         >
           {value}
         </text>
@@ -75,7 +75,7 @@ const ScoreRing = ({ value, max, label, color }) => {
           / {max}
         </text>
       </svg>
-      <span className="text-xs font-medium text-gray-400 text-center leading-tight">
+      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 text-center leading-tight">
         {label}
       </span>
     </div>
@@ -216,13 +216,13 @@ export default function InterviewHistoryDetail({ interview }) {
   return (
     <div className="space-y-5 max-w-3xl">
       {/* ── Header card ── */}
-      <div className="bg-[#0a0a0a] rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+      <div className="bg-gray-100 dark:bg-[#0a0a0a] rounded-2xl p-6 sm:p-8 relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-56 h-56 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c] mb-1">
             {isCompleted ? "Interview Complete" : "Interview In Progress"}
           </p>
-          <h2 className="text-lg font-semibold text-white mb-1">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
             {interview.role}
           </h2>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-5">
@@ -245,7 +245,7 @@ export default function InterviewHistoryDetail({ interview }) {
                   {label}
                 </span>
               </div>
-              <div className="h-16 w-px bg-white/10 hidden sm:block" />
+              <div className="h-16 w-px bg-black/10 dark:bg-white/10 hidden sm:block" />
               <div className="flex gap-6">
                 <ScoreRing
                   value={techScore}
