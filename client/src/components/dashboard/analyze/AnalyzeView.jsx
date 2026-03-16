@@ -48,7 +48,12 @@ const MatchScoreRing = ({ score }) => {
   const offset = CIRC - (score / 100) * CIRC;
   return (
     <div className="flex flex-col items-center gap-2">
-      <svg width="110" height="110" viewBox="0 0 100 100" className="text-gray-900 dark:text-white">
+      <svg
+        width="110"
+        height="110"
+        viewBox="0 0 100 100"
+        className="text-gray-900 dark:text-white"
+      >
         <circle
           cx="50"
           cy="50"
@@ -201,7 +206,9 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
               {report.title || report.role || "Interview Analysis"}
             </h2>
             {report.role && report.role !== report.title && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{report.role}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                {report.role}
+              </p>
             )}
             <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500">
               <Calendar size={11} />

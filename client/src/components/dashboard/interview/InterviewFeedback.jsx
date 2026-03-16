@@ -33,7 +33,12 @@ const ScoreRing = ({ value, max, label, color }) => {
 
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <svg width="90" height="90" viewBox="0 0 90 90" className="text-gray-900 dark:text-white">
+      <svg
+        width="90"
+        height="90"
+        viewBox="0 0 90 90"
+        className="text-gray-900 dark:text-white"
+      >
         <circle
           cx="45"
           cy="45"
