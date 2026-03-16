@@ -60,8 +60,6 @@ function createRecognition(onResult, onEnd) {
     if (e.error !== "no-speech" && e.error !== "aborted") {
       toast.error("Microphone error: " + e.error);
     }
-    onEnd(finalTranscript.trim());
-    finalTranscript = "";
   };
 
   return rec;
@@ -142,6 +140,8 @@ export default function InterviewChat({
   const recRef = useRef(null);
   const audioRef = useRef(null);
   const textareaRef = useRef(null);
+  const shouldRecordRef = useRef(false);
+  const baseAnswerRef = useRef("");
 
   const stopAudio = useCallback(() => {
     if (audioRef.current) {
@@ -191,54 +191,101 @@ export default function InterviewChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const startRec = useCallback(() => {
+    if (recRef.current) return;
+
+    // Capture whatever is currently in the textbox
+    // We get the latest answer by relying on state setter callback if needed, but here we can just use a ref:
+    // Wait, let's keep a ref for the latest answer.
+    // Or we rely on `baseAnswerRef.current` which we ensure is up to date when startRec is called.
+    const currentBase = document.getElementById("answer-textarea")?.value || "";
+    baseAnswerRef.current = currentBase;
+
+    const rec = createRecognition(
+      (transcript) => {
+        setAnswer((baseAnswerRef.current + " " + transcript).trim());
+      },
+      (finalText) => {
+        const finalAnswer = (baseAnswerRef.current + " " + finalText).trim();
+        setAnswer(finalAnswer);
+        recRef.current = null;
+
+        if (shouldRecordRef.current) {
+          // Restart automatically to keep it always on
+          setTimeout(() => {
+            if (shouldRecordRef.current) {
+              startRec();
+            }
+          }, 100);
+        } else {
+          setIsRecording(false);
+        }
+      },
+    );
+
+    if (!rec) {
+      toast.error("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    try {
+      rec.start();
+      recRef.current = rec;
+      setIsRecording(true);
+    } catch {
+      toast.error("Could not access microphone.");
+      setIsRecording(false);
+      shouldRecordRef.current = false;
+    }
+  }, []); // no dependencies needed if we grab current value via document or ref
+
   const toggleRecording = useCallback(() => {
     if (isRecording) {
+      shouldRecordRef.current = false;
       recRef.current?.stop();
       setIsRecording(false);
     } else {
-      const rec = createRecognition(
-        (transcript) => setAnswer(transcript),
-        (finalText) => {
-          if (finalText) setAnswer(finalText);
-          setIsRecording(false);
-        },
-      );
-      if (!rec) {
-        toast.error("Speech recognition is not supported in this browser.");
-        return;
-      }
-      try {
-        rec.start();
-        recRef.current = rec;
-        setIsRecording(true);
-      } catch {
-        toast.error("Could not access microphone.");
-      }
+      shouldRecordRef.current = true;
+      startRec();
     }
-  }, [isRecording]);
+  }, [isRecording, startRec]);
 
   const handleSubmitAnswer = async () => {
     if (!answer.trim()) {
       toast.error("Please type or speak your answer first.");
       return;
     }
-    if (isRecording) {
+
+    // Stop recording momentarily so it doesn't capture background noise while loading
+    const wasRecording = shouldRecordRef.current;
+    if (wasRecording) {
+      shouldRecordRef.current = false; // suspend auto-restart temporarily
       recRef.current?.stop();
-      setIsRecording(false);
     }
 
     setSubmitLoading(true);
     try {
       const data = await answerInterview(interviewId, answer.trim());
       onAnswer(data.question, answer.trim());
+
+      // Resume recording for the new question
+      if (wasRecording) {
+        shouldRecordRef.current = true;
+        setTimeout(() => startRec(), 100);
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit answer.");
+      if (wasRecording) {
+        shouldRecordRef.current = true;
+        startRec();
+      }
     } finally {
       setSubmitLoading(false);
     }
   };
 
   const handleEndInterview = async () => {
+    shouldRecordRef.current = false;
     if (isRecording) {
       recRef.current?.stop();
       setIsRecording(false);
@@ -247,6 +294,10 @@ export default function InterviewChat({
 
     setEndLoading(true);
     try {
+      // Auto-submit current answer if one exists before ending
+      if (answer.trim()) {
+        await answerInterview(interviewId, answer.trim());
+      }
       const data = await endInterview(interviewId);
       onEnd(data.feedback, data.score);
     } catch (err) {
@@ -343,7 +394,7 @@ export default function InterviewChat({
               type="button"
               onClick={toggleRecording}
               className={[
-                "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
+                "flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl transition-all",
                 isRecording
                   ? "bg-red-50 text-red-600 border border-red-200 animate-pulse"
                   : "bg-gray-100 dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333]",
@@ -351,11 +402,11 @@ export default function InterviewChat({
             >
               {isRecording ? (
                 <>
-                  <MicOff size={13} /> Stop recording
+                  <MicOff size={16} /> Stop recording
                 </>
               ) : (
                 <>
-                  <Mic size={13} /> Use microphone
+                  <Mic size={16} /> Use microphone
                 </>
               )}
             </button>
@@ -363,6 +414,7 @@ export default function InterviewChat({
         </div>
 
         <textarea
+          id="answer-textarea"
           ref={textareaRef}
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
