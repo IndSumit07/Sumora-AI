@@ -22,6 +22,7 @@ import {
   recoverChain,
   cleanupChain,
   generateFeedback,
+  analyzeQuestion,
 } from "../services/interviewService.js";
 
 const _require = createRequire(import.meta.url);
@@ -366,5 +367,60 @@ export async function getAllLiveInterviewsController(req, res) {
   } catch (error) {
     console.error("Get all live interviews error:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// ── 7. Analyze a single question (teaching walkthrough) ───────────────────────
+
+/**
+ * POST /api/interview/analyze-question
+ * Body: { interviewId, questionIndex }
+ *
+ * For a completed interview, fetches the question + candidate answer at the
+ * given index and asks the AI to teach the ideal answer.
+ * Returns { teaching: { why, structure, sampleAnswer, tip } }
+ */
+export async function analyzeQuestionController(req, res) {
+  try {
+    const { interviewId, questionIndex } = req.body;
+
+    if (!interviewId)
+      return res.status(400).json({ message: "interviewId is required." });
+    if (!mongoose.Types.ObjectId.isValid(interviewId))
+      return res.status(400).json({ message: "Invalid interviewId." });
+    if (typeof questionIndex !== "number" || questionIndex < 0)
+      return res.status(400).json({ message: "questionIndex must be a non-negative number." });
+
+    const interview = await LiveInterview.findOne({
+      _id: interviewId,
+      user: req.user.id,
+    });
+    if (!interview)
+      return res.status(404).json({ message: "Interview not found." });
+
+    const turn = interview.conversation?.[questionIndex];
+    if (!turn)
+      return res.status(400).json({ message: "Question index out of range." });
+
+    const context = {
+      mode: interview.mode,
+      role: interview.role,
+      jobDescription: interview.jobDescription,
+      subject: interview.subject,
+      topic: interview.topic,
+    };
+
+    const teaching = await analyzeQuestion(
+      turn.question,
+      turn.answer || "",
+      context,
+    );
+
+    return res.status(200).json({ teaching });
+  } catch (error) {
+    console.error("Analyze question error:", error);
+    return res
+      .status(500)
+      .json({ message: error?.message || "Internal server error" });
   }
 }

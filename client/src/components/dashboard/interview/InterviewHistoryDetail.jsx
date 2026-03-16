@@ -5,12 +5,13 @@
  *   - Header with scores
  *   - Full Q&A conversation accordion
  *   - Feedback sections (strengths, weaknesses, improvements)
+ *   - "Analyze Interview" button → AI walkthrough teaching mode
  *
  * Props:
  *   interview — full LiveInterview document (with parsed feedback object)
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -19,7 +20,82 @@ import {
   TrendingUp,
   MessageSquare,
   Calendar,
+  Sparkles,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  VolumeX,
+  Lightbulb,
+  ListChecks,
+  MessageCircle,
+  Zap,
+  Loader2,
 } from "lucide-react";
+import { useInterview } from "../../../context/InterviewContext";
+
+// ── TTS helper (reads iv_voice preference set by InterviewChat) ───────────────
+
+function speakText(text, { onStart, onEnd } = {}) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.88;
+  utter.pitch = 1.08;
+  utter.volume = 1;
+
+  const voices = window.speechSynthesis.getVoices();
+  const savedURI = localStorage.getItem("iv_voice");
+  const find = (fn) => voices.find(fn);
+
+  const voice =
+    (savedURI && find((v) => v.voiceURI === savedURI)) ||
+    find((v) => v.name === "Google UK English Female") ||
+    find((v) => v.name === "Samantha") ||
+    find((v) => v.name === "Victoria") ||
+    find((v) => v.name === "Google US English Female") ||
+    find(
+      (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female"),
+    ) ||
+    find(
+      (v) =>
+        v.lang.startsWith("en") &&
+        (v.name.includes("Google") || v.name.includes("Natural")),
+    ) ||
+    find((v) => v.lang.startsWith("en"));
+
+  if (voice) utter.voice = voice;
+  if (onStart) utter.onstart = onStart;
+  if (onEnd) {
+    utter.onend = onEnd;
+    utter.onerror = onEnd;
+  }
+  window.speechSynthesis.speak(utter);
+}
+
+// ── Animated waveform ─────────────────────────────────────────────────────────
+
+const VoiceWaveform = ({ active }) => (
+  <div className="flex items-end gap-[3px] h-3.5">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <span
+        key={i}
+        className="w-[3px] rounded-full bg-[#ea580c] transition-all"
+        style={
+          active
+            ? {
+                animation: `wave 0.9s ease-in-out infinite`,
+                animationDelay: `${i * 0.1}s`,
+                height: "100%",
+              }
+            : { height: "25%" }
+        }
+      />
+    ))}
+    <style>{`@keyframes wave{0%,100%{transform:scaleY(0.25)}50%{transform:scaleY(1)}}`}</style>
+  </div>
+);
 
 // ── Score ring ────────────────────────────────────────────────────────────────
 
@@ -175,9 +251,7 @@ const FeedbackSection = ({
     </div>
     <ul className="p-5 space-y-2.5">
       {items.length === 0 ? (
-        <li className="text-sm text-gray-400 dark:text-gray-500">
-          {emptyText}
-        </li>
+        <li className="text-sm text-gray-400 dark:text-gray-500">{emptyText}</li>
       ) : (
         items.map((item, i) => (
           <li
@@ -193,10 +267,326 @@ const FeedbackSection = ({
   </div>
 );
 
+// ── Walkthrough view ──────────────────────────────────────────────────────────
+
+function WalkthroughView({ interview, onClose }) {
+  const { analyzeQuestion } = useInterview();
+  const conversation = interview.conversation || [];
+  const total = conversation.length;
+
+  const [walkIdx, setWalkIdx] = useState(0);
+  const [teaching, setTeaching] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [answerOpen, setAnswerOpen] = useState(false);
+  const cacheRef = useRef({});
+
+  const turn = conversation[walkIdx];
+
+  // Fetch teaching for the current question (cached per index)
+  useEffect(() => {
+    if (!turn) return;
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+    setAnswerOpen(false);
+
+    if (cacheRef.current[walkIdx]) {
+      setTeaching(cacheRef.current[walkIdx]);
+      return;
+    }
+
+    setTeaching(null);
+    setLoading(true);
+    analyzeQuestion(interview._id, walkIdx)
+      .then((t) => {
+        cacheRef.current[walkIdx] = t;
+        setTeaching(t);
+      })
+      .catch(() => setTeaching(null))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walkIdx]);
+
+  // Auto-play the sample answer when teaching loads
+  useEffect(() => {
+    if (teaching?.sampleAnswer) {
+      speakText(teaching.sampleAnswer, {
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+      });
+    }
+  }, [teaching]);
+
+  // Stop TTS on unmount
+  useEffect(() => {
+    return () => window.speechSynthesis?.cancel();
+  }, []);
+
+  const handlePlaySample = () => {
+    if (!teaching?.sampleAnswer) return;
+    speakText(teaching.sampleAnswer, {
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+    });
+  };
+
+  const handleStopSpeaking = () => {
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+  };
+
+  const handleClose = () => {
+    window.speechSynthesis?.cancel();
+    onClose();
+  };
+
+  return (
+    <div className="max-w-3xl space-y-4">
+      {/* ── Walkthrough header ── */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-lg bg-[#ea580c]/15 flex items-center justify-center">
+            <Sparkles size={14} className="text-[#ea580c]" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c]">
+              AI Walkthrough
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Question {walkIdx + 1} of {total}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleClose}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-[#222] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <X size={13} /> Exit
+        </button>
+      </div>
+
+      {/* ── Progress dots ── */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {conversation.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setWalkIdx(i)}
+            title={`Question ${i + 1}`}
+            className={[
+              "h-2 rounded-full transition-all",
+              i === walkIdx
+                ? "w-6 bg-[#ea580c]"
+                : cacheRef.current[i]
+                  ? "w-2 bg-[#ea580c]/40"
+                  : "w-2 bg-gray-200 dark:bg-[#333]",
+            ].join(" ")}
+          />
+        ))}
+      </div>
+
+      {/* ── Question card ── */}
+      <div className="bg-[#0a0a0a] rounded-2xl p-6 relative overflow-hidden">
+        <div className="absolute bottom-0 right-0 w-40 h-40 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c] block mb-3">
+            Question {walkIdx + 1}
+          </span>
+          <p className="text-white text-[15px] font-medium leading-relaxed">
+            {turn?.question}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Your answer (collapsible) ── */}
+      {turn?.answer?.trim() && (
+        <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] overflow-hidden">
+          <button
+            onClick={() => setAnswerOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Your Answer
+            </span>
+            {answerOpen ? (
+              <ChevronUp size={14} className="text-gray-400" />
+            ) : (
+              <ChevronDown size={14} className="text-gray-400" />
+            )}
+          </button>
+          {answerOpen && (
+            <div className="px-5 pb-4 border-t border-gray-100 dark:border-[#222]">
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed pt-3 whitespace-pre-line">
+                {turn.answer}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── AI teaching card ── */}
+      <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2.5 px-6 py-4 border-b border-gray-100 dark:border-[#222] bg-gradient-to-r from-[#ea580c]/5 to-transparent">
+          <Sparkles size={14} className="text-[#ea580c]" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            How to Answer This
+          </h3>
+          {isSpeaking && (
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-[10px] text-[#ea580c] font-medium">
+                Speaking
+              </span>
+              <VoiceWaveform active />
+            </div>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-14 gap-3">
+            <Loader2 size={22} className="animate-spin text-[#ea580c]" />
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Preparing your teaching…
+            </p>
+          </div>
+        ) : teaching ? (
+          <div className="p-6 space-y-6">
+            {/* Why section */}
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mt-0.5">
+                <Lightbulb size={14} className="text-amber-500" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500 mb-1.5">
+                  Why They Ask This
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {teaching.why}
+                </p>
+              </div>
+            </div>
+
+            {/* Key points */}
+            {teaching.structure?.length > 0 && (
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center mt-0.5">
+                  <ListChecks size={14} className="text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500 mb-2">
+                    Key Points to Cover
+                  </p>
+                  <ul className="space-y-1.5">
+                    {teaching.structure.map((pt, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                        {pt}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Sample answer */}
+            {teaching.sampleAnswer && (
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center mt-0.5">
+                  <MessageCircle size={14} className="text-green-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-green-500">
+                      Sample Strong Answer
+                    </p>
+                    {isSpeaking ? (
+                      <button
+                        onClick={handleStopSpeaking}
+                        className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-red-500 transition-colors"
+                      >
+                        <VolumeX size={12} /> Stop
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handlePlaySample}
+                        className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-[#ea580c] transition-colors"
+                      >
+                        <Volume2 size={12} /> Listen
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative bg-green-50 dark:bg-green-500/5 border border-green-100 dark:border-green-500/15 rounded-xl p-4">
+                    {isSpeaking && (
+                      <div className="absolute top-3 right-3">
+                        <VoiceWaveform active />
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic pr-8">
+                      "{teaching.sampleAnswer}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pro tip */}
+            {teaching.tip && (
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center mt-0.5">
+                  <Zap size={14} className="text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-purple-500 mb-1.5">
+                    Pro Tip
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {teaching.tip}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="py-14 text-center">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Could not load teaching. Please try again.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Navigation ── */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setWalkIdx((i) => i - 1)}
+          disabled={walkIdx === 0}
+          className="flex items-center gap-1.5 h-10 px-4 rounded-xl bg-gray-100 dark:bg-[#222] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2a2a2a] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          <ChevronLeft size={15} /> Prev
+        </button>
+
+        <div className="flex-1 text-center text-xs text-gray-400 dark:text-gray-500">
+          {walkIdx + 1} / {total}
+        </div>
+
+        <button
+          onClick={() => setWalkIdx((i) => i + 1)}
+          disabled={walkIdx === total - 1}
+          className="flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          Next <ChevronRight size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function InterviewHistoryDetail({ interview }) {
   const [openIdx, setOpenIdx] = useState(null);
+  const [isWalkthrough, setIsWalkthrough] = useState(false);
 
   const date = new Date(interview.createdAt).toLocaleDateString("en-US", {
     month: "long",
@@ -215,8 +605,18 @@ export default function InterviewHistoryDetail({ interview }) {
   const weaknesses = feedback?.weaknesses || [];
   const improvements = feedback?.improvements || [];
   const isCompleted = interview.status === "completed";
+  const hasConversation = (interview.conversation?.length ?? 0) > 0;
 
   const { label, color, badgeClass } = overallConfig(score);
+
+  if (isWalkthrough) {
+    return (
+      <WalkthroughView
+        interview={interview}
+        onClose={() => setIsWalkthrough(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -228,7 +628,7 @@ export default function InterviewHistoryDetail({ interview }) {
             {isCompleted ? "Interview Complete" : "Interview In Progress"}
           </p>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            {interview.role}
+            {interview.role || interview.topic || "Interview"}
           </h2>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-5">
             <Calendar size={11} />
@@ -270,6 +670,17 @@ export default function InterviewHistoryDetail({ interview }) {
             <span className="inline-block text-xs font-medium px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400">
               This interview was not completed
             </span>
+          )}
+
+          {/* Analyze button */}
+          {hasConversation && (
+            <button
+              onClick={() => setIsWalkthrough(true)}
+              className="mt-6 flex items-center gap-2 h-10 px-5 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all shadow-sm shadow-orange-500/20"
+            >
+              <Sparkles size={14} />
+              Analyze Interview
+            </button>
           )}
         </div>
       </div>

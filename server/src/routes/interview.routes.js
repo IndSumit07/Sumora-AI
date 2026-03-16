@@ -19,6 +19,7 @@ import {
   endInterviewController,
   getLiveInterviewController,
   getAllLiveInterviewsController,
+  analyzeQuestionController,
 } from "../controllers/liveInterview.controller.js";
 
 const interviewRouter = express.Router();
@@ -102,6 +103,13 @@ interviewRouter.get(
   apiLimiter,
   authMiddleware,
   getLiveInterviewController,
+);
+// POST /api/interview/analyze-question   — AI teaching for a single question (walkthrough)
+interviewRouter.post(
+  "/analyze-question",
+  aiLimiter,
+  authMiddleware,
+  analyzeQuestionController,
 );
 
 export default interviewRouter;

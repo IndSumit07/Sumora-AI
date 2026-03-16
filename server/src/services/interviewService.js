@@ -328,6 +328,65 @@ export async function recoverChain(interview) {
 }
 
 /**
+ * Generate a structured teaching response for a single interview question.
+ * Used by the "Analyze" walkthrough feature — teaches the ideal answer.
+ *
+ * @param {string} question   — the interview question
+ * @param {string} userAnswer — the candidate's actual answer (may be empty)
+ * @param {{ mode, role, jobDescription, subject, topic }} context
+ * @returns {Promise<{ why, structure, sampleAnswer, tip }>}
+ */
+export async function analyzeQuestion(question, userAnswer, context) {
+  const llm = buildLLM();
+
+  const contextStr =
+    context.mode === "prepare"
+      ? `Subject: ${context.subject || "General"}\nTopic: ${context.topic || "General"}`
+      : `Target Role: ${context.role || "Software Engineer"}\nJob Description: ${(context.jobDescription || "Not specified").slice(0, 600)}`;
+
+  const answerSection = userAnswer?.trim()
+    ? `Candidate's Actual Answer:\n"${userAnswer.trim()}"`
+    : "The candidate did not provide an answer.";
+
+  const promptText = `You are an expert interview coach. Your job is to teach a candidate how to perfectly answer an interview question.
+
+Context:
+${contextStr}
+
+Interview Question:
+"${question}"
+
+${answerSection}
+
+Provide a clear, encouraging, structured teaching response.
+Reply with ONLY valid JSON — no markdown fences, no extra text.
+
+{
+  "why": "<1-2 sentences: why interviewers ask this and what they really want to hear>",
+  "structure": ["<key point 1 the answer must cover>", "<key point 2>", "<key point 3>"],
+  "sampleAnswer": "<a strong, natural model answer the candidate can learn from — 3 to 6 sentences>",
+  "tip": "<one concise, practical delivery tip for this type of question>"
+}`;
+
+  const response = await llm.invoke([new HumanMessage(promptText)]);
+  const raw =
+    typeof response?.content === "string"
+      ? response.content
+      : JSON.stringify(response);
+
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("Model returned non-JSON analysis.");
+
+  const parsed = JSON.parse(match[0]);
+  return {
+    why: parsed.why || "",
+    structure: Array.isArray(parsed.structure) ? parsed.structure : [],
+    sampleAnswer: parsed.sampleAnswer || "",
+    tip: parsed.tip || "",
+  };
+}
+
+/**
  * Remove a finished interview's chain from memory to free resources.
  * @param {string} interviewId
  */
