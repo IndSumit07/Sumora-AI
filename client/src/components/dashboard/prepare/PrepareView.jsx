@@ -30,7 +30,8 @@ const SUBJECTS = [
     label: "Data Structures & Algorithms",
     icon: Zap,
     desc: "Arrays, trees, graphs, sorting, dynamic programming",
-    placeholder: "Binary Search Trees, Dijkstra's Algorithm, Dynamic Programming",
+    placeholder:
+      "Binary Search Trees, Dijkstra's Algorithm, Dynamic Programming",
   },
   {
     id: "os",
@@ -397,10 +398,7 @@ export default function PrepareView() {
         type="button"
         onClick={handleStart}
         disabled={
-          startLoading ||
-          uploadLoading ||
-          !selectedSubject ||
-          !topic.trim()
+          startLoading || uploadLoading || !selectedSubject || !topic.trim()
         }
         className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >

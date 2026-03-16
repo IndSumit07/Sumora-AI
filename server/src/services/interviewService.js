@@ -105,8 +105,6 @@ RULE 8 — SHORT OR EMPTY ANSWERS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You are ready to begin. Apply Rule 3 immediately for your first response.`;
 
-
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildLLM() {

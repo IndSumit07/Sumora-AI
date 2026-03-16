@@ -50,11 +50,9 @@ async function parsePdf(buffer) {
 export async function uploadResumeController(req, res) {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json({
-          message: 'No file uploaded. Send a PDF under the "resume" field.',
-        });
+      return res.status(400).json({
+        message: 'No file uploaded. Send a PDF under the "resume" field.',
+      });
     }
     if (req.file.mimetype !== "application/pdf") {
       return res.status(400).json({ message: "Only PDF files are accepted." });
