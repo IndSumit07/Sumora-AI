@@ -107,6 +107,21 @@ You are ready to begin. Apply Rule 3 immediately for your first response.`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Returns a difficulty modifier string injected into system prompts.
+ * @param {"easy"|"medium"|"hard"} difficulty
+ */
+function getDifficultyInstructions(difficulty) {
+  switch (difficulty) {
+    case "easy":
+      return `\nDIFFICULTY: EASY — Stick to beginner-to-intermediate level questions only. Focus on core definitions and basic use cases. Do not ask about advanced internals, edge cases, or complex trade-offs. Limit aggressive follow-ups — if an answer is reasonable, move on.`;
+    case "hard":
+      return `\nDIFFICULTY: HARD — Jump straight to advanced, highly technical questions. Probe every answer deeply — if the candidate is vague, follow up twice before moving on. Include complex edge cases, performance trade-offs, and deep system-level reasoning. Do not accept surface-level answers.`;
+    default:
+      return `\nDIFFICULTY: MEDIUM — Balance fundamental questions with real-world scenarios. Follow up when answers are incomplete. Progress from basics to applied topics over the session.`;
+  }
+}
+
 function buildLLM() {
   return new ChatGroq({
     model: "llama-3.1-8b-instant",
@@ -154,21 +169,31 @@ function buildChain(interviewId, systemPrompt) {
   return chainWithHistory;
 }
 
-function makeSystemPrompt(resume, role, jobDescription) {
-  return SYSTEM_TEMPLATE.replace("{resume}", resume || "No resume provided.")
+function makeSystemPrompt(resume, role, jobDescription, difficulty = "medium") {
+  const base = SYSTEM_TEMPLATE.replace(
+    "{resume}",
+    resume || "No resume provided.",
+  )
     .replace("{role}", role || "Software Engineer")
     .replace("{jobDescription}", jobDescription || "Not specified.");
+  return base + getDifficultyInstructions(difficulty);
 }
 
-function makePrepareSystemPrompt(subject, topic, resumeText) {
+function makePrepareSystemPrompt(
+  subject,
+  topic,
+  resumeText,
+  difficulty = "medium",
+) {
   const resolvedTopic = topic || "General Topics";
   const resolvedSubject = subject || "Computer Science";
   const resumeSection = resumeText
     ? `Candidate Resume (for context only — do NOT ask about resume details; stay on ${resolvedTopic}):\n${resumeText}`
     : "";
-  return PREPARE_SYSTEM_TEMPLATE.replace(/{subject}/g, resolvedSubject)
+  const base = PREPARE_SYSTEM_TEMPLATE.replace(/{subject}/g, resolvedSubject)
     .replace(/{topic}/g, resolvedTopic)
     .replace("{resumeSection}", resumeSection);
+  return base + getDifficultyInstructions(difficulty);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -182,8 +207,19 @@ function makePrepareSystemPrompt(subject, topic, resumeText) {
  * @param {string} jobDescription  — full job description
  * @returns {Promise<string>}        first question from the AI
  */
-export async function initInterview(interviewId, resume, role, jobDescription) {
-  const systemPrompt = makeSystemPrompt(resume, role, jobDescription);
+export async function initInterview(
+  interviewId,
+  resume,
+  role,
+  jobDescription,
+  difficulty = "medium",
+) {
+  const systemPrompt = makeSystemPrompt(
+    resume,
+    role,
+    jobDescription,
+    difficulty,
+  );
   const chainWithHistory = buildChain(interviewId, systemPrompt);
 
   const idStr = interviewId.toString();
@@ -209,8 +245,14 @@ export async function initPrepareInterview(
   subject,
   topic,
   resumeText = "",
+  difficulty = "medium",
 ) {
-  const systemPrompt = makePrepareSystemPrompt(subject, topic, resumeText);
+  const systemPrompt = makePrepareSystemPrompt(
+    subject,
+    topic,
+    resumeText,
+    difficulty,
+  );
   const chainWithHistory = buildChain(interviewId, systemPrompt);
 
   const idStr = interviewId.toString();
@@ -256,11 +298,13 @@ export async function recoverChain(interview) {
           interview.subject,
           interview.topic,
           interview.resumeText,
+          interview.difficulty || "medium",
         )
       : makeSystemPrompt(
           interview.resumeText,
           interview.role,
           interview.jobDescription,
+          interview.difficulty || "medium",
         );
 
   // Reconstruct the history from the stored conversation

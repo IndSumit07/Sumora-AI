@@ -59,12 +59,27 @@ const InterviewCard = ({ interview, active, onClick }) => {
           <Calendar size={10} />
           {date}
         </span>
-        <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
-        >
-          {interview.status === "completed" ? `${interview.score ?? 0} · ` : ""}
-          {label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {interview.difficulty && interview.difficulty !== "medium" && (
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                interview.difficulty === "easy"
+                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                  : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+              }`}
+            >
+              {interview.difficulty}
+            </span>
+          )}
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
+          >
+            {interview.status === "completed"
+              ? `${interview.score ?? 0} · `
+              : ""}
+            {label}
+          </span>
+        </div>
       </div>
     </button>
   );
@@ -80,6 +95,7 @@ const SetupForm = ({ onStarted }) => {
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
+  const [difficulty, setDifficulty] = useState("medium");
   const fileRef = useRef(null);
 
   const handleFile = async (file) => {
@@ -122,8 +138,14 @@ const SetupForm = ({ onStarted }) => {
         role: role.trim(),
         jobDescription: jobDescription.trim(),
         resumeText,
+        difficulty,
       });
-      onStarted({ interviewId, firstQuestion: question, role: role.trim() });
+      onStarted({
+        interviewId,
+        firstQuestion: question,
+        role: role.trim(),
+        difficulty,
+      });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start interview.");
     } finally {
@@ -231,6 +253,49 @@ const SetupForm = ({ onStarted }) => {
             className="hidden"
             onChange={(e) => handleFile(e.target.files?.[0])}
           />
+        </div>
+
+        {/* Difficulty */}
+        <div>
+          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+            Difficulty
+          </label>
+          <div className="flex gap-2">
+            {[
+              {
+                value: "easy",
+                label: "Easy",
+                active:
+                  "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+              },
+              {
+                value: "medium",
+                label: "Medium",
+                active:
+                  "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+              },
+              {
+                value: "hard",
+                label: "Hard",
+                active:
+                  "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
+              },
+            ].map(({ value, label, active }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setDifficulty(value)}
+                className={[
+                  "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
+                  difficulty === value
+                    ? active
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button
@@ -342,7 +407,12 @@ export default function InterviewView() {
     setScore(0);
   };
 
-  const handleStarted = ({ interviewId: id, firstQuestion, role }) => {
+  const handleStarted = ({
+    interviewId: id,
+    firstQuestion,
+    role,
+    difficulty,
+  }) => {
     setInterviewId(id);
     setCurrentQuestion(firstQuestion);
     setQuestionIndex(1);
@@ -354,6 +424,7 @@ export default function InterviewView() {
         _id: id,
         mode: "job",
         role,
+        difficulty,
         score: 0,
         status: "active",
         createdAt: new Date().toISOString(),

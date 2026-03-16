@@ -4,8 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Setup background matching exactly with the image for the bottom bars */
+/* Base background — switches cleanly with dark/light toggle */
 body {
+  background-color: #f9fafb;
+}
+
+html.dark body {
   background-color: #000;
 }
 

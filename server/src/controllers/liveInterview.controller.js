@@ -78,7 +78,12 @@ export async function uploadResumeController(req, res) {
  */
 export async function startInterviewController(req, res) {
   try {
-    const { resumeText = "", role, jobDescription } = req.body;
+    const {
+      resumeText = "",
+      role,
+      jobDescription,
+      difficulty = "medium",
+    } = req.body;
 
     if (!role?.trim())
       return res.status(400).json({ message: "role is required." });
@@ -92,6 +97,9 @@ export async function startInterviewController(req, res) {
       resumeText: resumeText.trim().slice(0, 8000),
       role: role.trim().slice(0, 150),
       jobDescription: jobDescription.trim().slice(0, 5000),
+      difficulty: ["easy", "medium", "hard"].includes(difficulty)
+        ? difficulty
+        : "medium",
       conversation: [],
     });
 
@@ -101,6 +109,7 @@ export async function startInterviewController(req, res) {
       interview.resumeText,
       interview.role,
       interview.jobDescription,
+      interview.difficulty,
     );
 
     // Persist the first question to the conversation array
@@ -130,7 +139,7 @@ export async function startInterviewController(req, res) {
  */
 export async function startPrepareController(req, res) {
   try {
-    const { subject, topic, resumeText = "" } = req.body;
+    const { subject, topic, resumeText = "", difficulty = "medium" } = req.body;
 
     if (!subject?.trim())
       return res.status(400).json({ message: "subject is required." });
@@ -143,6 +152,9 @@ export async function startPrepareController(req, res) {
       subject: subject.trim().slice(0, 100),
       topic: topic.trim().slice(0, 200),
       resumeText: resumeText.trim().slice(0, 8000),
+      difficulty: ["easy", "medium", "hard"].includes(difficulty)
+        ? difficulty
+        : "medium",
       conversation: [],
     });
 
@@ -151,6 +163,7 @@ export async function startPrepareController(req, res) {
       interview.subject,
       interview.topic,
       interview.resumeText,
+      interview.difficulty,
     );
 
     interview.conversation.push({ question: firstQuestion, answer: "" });
@@ -345,6 +358,7 @@ export async function getAllLiveInterviewsController(req, res) {
       topic: 1,
       score: 1,
       status: 1,
+      difficulty: 1,
       createdAt: 1,
     }).sort({ createdAt: -1 });
 

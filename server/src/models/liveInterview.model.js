@@ -38,6 +38,11 @@ const liveInterviewSchema = new mongoose.Schema(
     feedback: { type: String, default: "" },
     score: { type: Number, default: 0, min: 0, max: 100 },
     status: { type: String, enum: ["active", "completed"], default: "active" },
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard"],
+      default: "medium",
+    },
   },
   { timestamps: true },
 );

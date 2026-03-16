@@ -33,7 +33,8 @@ const SUBJECTS = [
     label: "Data Structures & Algorithms",
     icon: Zap,
     desc: "Arrays, trees, graphs, sorting, dynamic programming",
-    placeholder: "Binary Search Trees, Dijkstra's Algorithm, Dynamic Programming",
+    placeholder:
+      "Binary Search Trees, Dijkstra's Algorithm, Dynamic Programming",
   },
   {
     id: "os",
@@ -104,7 +105,10 @@ const SUBJECTS = [
 
 const statusBadge = (iv) => {
   if (iv.status !== "completed")
-    return { label: "In Progress", cls: "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400" };
+    return {
+      label: "In Progress",
+      cls: "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400",
+    };
   const s = iv.score ?? 0;
   if (s >= 70) return { label: "Strong", cls: "bg-green-50 text-green-700" };
   if (s >= 45) return { label: "Good", cls: "bg-amber-50 text-amber-700" };
@@ -143,10 +147,27 @@ const PrepareCard = ({ interview, active, onClick }) => {
           <Calendar size={10} />
           {date}
         </span>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>
-          {interview.status === "completed" ? `${interview.score ?? 0} · ` : ""}
-          {label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {interview.difficulty && interview.difficulty !== "medium" && (
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                interview.difficulty === "easy"
+                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                  : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+              }`}
+            >
+              {interview.difficulty}
+            </span>
+          )}
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
+          >
+            {interview.status === "completed"
+              ? `${interview.score ?? 0} · `
+              : ""}
+            {label}
+          </span>
+        </div>
       </div>
     </button>
   );
@@ -162,12 +183,19 @@ const SetupForm = ({ onStarted }) => {
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
+  const [difficulty, setDifficulty] = useState("medium");
   const fileInputRef = useRef(null);
 
   const handleFileSelect = async (file) => {
     if (!file) return;
-    if (file.type !== "application/pdf") { toast.error("Only PDF files are accepted."); return; }
-    if (file.size > 3 * 1024 * 1024) { toast.error("Resume must be under 3 MB."); return; }
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are accepted.");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Resume must be under 3 MB.");
+      return;
+    }
     setResumeFile(file);
     setUploadLoading(true);
     try {
@@ -184,20 +212,28 @@ const SetupForm = ({ onStarted }) => {
   };
 
   const handleStart = async () => {
-    if (!selectedSubject) { toast.error("Please select a subject."); return; }
-    if (!topic.trim()) { toast.error("Please enter a specific topic."); return; }
+    if (!selectedSubject) {
+      toast.error("Please select a subject.");
+      return;
+    }
+    if (!topic.trim()) {
+      toast.error("Please enter a specific topic.");
+      return;
+    }
     setStartLoading(true);
     try {
       const { interviewId, question } = await startPrepareInterview({
         subject: selectedSubject.label,
         topic: topic.trim(),
         resumeText,
+        difficulty,
       });
       onStarted({
         interviewId,
         firstQuestion: question,
         subject: selectedSubject.label,
         topic: topic.trim(),
+        difficulty,
       });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start session.");
@@ -245,11 +281,17 @@ const SetupForm = ({ onStarted }) => {
               >
                 <Icon
                   size={16}
-                  className={active ? "text-[#ea580c]" : "text-gray-400 dark:text-gray-500"}
+                  className={
+                    active
+                      ? "text-[#ea580c]"
+                      : "text-gray-400 dark:text-gray-500"
+                  }
                 />
                 <p
                   className={`text-[11px] font-semibold leading-tight ${
-                    active ? "text-[#ea580c]" : "text-gray-800 dark:text-gray-200"
+                    active
+                      ? "text-[#ea580c]"
+                      : "text-gray-800 dark:text-gray-200"
                   }`}
                 >
                   {s.label}
@@ -270,7 +312,9 @@ const SetupForm = ({ onStarted }) => {
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !startLoading && handleStart()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && !startLoading && handleStart()
+            }
             placeholder={
               selectedSubject
                 ? `e.g., ${selectedSubject.placeholder}`
@@ -288,16 +332,25 @@ const SetupForm = ({ onStarted }) => {
           </p>
           {resumeFile ? (
             <div className="flex items-center gap-3 h-11 px-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-              <FileText size={14} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+              <FileText
+                size={14}
+                className="text-green-600 dark:text-green-400 flex-shrink-0"
+              />
               <span className="text-sm text-green-700 dark:text-green-300 truncate flex-1">
                 {resumeFile.name}
               </span>
               {uploadLoading ? (
-                <Loader2 size={14} className="animate-spin text-green-600 dark:text-green-400 flex-shrink-0" />
+                <Loader2
+                  size={14}
+                  className="animate-spin text-green-600 dark:text-green-400 flex-shrink-0"
+                />
               ) : (
                 <button
                   type="button"
-                  onClick={() => { setResumeFile(null); setResumeText(""); }}
+                  onClick={() => {
+                    setResumeFile(null);
+                    setResumeText("");
+                  }}
                   className="text-green-600 dark:text-green-400 hover:text-red-500 transition-colors flex-shrink-0"
                 >
                   <X size={14} />
@@ -322,16 +375,65 @@ const SetupForm = ({ onStarted }) => {
           />
         </div>
 
+        {/* Difficulty */}
+        <div>
+          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+            Difficulty
+          </label>
+          <div className="flex gap-2">
+            {[
+              {
+                value: "easy",
+                label: "Easy",
+                active:
+                  "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+              },
+              {
+                value: "medium",
+                label: "Medium",
+                active:
+                  "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+              },
+              {
+                value: "hard",
+                label: "Hard",
+                active:
+                  "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
+              },
+            ].map(({ value, label, active }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setDifficulty(value)}
+                className={[
+                  "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
+                  difficulty === value
+                    ? active
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={handleStart}
-          disabled={startLoading || uploadLoading || !selectedSubject || !topic.trim()}
+          disabled={
+            startLoading || uploadLoading || !selectedSubject || !topic.trim()
+          }
           className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {startLoading ? (
-            <><Loader2 size={15} className="animate-spin" /> Starting session…</>
+            <>
+              <Loader2 size={15} className="animate-spin" /> Starting session…
+            </>
           ) : (
-            <><BookOpen size={14} /> Start Preparation Session</>
+            <>
+              <BookOpen size={14} /> Start Preparation Session
+            </>
           )}
         </button>
       </div>
@@ -426,7 +528,13 @@ export default function PrepareView() {
     setActiveTopic("");
   };
 
-  const handleStarted = ({ interviewId: id, firstQuestion, subject, topic }) => {
+  const handleStarted = ({
+    interviewId: id,
+    firstQuestion,
+    subject,
+    topic,
+    difficulty,
+  }) => {
     setInterviewId(id);
     setCurrentQuestion(firstQuestion);
     setQuestionIndex(1);
@@ -436,13 +544,25 @@ export default function PrepareView() {
     setView("new-interview");
     // optimistic list entry
     setSessions((prev) => [
-      { _id: id, mode: "prepare", subject, topic, score: 0, status: "active", createdAt: new Date().toISOString() },
+      {
+        _id: id,
+        mode: "prepare",
+        subject,
+        topic,
+        difficulty,
+        score: 0,
+        status: "active",
+        createdAt: new Date().toISOString(),
+      },
       ...prev,
     ]);
   };
 
   const handleAnswer = (nextQuestion, submittedAnswer) => {
-    setHistory((prev) => [...prev, { question: currentQuestion, answer: submittedAnswer }]);
+    setHistory((prev) => [
+      ...prev,
+      { question: currentQuestion, answer: submittedAnswer },
+    ]);
     setCurrentQuestion(nextQuestion);
     setQuestionIndex((i) => i + 1);
   };
@@ -518,19 +638,16 @@ export default function PrepareView() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
-        {view === "detail" && (
-          detailLoading ? (
+        {view === "detail" &&
+          (detailLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 size={24} className="animate-spin text-[#ea580c]" />
             </div>
           ) : selectedSession ? (
             <InterviewHistoryDetail interview={selectedSession} />
-          ) : null
-        )}
+          ) : null)}
 
-        {view === "new-setup" && (
-          <SetupForm onStarted={handleStarted} />
-        )}
+        {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
 
         {view === "new-interview" && (
           <div>
@@ -539,9 +656,13 @@ export default function PrepareView() {
                 Prepare
               </span>
               <ChevronRight size={12} className="text-gray-400" />
-              <span className="text-gray-500 dark:text-gray-400">{activeSubject}</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {activeSubject}
+              </span>
               <ChevronRight size={12} className="text-gray-400" />
-              <span className="font-medium text-gray-900 dark:text-white">{activeTopic}</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {activeTopic}
+              </span>
             </div>
             <InterviewChat
               interviewId={interviewId}
