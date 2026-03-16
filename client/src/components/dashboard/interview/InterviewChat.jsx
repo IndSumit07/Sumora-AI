@@ -262,69 +262,72 @@ export default function InterviewChat({
     <div className="max-w-2xl space-y-5">
       {/* ── Current question card ── */}
       <div className="bg-[#0a0a0a] rounded-2xl p-6 relative overflow-hidden">
-        {/* Background glow */}
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
         {(isSpeaking || isVoiceLoading) && (
           <div className="absolute top-0 left-0 w-full h-full bg-[#ea580c]/[0.03] rounded-2xl pointer-events-none" />
         )}
 
         <div className="relative z-10">
-          {/* Header row */}
+          {/* Question number — always visible */}
           <div className="flex items-center justify-between flex-wrap gap-y-2 mb-4">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c]">
               Question {questionIndex}
             </span>
 
-            {/* Voice state indicator */}
-            <div className="flex items-center gap-2">
-              {isVoiceLoading ? (
-                <span className="flex items-center gap-1.5 text-[11px] text-[#ea580c]/70">
-                  <Loader2 size={12} className="animate-spin" />
-                </span>
-              ) : isSpeaking ? (
-                <button
-                  type="button"
-                  onClick={stopAudio}
-                  title="Stop speaking"
-                  className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
-                >
-                  <VolumeX size={13} />
-                  <VoiceWaveform active={isSpeaking} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleReplayQuestion}
-                  title="Replay question"
-                  className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
-                >
-                  <Volume2 size={13} />
-                  <VoiceWaveform active={false} />
-                </button>
-              )}
-            </div>
+            {!isVoiceLoading && (
+              <div className="flex items-center gap-2">
+                {isSpeaking ? (
+                  <button
+                    type="button"
+                    onClick={stopAudio}
+                    title="Stop speaking"
+                    className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
+                  >
+                    <VolumeX size={13} />
+                    <VoiceWaveform active={isSpeaking} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReplayQuestion}
+                    title="Replay question"
+                    className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
+                  >
+                    <Volume2 size={13} />
+                    <VoiceWaveform active={false} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Status pill */}
-          {isSpeaking && (
-            <div className="inline-flex items-center gap-1.5 bg-[#ea580c]/15 border border-[#ea580c]/25 rounded-full px-3 py-1 mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse" />
-              <span className="text-[10px] font-medium text-[#ea580c] tracking-wide">
-                Speaking
-              </span>
-            </div>
-          )}
-
           {isVoiceLoading ? (
-            <div className="space-y-2.5 animate-pulse">
+            /* Full card skeleton */
+            <div className="animate-pulse space-y-3">
+              <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1 mb-1">
+                <Loader2 size={10} className="animate-spin text-gray-500" />
+                <span className="text-[10px] text-gray-500 font-medium tracking-wide">
+                  Preparing voice…
+                </span>
+              </div>
               <div className="h-3.5 bg-white/10 rounded-full w-full" />
               <div className="h-3.5 bg-white/10 rounded-full w-5/6" />
               <div className="h-3.5 bg-white/10 rounded-full w-3/4" />
             </div>
           ) : (
-            <p className="text-white text-[15px] font-medium leading-relaxed">
-              {currentQuestion}
-            </p>
+            <>
+              {isSpeaking && (
+                <div className="inline-flex items-center gap-1.5 bg-[#ea580c]/15 border border-[#ea580c]/25 rounded-full px-3 py-1 mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse" />
+                  <span className="text-[10px] font-medium text-[#ea580c] tracking-wide">
+                    Speaking
+                  </span>
+                </div>
+              )}
+              <p className="text-white text-[15px] font-medium leading-relaxed">
+                {currentQuestion}
+              </p>
+            </>
           )}
         </div>
       </div>
