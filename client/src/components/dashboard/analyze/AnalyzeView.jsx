@@ -48,13 +48,13 @@ const MatchScoreRing = ({ score }) => {
   const offset = CIRC - (score / 100) * CIRC;
   return (
     <div className="flex flex-col items-center gap-2">
-      <svg width="110" height="110" viewBox="0 0 100 100">
+      <svg width="110" height="110" viewBox="0 0 100 100" className="text-gray-900 dark:text-white">
         <circle
           cx="50"
           cy="50"
           r={RADIUS}
           fill="none"
-          stroke="#f3f4f6"
+          stroke="#e5e7eb"
           strokeWidth="9"
         />
         <circle
@@ -77,7 +77,7 @@ const MatchScoreRing = ({ score }) => {
           dominantBaseline="middle"
           fontSize="22"
           fontWeight="700"
-          fill="#111827"
+          fill="currentColor"
         >
           {score}
         </text>
@@ -190,20 +190,20 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
   return (
     <div className="space-y-5 max-w-4xl">
       {/* Header */}
-      <div className="bg-[#0a0a0a] rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+      <div className="bg-gray-100 dark:bg-[#0a0a0a] rounded-2xl p-6 sm:p-8 relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c] mb-2">
               Analysis Report
             </p>
-            <h2 className="text-xl sm:text-2xl font-semibold text-white leading-snug mb-1">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white leading-snug mb-1">
               {report.title || report.role || "Interview Analysis"}
             </h2>
             {report.role && report.role !== report.title && (
-              <p className="text-sm text-gray-400 mb-2">{report.role}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{report.role}</p>
             )}
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500">
               <Calendar size={11} />
               Generated {date}
             </div>
@@ -213,7 +213,7 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
             <button
               onClick={onDownloadPdf}
               disabled={pdfLoading}
-              className="flex items-center gap-2 h-10 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors disabled:opacity-50 border border-white/10"
+              className="flex items-center gap-2 h-10 px-4 rounded-xl bg-black/8 hover:bg-black/12 dark:bg-white/10 dark:hover:bg-white/15 text-gray-800 dark:text-white text-sm font-medium transition-colors disabled:opacity-50 border border-black/10 dark:border-white/10"
             >
               {pdfLoading ? (
                 <Loader2 size={14} className="animate-spin" />
