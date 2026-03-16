@@ -20,32 +20,65 @@ import {
   Send,
   StopCircle,
   Volume2,
+  VolumeX,
   Loader2,
   MessageSquare,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 
-// ── Speech synthesis ──────────────────────────────────────────────────────────
+// ── Speech synthesis ───────────────────────────────────────────────────────────
 
-function speakText(text, voiceURI) {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.95;
-  utter.pitch = 1;
-  utter.volume = 1;
-  const voices = window.speechSynthesis.getVoices();
-  if (voiceURI) {
-    const found = voices.find((v) => v.voiceURI === voiceURI);
-    if (found) utter.voice = found;
-  } else {
-    const preferred = voices.find(
+/**
+ * Priority order for female soothing voices:
+ * Google UK English Female → Samantha (macOS) → Victoria (macOS) →
+ * Google US English Female → any "Female" en voice → Google/Natural → first en voice
+ */
+function pickFemaleVoice(voices) {
+  return (
+    voices.find((v) => v.name === "Google UK English Female") ||
+    voices.find((v) => v.name === "Samantha") ||
+    voices.find((v) => v.name === "Victoria") ||
+    voices.find((v) => v.name === "Google US English Female") ||
+    voices.find(
+      (v) => v.lang.startsWith("en") && v.name.toLowerCase().includes("female"),
+    ) ||
+    voices.find(
       (v) =>
         v.lang.startsWith("en") &&
         (v.name.includes("Google") || v.name.includes("Natural")),
-    );
+    ) ||
+    voices.find((v) => v.lang.startsWith("en"))
+  );
+}
+
+function speakText(text, voiceURI, { onStart, onEnd } = {}) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  // Soothing: slightly slower rate, gentle pitch lift
+  utter.rate = 0.88;
+  utter.pitch = 1.08;
+  utter.volume = 1;
+
+  const voices = window.speechSynthesis.getVoices();
+
+  if (voiceURI) {
+    const found = voices.find((v) => v.voiceURI === voiceURI);
+    if (found) utter.voice = found;
+    else {
+      const fallback = pickFemaleVoice(voices);
+      if (fallback) utter.voice = fallback;
+    }
+  } else {
+    const preferred = pickFemaleVoice(voices);
     if (preferred) utter.voice = preferred;
+  }
+
+  if (onStart) utter.onstart = onStart;
+  if (onEnd) {
+    utter.onend = onEnd;
+    utter.onerror = onEnd;
   }
   window.speechSynthesis.speak(utter);
 }
@@ -90,6 +123,34 @@ function createRecognition(onResult, onEnd) {
   return rec;
 }
 
+// ── Animated voice waveform ────────────────────────────────────────────────────
+
+const VoiceWaveform = ({ active }) => (
+  <div className="flex items-end gap-[3px] h-4">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <span
+        key={i}
+        className="w-[3px] rounded-full bg-[#ea580c] transition-all"
+        style={
+          active
+            ? {
+                animation: `wave 0.9s ease-in-out infinite`,
+                animationDelay: `${i * 0.1}s`,
+                height: "100%",
+              }
+            : { height: "25%" }
+        }
+      />
+    ))}
+    <style>{`
+      @keyframes wave {
+        0%, 100% { transform: scaleY(0.25); }
+        50% { transform: scaleY(1); }
+      }
+    `}</style>
+  </div>
+);
+
 // ── History bubble ────────────────────────────────────────────────────────────
 
 const HistoryTurn = ({ turn, index }) => (
@@ -126,6 +187,7 @@ export default function InterviewChat({
 
   const [answer, setAnswer] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [endLoading, setEndLoading] = useState(false);
   const [hasSpeechRec] = useState(
@@ -138,27 +200,45 @@ export default function InterviewChat({
 
   const recRef = useRef(null);
   const textareaRef = useRef(null);
-  // Keep a ref so the autoplay effect always reads the latest voice
   const voiceURIRef = useRef(selectedVoiceURI);
   useEffect(() => {
     voiceURIRef.current = selectedVoiceURI;
   }, [selectedVoiceURI]);
 
-  // Load available English voices (async in most browsers)
+  // Load available English voices — sort female voices first
   useEffect(() => {
     const load = () => {
       const all =
         window.speechSynthesis
           ?.getVoices()
           .filter((v) => v.lang.startsWith("en")) ?? [];
-      setVoices(all);
-      if (!voiceURIRef.current && all.length) {
-        const preferred =
-          all.find(
-            (v) => v.name.includes("Google") || v.name.includes("Natural"),
-          ) || all[0];
-        setSelectedVoiceURI(preferred.voiceURI);
-        voiceURIRef.current = preferred.voiceURI;
+
+      // Sort: known female names > "Female" keyword > Google/Natural > rest
+      const sorted = [...all].sort((a, b) => {
+        const rank = (v) => {
+          if (
+            v.name === "Google UK English Female" ||
+            v.name === "Samantha" ||
+            v.name === "Victoria" ||
+            v.name === "Google US English Female"
+          )
+            return 0;
+          if (v.name.toLowerCase().includes("female")) return 1;
+          if (v.name.includes("Google") || v.name.includes("Natural")) return 2;
+          return 3;
+        };
+        return rank(a) - rank(b);
+      });
+
+      setVoices(sorted);
+
+      if (!voiceURIRef.current && sorted.length) {
+        const preferred = pickFemaleVoice(sorted);
+        if (preferred) {
+          setSelectedVoiceURI(preferred.voiceURI);
+          voiceURIRef.current = preferred.voiceURI;
+          localStorage.setItem("iv_voice", preferred.voiceURI);
+        }
       }
     };
     load();
@@ -175,17 +255,25 @@ export default function InterviewChat({
 
   // Auto-play the question when it changes
   useEffect(() => {
-    speakText(currentQuestion, voiceURIRef.current);
+    setIsSpeaking(true);
+    speakText(currentQuestion, voiceURIRef.current, {
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+    });
     setAnswer("");
     textareaRef.current?.focus();
-    return () => window.speechSynthesis?.cancel();
+    return () => {
+      window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
+    };
   }, [currentQuestion]);
 
-  // Cleanup microphone on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       recRef.current?.stop();
       window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
     };
   }, []);
 
@@ -242,6 +330,7 @@ export default function InterviewChat({
       setIsRecording(false);
     }
     window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
 
     setEndLoading(true);
     try {
@@ -254,25 +343,68 @@ export default function InterviewChat({
     }
   };
 
-  const handleReplayQuestion = () =>
-    speakText(currentQuestion, voiceURIRef.current);
+  const handleReplayQuestion = () => {
+    setIsSpeaking(true);
+    speakText(currentQuestion, voiceURIRef.current, {
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+    });
+  };
+
+  const handleStopSpeaking = () => {
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+  };
 
   return (
     <div className="max-w-2xl space-y-5">
       {/* ── Current question card ── */}
       <div className="bg-[#0a0a0a] rounded-2xl p-6 relative overflow-hidden">
+        {/* Background glow */}
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
+        {isSpeaking && (
+          <div className="absolute top-0 left-0 w-full h-full bg-[#ea580c]/[0.03] rounded-2xl pointer-events-none" />
+        )}
+
         <div className="relative z-10">
+          {/* Header row */}
           <div className="flex items-center justify-between flex-wrap gap-y-2 mb-4">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c]">
               Question {questionIndex}
             </span>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-3">
+              {/* Speaking indicator + waveform */}
+              <div className="flex items-center gap-2">
+                {isSpeaking ? (
+                  <button
+                    type="button"
+                    onClick={handleStopSpeaking}
+                    title="Stop speaking"
+                    className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
+                  >
+                    <VolumeX size={13} />
+                    <VoiceWaveform active={isSpeaking} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReplayQuestion}
+                    title="Replay question"
+                    className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
+                  >
+                    <Volume2 size={13} />
+                    <VoiceWaveform active={false} />
+                  </button>
+                )}
+              </div>
+
+              {/* Voice selector */}
               {voices.length > 0 && (
                 <select
                   value={selectedVoiceURI}
                   onChange={(e) => handleVoiceChange(e.target.value)}
-                  className="text-[11px] bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-gray-300 focus:outline-none focus:border-[#ea580c] max-w-[120px] sm:max-w-[140px] truncate cursor-pointer"
+                  className="text-[11px] bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-gray-300 focus:outline-none focus:border-[#ea580c] max-w-[130px] truncate cursor-pointer"
                 >
                   {voices.map((v) => (
                     <option
@@ -285,17 +417,19 @@ export default function InterviewChat({
                   ))}
                 </select>
               )}
-              <button
-                type="button"
-                onClick={handleReplayQuestion}
-                title="Replay question"
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-              >
-                <Volume2 size={13} />
-                Play
-              </button>
             </div>
           </div>
+
+          {/* Speaking pill */}
+          {isSpeaking && (
+            <div className="inline-flex items-center gap-1.5 bg-[#ea580c]/15 border border-[#ea580c]/25 rounded-full px-3 py-1 mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse" />
+              <span className="text-[10px] font-medium text-[#ea580c] tracking-wide">
+                Speaking
+              </span>
+            </div>
+          )}
+
           <p className="text-white text-[15px] font-medium leading-relaxed">
             {currentQuestion}
           </p>
