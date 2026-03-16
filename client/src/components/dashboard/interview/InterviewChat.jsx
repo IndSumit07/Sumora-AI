@@ -306,14 +306,6 @@ export default function InterviewChat({
           </div>
 
           {/* Status pill */}
-          {isVoiceLoading && (
-            <div className="inline-flex items-center gap-1.5 bg-gray-700/40 border border-gray-600/30 rounded-full px-3 py-1 mb-3">
-              <Loader2 size={10} className="animate-spin text-gray-400" />
-              <span className="text-[10px] font-medium text-gray-400 tracking-wide">
-                Preparing voice…
-              </span>
-            </div>
-          )}
           {isSpeaking && (
             <div className="inline-flex items-center gap-1.5 bg-[#ea580c]/15 border border-[#ea580c]/25 rounded-full px-3 py-1 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse" />
@@ -323,9 +315,17 @@ export default function InterviewChat({
             </div>
           )}
 
-          <p className="text-white text-[15px] font-medium leading-relaxed">
-            {currentQuestion}
-          </p>
+          {isVoiceLoading ? (
+            <div className="space-y-2.5 animate-pulse">
+              <div className="h-3.5 bg-white/10 rounded-full w-full" />
+              <div className="h-3.5 bg-white/10 rounded-full w-5/6" />
+              <div className="h-3.5 bg-white/10 rounded-full w-3/4" />
+            </div>
+          ) : (
+            <p className="text-white text-[15px] font-medium leading-relaxed">
+              {currentQuestion}
+            </p>
+          )}
         </div>
       </div>
 
