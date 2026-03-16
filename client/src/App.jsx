@@ -9,9 +9,8 @@ import VerifyOtpPage from "./pages/VerifyOtpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
-import SessionsListView from "./components/dashboard/views/SessionsListView";
-import NewSessionView from "./components/dashboard/views/NewSessionView";
-import SessionDetailView from "./components/dashboard/views/SessionDetailView";
+import InterviewView from "./components/dashboard/interview/InterviewView";
+import AnalyzeView from "./components/dashboard/analyze/AnalyzeView";
 import PrepareView from "./components/dashboard/prepare/PrepareView";
 
 const ProtectedRoute = ({ children }) => {
@@ -70,14 +69,10 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<SessionsListView />} />
-          <Route path="new" element={<NewSessionView />} />
+          <Route index element={<Navigate to="/dashboard/interview" replace />} />
+          <Route path="interview" element={<InterviewView />} />
+          <Route path="analyze" element={<AnalyzeView />} />
           <Route path="prepare" element={<PrepareView />} />
-          <Route
-            path="sessions"
-            element={<Navigate to="/dashboard" replace />}
-          />
-          <Route path="sessions/:sessionId" element={<SessionDetailView />} />
         </Route>
 
         {/* Fallback */}

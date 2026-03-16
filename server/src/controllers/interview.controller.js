@@ -1,38 +1,28 @@
 import mongoose from "mongoose";
 import { createRequire } from "module";
 import InterviewReport from "../models/interviewReport.model.js";
-import Session from "../models/session.model.js";
-import {
-  generateInterviewReport,
-  generateResumePdf,
-} from "../services/ai.service.js";
+import { generateInterviewReport, generateResumePdf } from "../services/ai.service.js";
 
 const _require = createRequire(import.meta.url);
 
 /**
  * POST /api/interview/
- * Multipart form: { sessionId } + optional file field "resume" (PDF).
+ * Multipart form: { role?, jobDescription, selfDescription? } + optional file "resume" (PDF).
  * Resume text is extracted and passed to Gemini — NOT stored anywhere.
  */
 export async function generateInterViewReportController(req, res) {
   try {
-    const { sessionId } = req.body;
+    const { role = "", jobDescription, selfDescription = "" } = req.body;
 
-    if (!sessionId)
-      return res.status(400).json({ message: "Session ID is required" });
-    if (!mongoose.Types.ObjectId.isValid(sessionId))
-      return res.status(400).json({ message: "Invalid session ID" });
+    if (!jobDescription?.trim())
+      return res.status(400).json({ message: "jobDescription is required." });
 
-    const session = await Session.findOne({ _id: sessionId, user: req.user.id });
-    if (!session) return res.status(404).json({ message: "Session not found" });
-
-    // Extract resume text from the uploaded PDF (if provided) — discarded after use
     let resumeText = "";
     if (req.file) {
       try {
-        const { PDFParse } = _require("pdf-parse");
-        const parser = new PDFParse({ data: req.file.buffer, verbosity: 0 });
-        const result = await parser.getText();
+        const mod = _require("pdf-parse");
+        const pdfParse = typeof mod === "function" ? mod : mod.default || mod;
+        const result = await pdfParse(req.file.buffer);
         resumeText = (result.text || "").trim().slice(0, 8000);
       } catch (parseErr) {
         console.warn("PDF text extraction failed:", parseErr.message);
@@ -41,14 +31,16 @@ export async function generateInterViewReportController(req, res) {
 
     const report = await generateInterviewReport({
       resume: resumeText,
-      selfDescription: session.selfDescription,
-      jobDescription: session.jobDescription,
+      selfDescription: selfDescription.trim(),
+      jobDescription: jobDescription.trim(),
     });
 
     const interviewReport = await InterviewReport.create({
       ...report,
       user: req.user.id,
-      session: session._id,
+      role: role.trim().slice(0, 150),
+      jobDescription: jobDescription.trim().slice(0, 5000),
+      selfDescription: selfDescription.trim().slice(0, 2000),
     });
 
     return res.status(201).json({
@@ -57,7 +49,9 @@ export async function generateInterViewReportController(req, res) {
     });
   } catch (error) {
     console.error("Generate interview report error:", error);
-    return res.status(500).json({ message: error?.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: error?.message || "Internal server error" });
   }
 }
 
@@ -67,11 +61,13 @@ export async function generateInterViewReportController(req, res) {
 export async function getInterviewReportByIdController(req, res) {
   try {
     const { interviewId } = req.params;
-
     if (!mongoose.Types.ObjectId.isValid(interviewId))
       return res.status(400).json({ message: "Invalid interview report ID" });
 
-    const report = await InterviewReport.findOne({ _id: interviewId, user: req.user.id });
+    const report = await InterviewReport.findOne({
+      _id: interviewId,
+      user: req.user.id,
+    });
     if (!report)
       return res.status(404).json({ message: "Interview report not found" });
 
@@ -83,30 +79,44 @@ export async function getInterviewReportByIdController(req, res) {
 }
 
 /**
+ * GET /api/interview/reports
+ * Returns summary list of all reports for the current user, newest first.
+ */
+export async function getAllReportsController(req, res) {
+  try {
+    const reports = await InterviewReport.find(
+      { user: req.user.id },
+      { _id: 1, title: 1, role: 1, matchScore: 1, createdAt: 1 },
+    ).sort({ createdAt: -1 });
+
+    return res.status(200).json({ reports });
+  } catch (error) {
+    console.error("Get all reports error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
  * POST /api/interview/resume/pdf/:interviewReportId
  * Generates a tailored resume PDF via Puppeteer and streams it to the client.
  */
 export async function generateResumePdfController(req, res) {
   try {
     const { interviewReportId } = req.params;
-
     if (!mongoose.Types.ObjectId.isValid(interviewReportId))
       return res.status(400).json({ message: "Invalid interview report ID" });
 
     const report = await InterviewReport.findOne({
       _id: interviewReportId,
       user: req.user.id,
-    }).populate("session");
+    });
     if (!report)
       return res.status(404).json({ message: "Interview report not found" });
 
-    const session = report.session;
-    if (!session) return res.status(404).json({ message: "Session not found" });
-
     const pdfBuffer = await generateResumePdf({
       resume: "",
-      selfDescription: session.selfDescription,
-      jobDescription: session.jobDescription,
+      selfDescription: report.selfDescription || "",
+      jobDescription: report.jobDescription || "",
     });
 
     res.setHeader("Content-Type", "application/pdf");

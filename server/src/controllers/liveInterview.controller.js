@@ -5,16 +5,16 @@
  *
  *   POST /api/interview/upload-resume       → extract text from PDF
  *   POST /api/interview/start               → spin up a LangChain session, get Q1
+ *   POST /api/interview/prepare/start       → start standalone topic-prep session
  *   POST /api/interview/answer              → submit an answer, get next question
  *   POST /api/interview/end                 → finish & generate structured feedback
- *   GET  /api/interview/live/session/:id    → list live interviews for a session
+ *   GET  /api/interview/live                → list all live interviews for user
  *   GET  /api/interview/live/:id            → get one live interview
  */
 
 import { createRequire } from "module";
 import mongoose from "mongoose";
 import LiveInterview from "../models/liveInterview.model.js";
-import Session from "../models/session.model.js";
 import {
   initInterview,
   initPrepareInterview,
@@ -71,39 +71,27 @@ export async function uploadResumeController(req, res) {
 
 /**
  * POST /api/interview/start
- * Body: { sessionId, resumeText?, role, jobDescription }
+ * Body: { role, jobDescription, resumeText? }
  *
  * Creates a LiveInterview document, launches the LangChain chain, and returns
- * the first AI question.
+ * the first AI question. No session required.
  */
 export async function startInterviewController(req, res) {
   try {
-    const { sessionId, resumeText = "", role, jobDescription } = req.body;
+    const { resumeText = "", role, jobDescription } = req.body;
 
-    if (!sessionId)
-      return res.status(400).json({ message: "sessionId is required." });
-    if (!mongoose.Types.ObjectId.isValid(sessionId))
-      return res.status(400).json({ message: "Invalid sessionId." });
     if (!role?.trim())
       return res.status(400).json({ message: "role is required." });
     if (!jobDescription?.trim())
       return res.status(400).json({ message: "jobDescription is required." });
 
-    // Verify the session exists and belongs to this user
-    const session = await Session.findOne({
-      _id: sessionId,
-      user: req.user.id,
-    });
-    if (!session)
-      return res.status(404).json({ message: "Session not found." });
-
     // Persist the interview document first so we have the _id for the chain key
     const interview = await LiveInterview.create({
-      session: session._id,
       user: req.user.id,
+      mode: "job",
       resumeText: resumeText.trim().slice(0, 8000),
-      role: role.trim(),
-      jobDescription: jobDescription.trim(),
+      role: role.trim().slice(0, 150),
+      jobDescription: jobDescription.trim().slice(0, 5000),
       conversation: [],
     });
 
@@ -336,26 +324,33 @@ export async function getLiveInterviewController(req, res) {
   }
 }
 
-// ── 6. List live interviews for a session ────────────────────────────────────
+// ── 6. List all live interviews for user ────────────────────────────────────
 
 /**
- * GET /api/interview/live/session/:sessionId
+ * GET /api/interview/live
+ * Optional query: ?mode=job|prepare
+ *
+ * Returns summary rows for all live interviews belonging to the current user.
  */
-export async function getLiveInterviewsBySessionController(req, res) {
+export async function getAllLiveInterviewsController(req, res) {
   try {
-    const { sessionId } = req.params;
+    const query = { user: req.user.id };
+    if (req.query.mode) query.mode = req.query.mode;
 
-    if (!mongoose.Types.ObjectId.isValid(sessionId))
-      return res.status(400).json({ message: "Invalid sessionId." });
-
-    const interviews = await LiveInterview.find(
-      { session: sessionId, user: req.user.id },
-      { conversation: 0, resumeText: 0, feedback: 0 },
-    ).sort({ createdAt: -1 });
+    const interviews = await LiveInterview.find(query, {
+      _id: 1,
+      mode: 1,
+      role: 1,
+      subject: 1,
+      topic: 1,
+      score: 1,
+      status: 1,
+      createdAt: 1,
+    }).sort({ createdAt: -1 });
 
     return res.status(200).json({ interviews });
   } catch (error) {
-    console.error("Get live interviews by session error:", error);
+    console.error("Get all live interviews error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 }

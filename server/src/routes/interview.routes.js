@@ -8,6 +8,7 @@ import upload from "../middlewares/file.middleware.js";
 import {
   generateInterViewReportController,
   getInterviewReportByIdController,
+  getAllReportsController,
   generateResumePdfController,
 } from "../controllers/interview.controller.js";
 import {
@@ -17,14 +18,14 @@ import {
   answerInterviewController,
   endInterviewController,
   getLiveInterviewController,
-  getLiveInterviewsBySessionController,
+  getAllLiveInterviewsController,
 } from "../controllers/liveInterview.controller.js";
 
 const interviewRouter = express.Router();
 
-// ── Existing AI-report endpoints ──────────────────────────────────────────────
+// ── AI-report endpoints ────────────────────────────────────────────────────────
 
-// POST /api/interview/                              — generate AI report (optional resume PDF)
+// POST /api/interview/  — generate AI report (optional resume PDF)
 interviewRouter.post(
   "/",
   aiLimiter,
@@ -32,14 +33,21 @@ interviewRouter.post(
   upload.single("resume"),
   generateInterViewReportController,
 );
-// GET  /api/interview/report/:interviewId           — get single AI report by ID
+// GET  /api/interview/reports             — list all reports for current user
+interviewRouter.get(
+  "/reports",
+  apiLimiter,
+  authMiddleware,
+  getAllReportsController,
+);
+// GET  /api/interview/report/:interviewId — get single AI report by ID
 interviewRouter.get(
   "/report/:interviewId",
   apiLimiter,
   authMiddleware,
   getInterviewReportByIdController,
 );
-// POST /api/interview/resume/pdf/:interviewReportId — generate tailored resume PDF
+// POST /api/interview/resume/pdf/:id      — generate tailored resume PDF
 interviewRouter.post(
   "/resume/pdf/:interviewReportId",
   aiLimiter,
@@ -64,6 +72,13 @@ interviewRouter.post(
   authMiddleware,
   startInterviewController,
 );
+// POST /api/interview/prepare/start      — start standalone topic-focused prepare session
+interviewRouter.post(
+  "/prepare/start",
+  aiLimiter,
+  authMiddleware,
+  startPrepareController,
+);
 // POST /api/interview/answer             — submit answer, return next question
 interviewRouter.post(
   "/answer",
@@ -73,21 +88,15 @@ interviewRouter.post(
 );
 // POST /api/interview/end                — end interview, generate & return feedback
 interviewRouter.post("/end", aiLimiter, authMiddleware, endInterviewController);
-// POST /api/interview/prepare/start      — start a standalone topic-focused prepare session
-interviewRouter.post(
-  "/prepare/start",
-  aiLimiter,
-  authMiddleware,
-  startPrepareController,
-);
-// GET  /api/interview/live/session/:sessionId       — list all LiveInterviews for a session
+// GET  /api/interview/live               — list all live interviews for user (?mode=job|prepare)
+// NOTE: registered BEFORE /live/:id to avoid route shadowing
 interviewRouter.get(
-  "/live/session/:sessionId",
+  "/live",
   apiLimiter,
   authMiddleware,
-  getLiveInterviewsBySessionController,
+  getAllLiveInterviewsController,
 );
-// GET  /api/interview/live/:interviewId             — get one LiveInterview by ID
+// GET  /api/interview/live/:interviewId  — get one LiveInterview by ID
 interviewRouter.get(
   "/live/:interviewId",
   apiLimiter,

@@ -50,9 +50,13 @@ const interviewReportSchema = new mongoose.Schema(
     session: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Session",
-      required: true,
+      default: null,
       index: true,
     },
+    // Direct context fields (stored with report, no session needed)
+    role: { type: String, default: "", trim: true, maxlength: 150 },
+    jobDescription: { type: String, default: "", trim: true, maxlength: 5000 },
+    selfDescription: { type: String, default: "", trim: true, maxlength: 2000 },
     title: { type: String, trim: true }, // AI-derived job title label
     matchScore: { type: Number, min: 0, max: 100 },
     technicalQuestions: [technicalQuestionSchema],
