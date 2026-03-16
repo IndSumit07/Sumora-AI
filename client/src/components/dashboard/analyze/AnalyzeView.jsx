@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Briefcase,
   User,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
@@ -341,7 +342,7 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
 
 // ── History card (left panel) ─────────────────────────────────────────────────
 
-const ReportCard = ({ report, active, onClick }) => {
+const ReportCard = ({ report, active, onClick, onDelete }) => {
   const date = new Date(report.createdAt).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -350,17 +351,29 @@ const ReportCard = ({ report, active, onClick }) => {
   const { label, badge } = scoreConfig(report.matchScore ?? 0);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
       onClick={onClick}
       className={[
-        "w-full text-left px-3 py-3 rounded-xl border transition-all",
+        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all cursor-pointer",
         active
           ? "border-[#ea580c]/50 bg-[#ea580c]/8 dark:bg-[#ea580c]/10"
           : "border-transparent hover:border-gray-200 dark:hover:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
       ].join(" ")}
     >
-      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(report._id);
+        }}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+        title="Delete"
+      >
+        <Trash2 size={12} />
+      </button>
+
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-1 pr-5">
         {report.title || report.role || "Analysis Report"}
       </p>
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -373,7 +386,7 @@ const ReportCard = ({ report, active, onClick }) => {
           {report.matchScore ?? 0} · {label}
         </span>
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -641,7 +654,8 @@ const EmptyPanel = ({ onNew }) => (
 // ── Main AnalyzeView ──────────────────────────────────────────────────────────
 
 export default function AnalyzeView() {
-  const { getAllReports, getReportById, generatePdf } = useInterview();
+  const { getAllReports, getReportById, generatePdf, deleteReport } =
+    useInterview();
 
   const [reports, setReports] = useState([]);
   const [listLoading, setListLoading] = useState(true);
@@ -694,6 +708,21 @@ export default function AnalyzeView() {
     setSelectedReport(report);
     setSelectedId(report._id);
     setView("detail");
+  };
+
+  const handleDeleteReport = async (id) => {
+    try {
+      await deleteReport(id);
+      setReports((prev) => prev.filter((r) => r._id !== id));
+      if (selectedId === id) {
+        setSelectedId(null);
+        setSelectedReport(null);
+        setView("empty");
+      }
+      toast.success("Report deleted.");
+    } catch {
+      toast.error("Failed to delete report.");
+    }
   };
 
   const handleDownloadPdf = async () => {
@@ -755,6 +784,7 @@ export default function AnalyzeView() {
                   report={r}
                   active={selectedId === r._id}
                   onClick={() => handleSelectReport(r._id)}
+                  onDelete={handleDeleteReport}
                 />
               ))}
             </div>

@@ -154,6 +154,14 @@ export const InterviewProvider = ({ children }) => {
     return data.teaching;
   };
 
+  const deleteLiveInterview = async (id) => {
+    await api.delete(`/interview/live/${id}`);
+  };
+
+  const deleteReport = async (id) => {
+    await api.delete(`/interview/report/${id}`);
+  };
+
   /**
    * tts — converts text to speech via backend Sarvam AI proxy.
    * @param {string} text
@@ -179,6 +187,8 @@ export const InterviewProvider = ({ children }) => {
         getAllLiveInterviews,
         getLiveInterviewById,
         analyzeQuestion,
+        deleteLiveInterview,
+        deleteReport,
         tts,
       }}
     >

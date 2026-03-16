@@ -134,3 +134,26 @@ export async function generateResumePdfController(req, res) {
     return res.status(500).json({ message: "Internal server error" });
   }
 }
+
+/**
+ * DELETE /api/interview/report/:interviewId
+ * Permanently deletes an AI interview report owned by the current user.
+ */
+export async function deleteReportController(req, res) {
+  try {
+    const { interviewId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(interviewId))
+      return res.status(400).json({ message: "Invalid report ID." });
+
+    const report = await InterviewReport.findOneAndDelete({
+      _id: interviewId,
+      user: req.user.id,
+    });
+    if (!report) return res.status(404).json({ message: "Report not found." });
+
+    return res.status(200).json({ message: "Report deleted." });
+  } catch (error) {
+    console.error("Delete report error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}

@@ -377,7 +377,34 @@ export async function getAllLiveInterviewsController(req, res) {
   }
 }
 
-// ── 7. Text-to-speech via Sarvam AI ──────────────────────────────────────────
+// ── 7. Delete a live interview ────────────────────────────────────────────────
+
+/**
+ * DELETE /api/interview/live/:interviewId
+ * Deletes the document and cleans up its in-memory chain.
+ */
+export async function deleteLiveInterviewController(req, res) {
+  try {
+    const { interviewId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(interviewId))
+      return res.status(400).json({ message: "Invalid interviewId." });
+
+    const interview = await LiveInterview.findOneAndDelete({
+      _id: interviewId,
+      user: req.user.id,
+    });
+    if (!interview)
+      return res.status(404).json({ message: "Interview not found." });
+
+    cleanupChain(interviewId);
+    return res.status(200).json({ message: "Interview deleted." });
+  } catch (error) {
+    console.error("Delete live interview error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// ── 8. Text-to-speech via Sarvam AI ──────────────────────────────────────────
 
 /**
  * POST /api/interview/tts

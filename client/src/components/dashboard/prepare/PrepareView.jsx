@@ -18,6 +18,7 @@ import {
   Cpu,
   Cloud,
   Shield,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
@@ -117,7 +118,7 @@ const statusBadge = (iv) => {
 
 // ── History card ───────────────────────────────────────────────────────────────
 
-const PrepareCard = ({ interview, active, onClick }) => {
+const PrepareCard = ({ interview, active, onClick, onDelete }) => {
   const date = new Date(interview.createdAt).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -126,17 +127,29 @@ const PrepareCard = ({ interview, active, onClick }) => {
   const { label, cls } = statusBadge(interview);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
       onClick={onClick}
       className={[
-        "w-full text-left px-3 py-3 rounded-xl border transition-all",
+        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all cursor-pointer",
         active
           ? "border-[#ea580c]/50 bg-[#ea580c]/8 dark:bg-[#ea580c]/10"
           : "border-transparent hover:border-gray-200 dark:hover:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
       ].join(" ")}
     >
-      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-0.5">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(interview._id);
+        }}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+        title="Delete"
+      >
+        <Trash2 size={12} />
+      </button>
+
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-0.5 pr-5">
         {interview.topic || interview.subject || "Prep Session"}
       </p>
       <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mb-1.5">
@@ -169,7 +182,7 @@ const PrepareCard = ({ interview, active, onClick }) => {
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -467,7 +480,8 @@ const EmptyPanel = ({ onNew }) => (
 // ── Main PrepareView ───────────────────────────────────────────────────────────
 
 export default function PrepareView() {
-  const { getAllLiveInterviews, getLiveInterviewById } = useInterview();
+  const { getAllLiveInterviews, getLiveInterviewById, deleteLiveInterview } =
+    useInterview();
 
   // History list state
   const [sessions, setSessions] = useState([]);
@@ -578,6 +592,21 @@ export default function PrepareView() {
     );
   };
 
+  const handleDeleteSession = async (id) => {
+    try {
+      await deleteLiveInterview(id);
+      setSessions((prev) => prev.filter((iv) => iv._id !== id));
+      if (selectedId === id) {
+        setSelectedId(null);
+        setSelectedSession(null);
+        setView("empty");
+      }
+      toast.success("Session deleted.");
+    } catch {
+      toast.error("Failed to delete session.");
+    }
+  };
+
   const handleRetry = () => handleNew();
 
   return (
@@ -627,6 +656,7 @@ export default function PrepareView() {
                   interview={iv}
                   active={selectedId === iv._id}
                   onClick={() => handleSelectSession(iv._id)}
+                  onDelete={handleDeleteSession}
                 />
               ))}
             </div>

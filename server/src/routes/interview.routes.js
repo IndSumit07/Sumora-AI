@@ -10,6 +10,7 @@ import {
   getInterviewReportByIdController,
   getAllReportsController,
   generateResumePdfController,
+  deleteReportController,
 } from "../controllers/interview.controller.js";
 import {
   uploadResumeController,
@@ -19,6 +20,7 @@ import {
   endInterviewController,
   getLiveInterviewController,
   getAllLiveInterviewsController,
+  deleteLiveInterviewController,
   ttsController,
   analyzeQuestionController,
 } from "../controllers/liveInterview.controller.js";
@@ -104,6 +106,20 @@ interviewRouter.get(
   apiLimiter,
   authMiddleware,
   getLiveInterviewController,
+);
+// DELETE /api/interview/report/:interviewId — delete an AI report
+interviewRouter.delete(
+  "/report/:interviewId",
+  apiLimiter,
+  authMiddleware,
+  deleteReportController,
+);
+// DELETE /api/interview/live/:interviewId   — delete a live interview
+interviewRouter.delete(
+  "/live/:interviewId",
+  apiLimiter,
+  authMiddleware,
+  deleteLiveInterviewController,
 );
 // POST /api/interview/tts                — Sarvam AI text-to-speech proxy
 interviewRouter.post("/tts", apiLimiter, authMiddleware, ttsController);

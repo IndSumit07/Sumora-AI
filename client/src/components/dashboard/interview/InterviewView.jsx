@@ -9,6 +9,7 @@ import {
   Calendar,
   ChevronRight,
   Briefcase,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
@@ -32,7 +33,7 @@ const statusBadge = (interview) => {
 
 // ── History card ──────────────────────────────────────────────────────────────
 
-const InterviewCard = ({ interview, active, onClick }) => {
+const InterviewCard = ({ interview, active, onClick, onDelete }) => {
   const date = new Date(interview.createdAt).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -41,17 +42,29 @@ const InterviewCard = ({ interview, active, onClick }) => {
   const { label, cls } = statusBadge(interview);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
       onClick={onClick}
       className={[
-        "w-full text-left px-3 py-3 rounded-xl border transition-all",
+        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all cursor-pointer",
         active
           ? "border-[#ea580c]/50 bg-[#ea580c]/8 dark:bg-[#ea580c]/10"
           : "border-transparent hover:border-gray-200 dark:hover:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
       ].join(" ")}
     >
-      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(interview._id);
+        }}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+        title="Delete"
+      >
+        <Trash2 size={12} />
+      </button>
+
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-1 pr-5">
         {interview.role || "Mock Interview"}
       </p>
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -81,7 +94,7 @@ const InterviewCard = ({ interview, active, onClick }) => {
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -350,7 +363,8 @@ const EmptyPanel = ({ onNew }) => (
 // ── Main InterviewView ────────────────────────────────────────────────────────
 
 export default function InterviewView() {
-  const { getAllLiveInterviews, getLiveInterviewById } = useInterview();
+  const { getAllLiveInterviews, getLiveInterviewById, deleteLiveInterview } =
+    useInterview();
 
   // History list state
   const [interviews, setInterviews] = useState([]);
@@ -454,6 +468,21 @@ export default function InterviewView() {
     );
   };
 
+  const handleDeleteInterview = async (id) => {
+    try {
+      await deleteLiveInterview(id);
+      setInterviews((prev) => prev.filter((iv) => iv._id !== id));
+      if (selectedId === id) {
+        setSelectedId(null);
+        setSelectedInterview(null);
+        setView("empty");
+      }
+      toast.success("Interview deleted.");
+    } catch {
+      toast.error("Failed to delete interview.");
+    }
+  };
+
   const handleRetry = () => handleNew();
 
   return (
@@ -503,6 +532,7 @@ export default function InterviewView() {
                   interview={iv}
                   active={selectedId === iv._id}
                   onClick={() => handleSelectInterview(iv._id)}
+                  onDelete={handleDeleteInterview}
                 />
               ))}
             </div>
