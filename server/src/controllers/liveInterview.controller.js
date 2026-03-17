@@ -471,6 +471,125 @@ export async function ttsController(req, res) {
  * given index and asks the AI to teach the ideal answer.
  * Returns { teaching: { why, structure, sampleAnswer, tip } }
  */
+// ── Helper: strip HTML tags and decode entities ───────────────────────────────
+
+function stripHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<li>/gi, "\n• ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+// ── 9. Fetch job details from a LinkedIn URL ──────────────────────────────────
+
+/**
+ * POST /api/interview/fetch-job
+ * Body: { url: string }
+ * Returns: { role, company, jobDescription }
+ */
+export async function fetchJobController(req, res) {
+  const { url } = req.body;
+
+  if (!url || typeof url !== "string") {
+    return res.status(400).json({ message: "url is required." });
+  }
+
+  const trimmed = url.trim();
+
+  if (!/linkedin\.com\/(jobs?|job-apply)\//i.test(trimmed)) {
+    return res
+      .status(400)
+      .json({ message: "Please provide a valid LinkedIn job URL." });
+  }
+
+  try {
+    const response = await fetch(trimmed, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Cache-Control": "no-cache",
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+
+    if (!response.ok) {
+      return res.status(422).json({
+        message:
+          "Could not fetch that URL. Make sure it is a public LinkedIn job posting.",
+      });
+    }
+
+    const html = await response.text();
+
+    // Check for login-wall redirect
+    if (
+      html.includes('action="/checkpoint/') ||
+      (html.includes("Sign in") && html.includes("/login?"))
+    ) {
+      return res.status(422).json({
+        message:
+          "This job posting requires LinkedIn login. Please copy the description manually.",
+      });
+    }
+
+    // Try JSON-LD first (most reliable)
+    const jsonLdMatch = html.match(
+      /<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i,
+    );
+
+    if (jsonLdMatch) {
+      const data = JSON.parse(jsonLdMatch[1].trim());
+      const role = data.title ? stripHtml(data.title) : "";
+      const company = data.hiringOrganization?.name
+        ? stripHtml(data.hiringOrganization.name)
+        : "";
+      const jobDescription = data.description
+        ? stripHtml(data.description)
+        : "";
+
+      if (role || jobDescription) {
+        return res.status(200).json({ role, company, jobDescription });
+      }
+    }
+
+    // Fallback: scrape OG / meta tags for at least the title
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const ogTitle = html.match(
+      /<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i,
+    );
+    const role = ogTitle?.[1] ?? titleMatch?.[1]?.split(" | ")?.[0] ?? "";
+
+    if (role) {
+      return res
+        .status(200)
+        .json({ role: stripHtml(role), company: "", jobDescription: "" });
+    }
+
+    return res
+      .status(422)
+      .json({ message: "Could not extract job details from this posting." });
+  } catch (err) {
+    if (err.name === "TimeoutError") {
+      return res.status(504).json({ message: "Request timed out." });
+    }
+    console.error("fetchJob error:", err.message);
+    return res.status(500).json({ message: "Failed to fetch job details." });
+  }
+}
+
 export async function analyzeQuestionController(req, res) {
   try {
     const { interviewId, questionIndex } = req.body;

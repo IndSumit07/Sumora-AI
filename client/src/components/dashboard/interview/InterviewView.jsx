@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Briefcase,
   Trash2,
+  Link,
+  CheckCircle2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
@@ -98,18 +100,53 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
   );
 };
 
+const isLinkedInJobUrl = (val) =>
+  /linkedin\.com\/(jobs?|job-apply)\//i.test(val.trim());
+
 // ── Setup form ────────────────────────────────────────────────────────────────
 
 const SetupForm = ({ onStarted }) => {
-  const { uploadResume, startInterview } = useInterview();
+  const { uploadResume, startInterview, fetchJobFromUrl } = useInterview();
   const [role, setRole] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const [fetchedCompany, setFetchedCompany] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
   const fileRef = useRef(null);
+
+  const handleFetchJob = async () => {
+    if (!isLinkedInJobUrl(linkedinUrl)) {
+      toast.error("Please paste a valid LinkedIn job URL.");
+      return;
+    }
+    setFetchLoading(true);
+    try {
+      const {
+        role: r,
+        company,
+        jobDescription: jd,
+      } = await fetchJobFromUrl(linkedinUrl);
+      if (r) setRole(r);
+      if (jd) setJobDescription(jd);
+      if (company) setFetchedCompany(company);
+      if (r || jd) {
+        toast.success("Job details auto-filled from LinkedIn.");
+      } else {
+        toast.error("Could not extract details. Please fill in manually.");
+      }
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Failed to fetch job details.",
+      );
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -183,6 +220,54 @@ const SetupForm = ({ onStarted }) => {
       </div>
 
       <div className="space-y-4">
+        {/* LinkedIn URL import */}
+        <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#161616] p-4">
+          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+            Import from LinkedIn{" "}
+            <span className="normal-case font-normal">(optional)</span>
+          </p>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link
+                size={13}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+              />
+              <input
+                type="url"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && !fetchLoading && handleFetchJob()
+                }
+                placeholder="Paste LinkedIn job URL…"
+                className="h-9 w-full rounded-lg border border-gray-200 dark:border-[#333] pl-8 pr-3 text-xs bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleFetchJob}
+              disabled={fetchLoading || !linkedinUrl.trim()}
+              className="h-9 px-3 rounded-lg border border-gray-200 dark:border-[#333] text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-[#1a1a1a] hover:border-[#ea580c]/50 hover:text-[#ea580c] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 whitespace-nowrap"
+            >
+              {fetchLoading ? (
+                <>
+                  <Loader2 size={11} className="animate-spin" /> Fetching…
+                </>
+              ) : (
+                "Auto-fill"
+              )}
+            </button>
+          </div>
+          {fetchedCompany && (
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-green-600 dark:text-green-400">
+              <CheckCircle2 size={11} />
+              Auto-filled from{" "}
+              <span className="font-semibold">{fetchedCompany}</span> · Edit
+              fields below as needed.
+            </p>
+          )}
+        </div>
+
         {/* Role */}
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
@@ -211,7 +296,7 @@ const SetupForm = ({ onStarted }) => {
           <textarea
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the job description here…"
+            placeholder="Paste the job description here, or use the LinkedIn import above…"
             rows={6}
             maxLength={5000}
             className="w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] px-4 py-3 text-sm bg-white dark:bg-[#161616] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all resize-none"

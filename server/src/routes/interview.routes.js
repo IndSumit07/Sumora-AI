@@ -23,6 +23,7 @@ import {
   deleteLiveInterviewController,
   ttsController,
   analyzeQuestionController,
+  fetchJobController,
 } from "../controllers/liveInterview.controller.js";
 
 const interviewRouter = express.Router();
@@ -120,6 +121,13 @@ interviewRouter.delete(
   apiLimiter,
   authMiddleware,
   deleteLiveInterviewController,
+);
+// POST /api/interview/fetch-job         — scrape LinkedIn job URL → role + description
+interviewRouter.post(
+  "/fetch-job",
+  apiLimiter,
+  authMiddleware,
+  fetchJobController,
 );
 // POST /api/interview/tts                — Sarvam AI text-to-speech proxy
 interviewRouter.post("/tts", apiLimiter, authMiddleware, ttsController);

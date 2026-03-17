@@ -163,6 +163,16 @@ export const InterviewProvider = ({ children }) => {
   };
 
   /**
+   * fetchJobFromUrl — fetches job details from a LinkedIn job URL.
+   * @param {string} url
+   * @returns {Promise<{ role: string, company: string, jobDescription: string }>}
+   */
+  const fetchJobFromUrl = async (url) => {
+    const { data } = await api.post("/interview/fetch-job", { url });
+    return data;
+  };
+
+  /**
    * tts — converts text to speech via backend Sarvam AI proxy.
    * @param {string} text
    * @returns {Promise<string>} base64 WAV audio
@@ -190,6 +200,7 @@ export const InterviewProvider = ({ children }) => {
         deleteLiveInterview,
         deleteReport,
         tts,
+        fetchJobFromUrl,
       }}
     >
       {children}
