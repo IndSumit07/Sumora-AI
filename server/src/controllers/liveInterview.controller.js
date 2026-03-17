@@ -404,67 +404,6 @@ export async function deleteLiveInterviewController(req, res) {
   }
 }
 
-// ── 8. Text-to-speech via Sarvam AI ──────────────────────────────────────────
-
-/**
- * POST /api/interview/tts
- * Body: { text, speaker? }
- *
- * Proxies the text to Sarvam AI TTS and returns the resulting audio as a
- * base64-encoded WAV string. Supported speakers: "sophia", "simran".
- */
-const ALLOWED_SPEAKERS = new Set(["sophia", "simran"]);
-
-export async function ttsController(req, res) {
-  try {
-    const { text, speaker } = req.body;
-    if (!text?.trim()) {
-      return res.status(400).json({ message: "text is required." });
-    }
-
-    const resolvedSpeaker = ALLOWED_SPEAKERS.has(speaker) ? speaker : "sophia";
-
-    const apiKey = process.env.SARVAM_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ message: "TTS service not configured." });
-    }
-
-    const response = await fetch("https://api.sarvam.ai/text-to-speech", {
-      method: "POST",
-      headers: {
-        "api-subscription-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: [text.trim().slice(0, 500)],
-        target_language_code: "en-IN",
-        speaker: resolvedSpeaker,
-        pace: 1.0,
-        speech_sample_rate: 22050,
-        enable_preprocessing: true,
-        model: "bulbul:v3",
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("Sarvam TTS error:", err);
-      return res.status(502).json({ message: "TTS service error." });
-    }
-
-    const data = await response.json();
-    const audio = data.audios?.[0];
-    if (!audio) {
-      return res.status(502).json({ message: "No audio returned from TTS." });
-    }
-
-    return res.status(200).json({ audio });
-  } catch (error) {
-    console.error("TTS controller error:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-}
-
 // ── 8. Analyze a single question (teaching walkthrough) ───────────────────────
 
 /**

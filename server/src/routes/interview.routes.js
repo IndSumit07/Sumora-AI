@@ -21,7 +21,6 @@ import {
   getLiveInterviewController,
   getAllLiveInterviewsController,
   deleteLiveInterviewController,
-  ttsController,
   analyzeQuestionController,
   fetchJobController,
 } from "../controllers/liveInterview.controller.js";
@@ -129,8 +128,6 @@ interviewRouter.post(
   authMiddleware,
   fetchJobController,
 );
-// POST /api/interview/tts                — Sarvam AI text-to-speech proxy
-interviewRouter.post("/tts", apiLimiter, authMiddleware, ttsController);
 // POST /api/interview/analyze-question   — AI teaching for a single question (walkthrough)
 interviewRouter.post(
   "/analyze-question",
