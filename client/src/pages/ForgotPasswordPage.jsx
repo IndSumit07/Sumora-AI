@@ -47,17 +47,7 @@ const ForgotPasswordPage = () => {
         {/* Right Panel */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12 relative z-10">
           <div className="mb-6">
-            <svg
-              viewBox="0 0 24 24"
-              className="w-10 h-10 text-[#ea580c] mb-6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-            </svg>
+            <img src="/light_logo.png" alt="Sumora" className="h-10 w-auto mb-6" />
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-2 tracking-tight">
               Forgot password?
             </h1>

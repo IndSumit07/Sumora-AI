@@ -78,9 +78,10 @@ const DashboardPage = () => {
       >
         <Link
           to="/dashboard"
-          className="w-10 h-10 bg-[#ea580c] rounded-xl flex items-center justify-center mb-8 flex-shrink-0"
+          className="flex items-center justify-center mb-8 flex-shrink-0"
         >
-          <span className="text-white font-bold text-lg">S</span>
+          <img src="/light_logo.png" alt="Sumora" className="h-8 w-auto dark:hidden" />
+          <img src="/dark_logo.png" alt="Sumora" className="h-8 w-auto hidden dark:block" />
         </Link>
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-2">

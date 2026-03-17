@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
-import { MessageSquare, Sun, Moon, Menu, X } from "lucide-react";
+import { Sun, Moon, Menu, X } from "lucide-react";
 import BackgroundGradient from "../components/home/BackgroundGradient";
 import DashboardMockup from "../components/home/DashboardMockup";
 import IntegrationsSection from "../components/home/IntegrationsSection";
@@ -74,11 +74,9 @@ const HomePage = () => {
       <div className="fixed top-0 inset-x-0 z-50 flex justify-center py-4">
         <header className="relative flex h-[70px] items-center px-6 md:px-12 w-full max-w-[1500px] mx-auto bg-transparent border-transparent">
           {/* Logo */}
-          <div className="flex-1 flex items-center gap-2 text-[19px] font-bold tracking-tight text-gray-900 dark:text-white z-10 shrink-0">
-            <div className="w-8 h-8 bg-black dark:bg-white rounded-[10px] flex items-center justify-center text-black dark:text-white">
-              <MessageSquare size={16} fill="black" />
-            </div>
-            Sumora
+          <div className="flex-1 flex items-center z-10 shrink-0">
+            <img src="/light_logo.png" alt="Sumora" className="h-8 w-auto dark:hidden" />
+            <img src="/dark_logo.png" alt="Sumora" className="h-8 w-auto hidden dark:block" />
           </div>
 
           {/* Center Links (Capsule with single snake animation) */}
