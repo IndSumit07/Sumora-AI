@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Mic, BarChart2, BookOpen, Sun, Moon, Menu, Home } from "lucide-react";
+import { Mic, BarChart2, BookOpen, Sun, Moon, Menu, Home, Search, Bell } from "lucide-react";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
@@ -35,6 +35,11 @@ const DashboardPage = () => {
     }
   }, [isDark]);
 
+  const currentPage =
+    NAV.find(({ to, exact }) =>
+      exact ? location.pathname === to : location.pathname.startsWith(to)
+    )?.label ?? "Dashboard";
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0d0d0d]">
@@ -48,14 +53,29 @@ const DashboardPage = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0d0d0d] text-gray-900 dark:text-white">
       {/* ── Mobile top bar ── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-11 flex items-center px-3 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222] z-30">
-        <button
-          onClick={() => setSidebarOpen((o) => !o)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
-          aria-label="Toggle sidebar"
-        >
-          <Menu size={17} />
-        </button>
+      <div className="md:hidden fixed top-0 left-0 right-0 h-11 flex items-center justify-between px-3 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222] z-30">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
+            aria-label="Toggle sidebar"
+          >
+            <Menu size={17} />
+          </button>
+          <img src="/logo.png" alt="Sumora" className="h-5 w-auto" />
+          <span className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
+            Sumora AI
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Bell size={15} className="text-gray-400" />
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
+          </div>
+          <div className="w-7 h-7 rounded-full bg-[#ea580c] flex items-center justify-center text-[9px] font-bold text-white">
+            {getInitials(user?.username)}
+          </div>
+        </div>
       </div>
 
       {/* Mobile backdrop */}
@@ -127,8 +147,62 @@ const DashboardPage = () => {
         </div>
       </aside>
 
-      {/* ── Main content area — no padding; views manage their own scrolling ── */}
+      {/* ── Main content area ── */}
       <main className="flex-1 overflow-hidden flex flex-col pt-11 md:pt-0">
+
+        {/* Desktop top navbar */}
+        <header className="hidden md:flex items-center justify-between h-14 px-6 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222] flex-shrink-0">
+          {/* Left — logo + breadcrumb */}
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Sumora" className="h-7 w-auto" />
+            <span className="font-bold text-gray-900 dark:text-white text-sm tracking-tight">
+              Sumora AI
+            </span>
+            <span className="text-gray-300 dark:text-[#333] select-none">/</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              {currentPage}
+            </span>
+          </div>
+
+          {/* Right — search · bell · theme · user */}
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-[#1e1e1e] text-gray-400 w-44">
+              <Search size={13} className="flex-shrink-0" />
+              <span className="text-xs truncate">Search…</span>
+            </div>
+
+            {/* Bell */}
+            <div className="relative">
+              <button className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1e1e1e] transition-colors">
+                <Bell size={17} />
+              </button>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ea580c] pointer-events-none" />
+            </div>
+
+            {/* Theme toggle */}
+            <button
+              onClick={() => setIsDark(!isDark)}
+              title="Toggle theme"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1e1e1e] transition-colors"
+            >
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-gray-200 dark:bg-[#2a2a2a]" />
+
+            {/* User avatar */}
+            <button
+              onClick={logout}
+              title={`Logout (${user?.username})`}
+              className="w-9 h-9 rounded-full bg-[#ea580c] flex items-center justify-center text-xs font-bold text-white hover:bg-[#d24e0b] transition-colors"
+            >
+              {getInitials(user?.username)}
+            </button>
+          </div>
+        </header>
+
         <Outlet />
       </main>
     </div>

@@ -11,12 +11,9 @@ import {
   Star,
   ArrowRight,
   ShieldCheck,
-  Lightbulb,
   Award,
   Github,
   Linkedin,
-  Twitter,
-  Brain,
   Check,
 } from "lucide-react";
 
@@ -260,61 +257,6 @@ const DashboardHome = () => {
           </div>
         </section>
 
-        {/* ── Tech Stack ─────────────────────────────────── */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">
-            Powered By
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              {
-                icon: Brain,
-                label: "LLaMA 3.1 8B",
-                sub: "Interview AI",
-                color: "#ea580c",
-              },
-              {
-                icon: Lightbulb,
-                label: "Gemini 2.5 Flash",
-                sub: "Resume Analysis",
-                color: "#0ea5e9",
-              },
-              {
-                icon: Zap,
-                label: "LangChain LCEL",
-                sub: "Conversation Memory",
-                color: "#7c3aed",
-              },
-              {
-                icon: TrendingUp,
-                label: "Groq Inference",
-                sub: "Ultra-low latency",
-                color: "#10b981",
-              },
-            ].map(({ icon: Icon, label, sub, color }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center text-center p-5 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222] gap-3"
-              >
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: `${color}18` }}
-                >
-                  <Icon size={20} style={{ color }} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {label}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {sub}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* ── About / CTO ────────────────────────────────── */}
         <section className="grid md:grid-cols-2 gap-6">
           {/* Mission */}
@@ -351,10 +293,10 @@ const DashboardHome = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 dark:text-white">
-                  Sumora Team
+                  Sumit Kumar
                 </p>
                 <p className="text-xs text-[#ea580c] font-medium mt-0.5">
-                  Founder & CTO
+                  Founder
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
                   Full-stack engineer & AI enthusiast. Building tools that help
@@ -362,19 +304,24 @@ const DashboardHome = () => {
                   LLMs.
                 </p>
                 <div className="flex gap-3 mt-4">
-                  {[
-                    { icon: Github, label: "GitHub" },
-                    { icon: Linkedin, label: "LinkedIn" },
-                    { icon: Twitter, label: "Twitter" },
-                  ].map(({ icon: Icon, label }) => (
-                    <button
-                      key={label}
-                      title={label}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-                    >
-                      <Icon size={15} />
-                    </button>
-                  ))}
+                  <a
+                    href="https://github.com/IndSumit07"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="GitHub"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+                  >
+                    <Github size={15} />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/sumit-kumar-545737378/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="LinkedIn"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+                  >
+                    <Linkedin size={15} />
+                  </a>
                 </div>
               </div>
             </div>

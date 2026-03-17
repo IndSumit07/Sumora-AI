@@ -5,9 +5,10 @@ const FeatureSection = () => (
   <section className="py-20 px-6 md:px-12 w-full max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center relative z-10">
     <div className="space-y-12 shrink-0">
       {/* Feature 1 - Active */}
-      <div className="border-l-2 border-[#8242e3] pl-6 py-1">
-        <h2 className="text-3xl sm:text-4xl font-semibold text-[#8242e3] mb-4 pr-4">
-          Meet Sumora AI: Your personal interview coach.
+      <div className="border-l-2 border-[#ea580c] pl-6 py-1">
+        <h2 className="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-4 pr-4">
+          Meet <span className="text-[#ea580c]">Sumora AI</span>: Your personal
+          interview coach.
         </h2>
         <p className="text-gray-600 dark:text-[#a8a19b] text-lg mb-6 leading-relaxed">
           Sumora isn't just any AI. It's AI that knows your career goals inside
@@ -16,7 +17,7 @@ const FeatureSection = () => (
         </p>
         <a
           href="#"
-          className="inline-flex items-center text-[#3b82f6] font-medium hover:text-[#60a5fa] transition-colors gap-2"
+          className="inline-flex items-center text-[#ea580c] font-medium hover:text-[#c2410c] transition-colors gap-2"
         >
           Learn more about Sumora AI <ArrowRight size={16} />
         </a>
