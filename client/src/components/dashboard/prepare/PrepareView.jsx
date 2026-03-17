@@ -258,12 +258,14 @@ const PrepareCard = ({ interview, active, onClick, onDelete }) => {
           {date}
         </span>
         <div className="flex items-center gap-1.5">
-          {interview.difficulty && interview.difficulty !== "medium" && (
+          {interview.difficulty && (
             <span
               className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                 interview.difficulty === "easy"
                   ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                  : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                  : interview.difficulty === "medium"
+                    ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
+                    : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
               }`}
             >
               {interview.difficulty}
@@ -590,40 +592,42 @@ const SetupForm = ({ onStarted }) => {
             Difficulty
           </label>
           <div className="flex gap-2">
-            {[
-              {
-                value: "easy",
-                label: "Easy",
-                active:
-                  "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
-              },
-              {
-                value: "medium",
-                label: "Medium",
-                active:
-                  "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
-              },
-              {
-                value: "hard",
-                label: "Hard",
-                active:
-                  "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
-              },
-            ].map(({ value, label, active }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setDifficulty(value)}
-                className={[
-                  "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
-                  difficulty === value
-                    ? active
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-                ].join(" ")}
-              >
-                {label}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setDifficulty("easy")}
+              className={[
+                "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
+                difficulty === "easy"
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              Easy
+            </button>
+            <button
+              type="button"
+              onClick={() => setDifficulty("medium")}
+              className={[
+                "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
+                difficulty === "medium"
+                  ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              Medium
+            </button>
+            <button
+              type="button"
+              onClick={() => setDifficulty("hard")}
+              className={[
+                "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
+                difficulty === "hard"
+                  ? "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              Hard
+            </button>
           </div>
         </div>
 
