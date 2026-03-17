@@ -80,8 +80,7 @@ const DashboardPage = () => {
           to="/dashboard"
           className="flex items-center justify-center mb-8 flex-shrink-0"
         >
-          <img src="/light_logo.png" alt="Sumora" className="h-8 w-auto dark:hidden" />
-          <img src="/dark_logo.png" alt="Sumora" className="h-8 w-auto hidden dark:block" />
+          <img src="/logo.png" alt="Sumora" className="h-12 w-auto" />
         </Link>
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-2">

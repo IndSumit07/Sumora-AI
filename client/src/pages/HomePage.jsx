@@ -74,17 +74,9 @@ const HomePage = () => {
       <div className="fixed top-0 inset-x-0 z-50 flex justify-center py-4">
         <header className="relative flex h-[70px] items-center px-6 md:px-12 w-full max-w-[1500px] mx-auto bg-transparent border-transparent">
           {/* Logo */}
-          <div className="flex-1 flex items-center z-10 shrink-0">
-            <img
-              src="/light_logo.png"
-              alt="Sumora"
-              className="h-8 w-auto dark:hidden"
-            />
-            <img
-              src="/dark_logo.png"
-              alt="Sumora"
-              className="h-8 w-auto hidden dark:block"
-            />
+          <div className="flex-1 flex items-center gap-2.5 z-10 shrink-0">
+            <img src="/logo.png" alt="Sumora" className="h-12 w-auto" />
+            <span className="text-[19px] font-bold tracking-tight text-gray-900 dark:text-white">Sumora AI</span>
           </div>
 
           {/* Center Links (Capsule with single snake animation) */}

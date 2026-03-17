@@ -97,11 +97,10 @@ const ResetPasswordPage = () => {
         {/* Right Panel */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12 relative z-10">
           <div className="mb-6">
-            <img
-              src="/light_logo.png"
-              alt="Sumora"
-              className="h-10 w-auto mb-6"
-            />
+            <div className="flex items-center gap-2.5 mb-6">
+              <img src="/logo.png" alt="Sumora" className="h-14 w-auto" />
+              <span className="text-xl font-bold text-gray-900 tracking-tight">Sumora AI</span>
+            </div>
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-2 tracking-tight">
               Reset password
             </h1>

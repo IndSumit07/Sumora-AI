@@ -5,17 +5,9 @@ const Footer = () => (
     <div className="max-w-[1400px] mx-auto px-6 md:px-12">
       <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] sm:gap-12 gap-16 mb-24">
         <div>
-          <div className="mb-6">
-            <img
-              src="/light_logo.png"
-              alt="Sumora"
-              className="h-8 w-auto dark:hidden"
-            />
-            <img
-              src="/dark_logo.png"
-              alt="Sumora"
-              className="h-8 w-auto hidden dark:block"
-            />
+          <div className="flex items-center gap-2.5 mb-6">
+            <img src="/logo.png" alt="Sumora" className="h-12 w-auto" />
+            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Sumora AI</span>
           </div>
           <p className="text-gray-600 dark:text-[#a8a19b] min-w-[280px] max-w-sm mb-8 text-[15px] leading-relaxed font-light">
             Ace your next interview with AI-powered practice sessions, instant
