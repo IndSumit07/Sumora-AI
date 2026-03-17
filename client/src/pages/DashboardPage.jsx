@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Mic, BarChart2, BookOpen, Sun, Moon, Menu, Home, Search, Bell } from "lucide-react";
+import UserDropdown from "../components/UserDropdown";
+import AccountModal from "../components/AccountModal";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
@@ -13,7 +15,7 @@ const NAV = [
 ];
 
 const DashboardPage = () => {
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const location = useLocation();
 
   const [isDark, setIsDark] = useState(() => {
@@ -24,6 +26,7 @@ const DashboardPage = () => {
   });
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
     if (isDark) {
@@ -72,9 +75,12 @@ const DashboardPage = () => {
             <Bell size={15} className="text-gray-400" />
             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
           </div>
-          <div className="w-7 h-7 rounded-full bg-[#ea580c] flex items-center justify-center text-[9px] font-bold text-white">
+          <button
+            onClick={() => setShowAccount(true)}
+            className="w-7 h-7 rounded-full bg-[#ea580c] flex items-center justify-center text-[9px] font-bold text-white hover:bg-[#d24e0b] transition-colors"
+          >
             {getInitials(user?.username)}
-          </div>
+          </button>
         </div>
       </div>
 
@@ -138,9 +144,9 @@ const DashboardPage = () => {
           </button>
 
           <button
-            onClick={logout}
-            title="Logout"
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-[#333] flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-300 hover:border-red-500 hover:text-red-500 transition-colors"
+            onClick={() => setShowAccount(true)}
+            title="Account"
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-[#333] flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-300 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
           >
             {getInitials(user?.username)}
           </button>
@@ -192,19 +198,15 @@ const DashboardPage = () => {
             {/* Divider */}
             <div className="w-px h-5 bg-gray-200 dark:bg-[#2a2a2a]" />
 
-            {/* User avatar */}
-            <button
-              onClick={logout}
-              title={`Logout (${user?.username})`}
-              className="w-9 h-9 rounded-full bg-[#ea580c] flex items-center justify-center text-xs font-bold text-white hover:bg-[#d24e0b] transition-colors"
-            >
-              {getInitials(user?.username)}
-            </button>
+            {/* User dropdown */}
+            <UserDropdown onManageAccount={() => setShowAccount(true)} />
           </div>
         </header>
 
         <Outlet />
       </main>
+
+      <AccountModal open={showAccount} onClose={() => setShowAccount(false)} />
     </div>
   );
 };
