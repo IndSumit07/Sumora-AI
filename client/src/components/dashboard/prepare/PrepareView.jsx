@@ -34,71 +34,168 @@ const SUBJECTS = [
     label: "Data Structures & Algorithms",
     icon: Zap,
     desc: "Arrays, trees, graphs, sorting, dynamic programming",
-    placeholder:
-      "Binary Search Trees, Dijkstra's Algorithm, Dynamic Programming",
+    topics: [
+      "Arrays & Strings",
+      "Linked Lists",
+      "Trees & BSTs",
+      "Graphs",
+      "Dynamic Programming",
+      "Sorting & Searching",
+      "Recursion & Backtracking",
+      "Heaps & Priority Queues",
+      "Hash Tables",
+      "Tries",
+    ],
   },
   {
     id: "os",
     label: "Operating Systems",
     icon: Monitor,
     desc: "Processes, memory management, scheduling, deadlocks",
-    placeholder: "Process Scheduling, Deadlocks, Virtual Memory",
+    topics: [
+      "Process Scheduling",
+      "Deadlocks",
+      "Virtual Memory",
+      "Paging & Segmentation",
+      "Threads & Concurrency",
+      "File Systems",
+      "Semaphores & Mutexes",
+      "Memory Allocation",
+      "I/O Management",
+    ],
   },
   {
     id: "dbms",
     label: "Databases",
     icon: Database,
     desc: "SQL, NoSQL, indexing, ACID, transactions",
-    placeholder: "ACID Properties, B-Tree Indexing, Query Optimization",
+    topics: [
+      "SQL Queries",
+      "ACID Properties",
+      "Normalization",
+      "Indexing & B-Trees",
+      "Transactions",
+      "Query Optimization",
+      "NoSQL Databases",
+      "ER Diagrams",
+      "Joins",
+    ],
   },
   {
     id: "networks",
     label: "Computer Networks",
     icon: Globe,
     desc: "TCP/IP, DNS, HTTP, routing protocols",
-    placeholder: "TCP Handshake, DNS Resolution, HTTP/2 vs HTTP/3",
+    topics: [
+      "TCP/IP Model",
+      "OSI Model",
+      "DNS Resolution",
+      "HTTP/HTTPS",
+      "Routing Protocols",
+      "Subnetting",
+      "Firewalls & NAT",
+      "WebSockets",
+      "CDN & Caching",
+    ],
   },
   {
     id: "system-design",
     label: "System Design",
     icon: Layers,
     desc: "Scalability, microservices, load balancing, caching",
-    placeholder: "Rate Limiting, Consistent Hashing, CAP Theorem",
+    topics: [
+      "Load Balancing",
+      "Caching Strategies",
+      "Rate Limiting",
+      "CAP Theorem",
+      "Database Sharding",
+      "Consistent Hashing",
+      "Microservices",
+      "Message Queues",
+      "API Design",
+    ],
   },
   {
     id: "oop",
     label: "OOP & Design Patterns",
     icon: GitBranch,
     desc: "SOLID principles, design patterns, abstraction",
-    placeholder: "Design Patterns, SOLID Principles, Polymorphism",
+    topics: [
+      "SOLID Principles",
+      "Design Patterns",
+      "Inheritance & Polymorphism",
+      "Abstraction & Encapsulation",
+      "Factory Pattern",
+      "Singleton Pattern",
+      "Observer Pattern",
+      "Strategy Pattern",
+    ],
   },
   {
     id: "web",
     label: "Web Development",
     icon: Code,
     desc: "Frontend, backend, REST APIs, authentication",
-    placeholder: "React Hooks, REST vs GraphQL, CSRF / XSS",
+    topics: [
+      "React Hooks",
+      "REST APIs",
+      "GraphQL",
+      "Authentication & JWT",
+      "CSRF & XSS",
+      "CSS Fundamentals",
+      "Browser Rendering",
+      "HTTP/2 & HTTP/3",
+      "WebSockets",
+    ],
   },
   {
     id: "ml",
     label: "Machine Learning",
     icon: Cpu,
     desc: "Algorithms, neural networks, model evaluation",
-    placeholder: "Gradient Descent, Overfitting, Transformer Architecture",
+    topics: [
+      "Supervised Learning",
+      "Unsupervised Learning",
+      "Neural Networks",
+      "Gradient Descent",
+      "Overfitting & Regularization",
+      "Transformers",
+      "CNNs & RNNs",
+      "Model Evaluation",
+      "Feature Engineering",
+    ],
   },
   {
     id: "cloud",
     label: "Cloud & DevOps",
     icon: Cloud,
     desc: "AWS, Docker, CI/CD, Kubernetes infrastructure",
-    placeholder: "Docker Networking, Kubernetes Pods, AWS Lambda",
+    topics: [
+      "Docker",
+      "Kubernetes",
+      "CI/CD Pipelines",
+      "AWS Services",
+      "Serverless",
+      "Infrastructure as Code",
+      "Monitoring & Logging",
+      "Microservices Deploy",
+    ],
   },
   {
     id: "security",
     label: "Cybersecurity",
     icon: Shield,
     desc: "Authentication, encryption, common vulnerabilities",
-    placeholder: "SQL Injection, JWT Auth, TLS/SSL",
+    topics: [
+      "SQL Injection",
+      "XSS & CSRF",
+      "Authentication & OAuth",
+      "JWT Security",
+      "TLS/SSL",
+      "Encryption Basics",
+      "Penetration Testing",
+      "Zero Trust Security",
+    ],
   },
 ];
 
@@ -191,13 +288,41 @@ const PrepareCard = ({ interview, active, onClick, onDelete }) => {
 const SetupForm = ({ onStarted }) => {
   const { uploadResume, startPrepareInterview } = useInterview();
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [topic, setTopic] = useState("");
+  const [selectedTopics, setSelectedTopics] = useState([]);
+  const [topicInput, setTopicInput] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
   const fileInputRef = useRef(null);
+  const topicInputRef = useRef(null);
+
+  const handleSubjectSelect = (s) => {
+    setSelectedSubject(s);
+    setSelectedTopics([]);
+    setTopicInput("");
+  };
+
+  const toggleTopic = (label) => {
+    setSelectedTopics((prev) =>
+      prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label],
+    );
+  };
+
+  const addCustomTopic = () => {
+    const t = topicInput.trim();
+    if (!t) return;
+    if (!selectedTopics.includes(t)) {
+      setSelectedTopics((prev) => [...prev, t]);
+    }
+    setTopicInput("");
+    topicInputRef.current?.focus();
+  };
+
+  const removeSelectedTopic = (label) => {
+    setSelectedTopics((prev) => prev.filter((t) => t !== label));
+  };
 
   const handleFileSelect = async (file) => {
     if (!file) return;
@@ -229,15 +354,20 @@ const SetupForm = ({ onStarted }) => {
       toast.error("Please select a subject.");
       return;
     }
-    if (!topic.trim()) {
-      toast.error("Please enter a specific topic.");
+    const allTopics = [...selectedTopics];
+    if (topicInput.trim() && !allTopics.includes(topicInput.trim())) {
+      allTopics.push(topicInput.trim());
+    }
+    if (allTopics.length === 0) {
+      toast.error("Please select or enter at least one topic.");
       return;
     }
+    const topicString = allTopics.join(", ");
     setStartLoading(true);
     try {
       const { interviewId, question } = await startPrepareInterview({
         subject: selectedSubject.label,
-        topic: topic.trim(),
+        topic: topicString,
         resumeText,
         difficulty,
       });
@@ -245,7 +375,7 @@ const SetupForm = ({ onStarted }) => {
         interviewId,
         firstQuestion: question,
         subject: selectedSubject.label,
-        topic: topic.trim(),
+        topic: topicString,
         difficulty,
       });
     } catch (err) {
@@ -254,6 +384,12 @@ const SetupForm = ({ onStarted }) => {
       setStartLoading(false);
     }
   };
+
+  const canStart =
+    !startLoading &&
+    !uploadLoading &&
+    selectedSubject &&
+    (selectedTopics.length > 0 || topicInput.trim().length > 0);
 
   return (
     <div className="max-w-2xl">
@@ -266,7 +402,7 @@ const SetupForm = ({ onStarted }) => {
             New Preparation Session
           </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Select a subject, then enter a specific topic to drill on.
+            Select a subject, pick topics or type your own, then start drilling.
           </p>
         </div>
       </div>
@@ -284,7 +420,7 @@ const SetupForm = ({ onStarted }) => {
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setSelectedSubject(s)}
+                onClick={() => handleSubjectSelect(s)}
                 className={[
                   "flex flex-col items-start gap-2 p-3 rounded-xl border text-left transition-all duration-150",
                   active
@@ -315,29 +451,89 @@ const SetupForm = ({ onStarted }) => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Specific topic */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Specific Topic
-          </label>
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && !startLoading && handleStart()
-            }
-            placeholder={
-              selectedSubject
-                ? `e.g., ${selectedSubject.placeholder}`
-                : "Select a subject above, then enter a specific topic…"
-            }
-            disabled={!selectedSubject}
-            className="h-12 w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] px-4 text-sm bg-white dark:bg-[#161616] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
+      {/* Topic picker — shown after subject is selected */}
+      {selectedSubject && (
+        <div className="mb-5 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#161616] p-4">
+          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
+            Topics{" "}
+            <span className="normal-case font-normal text-gray-400 dark:text-gray-500">
+              — pick one or more
+            </span>
+          </p>
 
+          {/* Suggested topic chips */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {selectedSubject.topics.map((t) => {
+              const picked = selectedTopics.includes(t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTopic(t)}
+                  className={[
+                    "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                    picked
+                      ? "border-[#ea580c] bg-[#ea580c] text-white"
+                      : "border-gray-200 dark:border-[#333] bg-white dark:bg-[#1e1e1e] text-gray-700 dark:text-gray-300 hover:border-[#ea580c]/50 hover:text-[#ea580c]",
+                  ].join(" ")}
+                >
+                  {t}
+                  {picked && <X size={10} className="ml-0.5" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom topic input */}
+          <div className="flex gap-2">
+            <input
+              ref={topicInputRef}
+              type="text"
+              value={topicInput}
+              onChange={(e) => setTopicInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomTopic();
+                }
+              }}
+              placeholder="Or type a custom topic and press Enter…"
+              className="flex-1 h-9 rounded-lg border border-gray-200 dark:border-[#333] px-3 text-xs bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all"
+            />
+            <button
+              type="button"
+              onClick={addCustomTopic}
+              disabled={!topicInput.trim()}
+              className="h-9 px-3 rounded-lg border border-gray-200 dark:border-[#333] text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-[#1a1a1a] hover:border-[#ea580c]/50 hover:text-[#ea580c] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+            >
+              <Plus size={12} /> Add
+            </button>
+          </div>
+
+          {/* Selected topic pills row */}
+          {selectedTopics.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {selectedTopics.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#ea580c]/10 text-[#ea580c] border border-[#ea580c]/20"
+                >
+                  {t}
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedTopic(t)}
+                    className="hover:text-red-500 transition-colors"
+                  >
+                    <X size={9} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-4">
         {/* Optional resume */}
         <div>
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
@@ -434,9 +630,7 @@ const SetupForm = ({ onStarted }) => {
         <button
           type="button"
           onClick={handleStart}
-          disabled={
-            startLoading || uploadLoading || !selectedSubject || !topic.trim()
-          }
+          disabled={!canStart}
           className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {startLoading ? (
