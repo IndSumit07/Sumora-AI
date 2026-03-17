@@ -1,9 +1,20 @@
 import { useState, useEffect } from "react";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Mic, BarChart2, BookOpen, Sun, Moon, Menu, Home, Search, Bell } from "lucide-react";
+import {
+  Mic,
+  BarChart2,
+  BookOpen,
+  Sun,
+  Moon,
+  Menu,
+  Home,
+  Search,
+  Bell,
+} from "lucide-react";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
+import CommandPalette from "../components/CommandPalette";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
@@ -27,6 +38,18 @@ const DashboardPage = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   useEffect(() => {
     if (isDark) {
@@ -40,7 +63,7 @@ const DashboardPage = () => {
 
   const currentPage =
     NAV.find(({ to, exact }) =>
-      exact ? location.pathname === to : location.pathname.startsWith(to)
+      exact ? location.pathname === to : location.pathname.startsWith(to),
     )?.label ?? "Dashboard";
 
   if (authLoading) {
@@ -71,6 +94,13 @@ const DashboardPage = () => {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCmdOpen(true)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
+            aria-label="Search"
+          >
+            <Search size={15} />
+          </button>
           <div className="relative">
             <Bell size={15} className="text-gray-400" />
             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
@@ -155,7 +185,6 @@ const DashboardPage = () => {
 
       {/* ── Main content area ── */}
       <main className="flex-1 overflow-hidden flex flex-col pt-11 md:pt-0">
-
         {/* Desktop top navbar */}
         <header className="hidden md:flex items-center justify-between h-14 px-6 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222] flex-shrink-0">
           {/* Left — logo + breadcrumb */}
@@ -164,7 +193,9 @@ const DashboardPage = () => {
             <span className="font-bold text-gray-900 dark:text-white text-sm tracking-tight">
               Sumora AI
             </span>
-            <span className="text-gray-300 dark:text-[#333] select-none">/</span>
+            <span className="text-gray-300 dark:text-[#333] select-none">
+              /
+            </span>
             <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
               {currentPage}
             </span>
@@ -172,18 +203,20 @@ const DashboardPage = () => {
 
           {/* Right — search · bell · theme · user */}
           <div className="flex items-center gap-2">
-            {/* Search */}
-            <div className="relative flex items-center">
-              <Search size={13} className="absolute left-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search…"
-                className="h-9 w-52 rounded-xl pl-8 pr-10 text-xs bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/40 transition-colors"
+            {/* Search trigger */}
+            <button
+              onClick={() => setCmdOpen(true)}
+              className="relative flex items-center h-9 w-52 rounded-xl pl-8 pr-10 text-xs bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] text-gray-400 dark:text-gray-600 hover:border-[#ea580c]/50 hover:text-gray-500 dark:hover:text-gray-400 transition-colors cursor-text"
+            >
+              <Search
+                size={13}
+                className="absolute left-3 pointer-events-none"
               />
-              <kbd className="absolute right-2.5 flex items-center gap-0.5 text-[10px] font-medium text-gray-400 dark:text-gray-600 pointer-events-none">
+              <span>Search…</span>
+              <kbd className="absolute right-2.5 flex items-center gap-0.5 text-[10px] font-medium pointer-events-none">
                 <span className="text-[9px]">⌘</span>K
               </kbd>
-            </div>
+            </button>
 
             {/* Bell */}
             <div className="relative">
@@ -214,6 +247,7 @@ const DashboardPage = () => {
       </main>
 
       <AccountModal open={showAccount} onClose={() => setShowAccount(false)} />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
     </div>
   );
 };
