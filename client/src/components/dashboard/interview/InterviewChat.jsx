@@ -29,7 +29,7 @@ import { useInterview } from "../../../context/InterviewContext";
 
 // ── Speech recognition factory ────────────────────────────────────────────────
 
-function createRecognition(onResult, onEnd) {
+function createRecognition(onResult, onEnd, onError) {
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return null;
@@ -57,7 +57,9 @@ function createRecognition(onResult, onEnd) {
   };
 
   rec.onerror = (e) => {
-    if (e.error !== "no-speech" && e.error !== "aborted") {
+    if (e.error === "not-allowed" || e.error === "permission-denied") {
+      onError?.(e.error);
+    } else if (e.error !== "no-speech" && e.error !== "aborted") {
       toast.error("Microphone error: " + e.error);
     }
   };
@@ -221,6 +223,18 @@ export default function InterviewChat({
           setIsRecording(false);
         }
       },
+      () => {
+        // Permission denied — stop all recording attempts immediately
+        shouldRecordRef.current = false;
+        recRef.current = null;
+        setIsRecording(false);
+        toast.error(
+          "Microphone access blocked. Enable it in browser settings.",
+          {
+            id: "mic-blocked",
+          },
+        );
+      },
     );
 
     if (!rec) {
@@ -233,7 +247,9 @@ export default function InterviewChat({
       recRef.current = rec;
       setIsRecording(true);
     } catch {
-      toast.error("Could not access microphone.");
+      toast.error("Microphone access blocked. Enable it in browser settings.", {
+        id: "mic-blocked",
+      });
       setIsRecording(false);
       shouldRecordRef.current = false;
     }
