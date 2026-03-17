@@ -408,17 +408,21 @@ export async function deleteLiveInterviewController(req, res) {
 
 /**
  * POST /api/interview/tts
- * Body: { text }
+ * Body: { text, speaker? }
  *
- * Proxies the text to Sarvam AI TTS (female English voice) and returns the
- * resulting audio as a base64-encoded WAV string.
+ * Proxies the text to Sarvam AI TTS and returns the resulting audio as a
+ * base64-encoded WAV string. Supported speakers: "sophia", "simran".
  */
+const ALLOWED_SPEAKERS = new Set(["sophia", "simran"]);
+
 export async function ttsController(req, res) {
   try {
-    const { text } = req.body;
+    const { text, speaker } = req.body;
     if (!text?.trim()) {
       return res.status(400).json({ message: "text is required." });
     }
+
+    const resolvedSpeaker = ALLOWED_SPEAKERS.has(speaker) ? speaker : "sophia";
 
     const apiKey = process.env.SARVAM_API_KEY;
     if (!apiKey) {
@@ -434,7 +438,7 @@ export async function ttsController(req, res) {
       body: JSON.stringify({
         inputs: [text.trim().slice(0, 500)],
         target_language_code: "en-IN",
-        speaker: "sophia",
+        speaker: resolvedSpeaker,
         pace: 1.0,
         speech_sample_rate: 22050,
         enable_preprocessing: true,

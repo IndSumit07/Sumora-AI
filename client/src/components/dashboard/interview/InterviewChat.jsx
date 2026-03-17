@@ -138,7 +138,6 @@ export default function InterviewChat({
   const [hasSpeechRec] = useState(
     () => !!(window.SpeechRecognition || window.webkitSpeechRecognition),
   );
-
   const recRef = useRef(null);
   const audioRef = useRef(null);
   const textareaRef = useRef(null);
@@ -159,7 +158,7 @@ export default function InterviewChat({
       stopAudio();
       setIsVoiceLoading(true);
       try {
-        const base64 = await tts(text);
+        const base64 = await tts(text, "simran");
         const audio = new Audio(`data:audio/wav;base64,${base64}`);
         audioRef.current = audio;
         setIsVoiceLoading(false);
@@ -341,31 +340,34 @@ export default function InterviewChat({
               Question {questionIndex}
             </span>
 
-            {!isVoiceLoading && (
-              <div className="flex items-center gap-2">
-                {isSpeaking ? (
-                  <button
-                    type="button"
-                    onClick={stopAudio}
-                    title="Stop speaking"
-                    className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
-                  >
-                    <VolumeX size={13} />
-                    <VoiceWaveform active={isSpeaking} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleReplayQuestion}
-                    title="Replay question"
-                    className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
-                  >
-                    <Volume2 size={13} />
-                    <VoiceWaveform active={false} />
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Replay / stop button */}
+              {!isVoiceLoading && (
+                <>
+                  {isSpeaking ? (
+                    <button
+                      type="button"
+                      onClick={stopAudio}
+                      title="Stop speaking"
+                      className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
+                    >
+                      <VolumeX size={13} />
+                      <VoiceWaveform active={isSpeaking} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleReplayQuestion}
+                      title="Replay question"
+                      className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-white transition-colors"
+                    >
+                      <Volume2 size={13} />
+                      <VoiceWaveform active={false} />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {isVoiceLoading ? (

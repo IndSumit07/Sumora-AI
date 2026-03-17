@@ -168,17 +168,22 @@ export const InterviewProvider = ({ children }) => {
    * @returns {Promise<{ role: string, company: string, jobDescription: string }>}
    */
   const fetchJobFromUrl = async (url) => {
-    const { data } = await api.post("/interview/fetch-job", { url }, { timeout: 15000 });
+    const { data } = await api.post(
+      "/interview/fetch-job",
+      { url },
+      { timeout: 15000 },
+    );
     return data;
   };
 
   /**
    * tts — converts text to speech via backend Sarvam AI proxy.
    * @param {string} text
+   * @param {string} [speaker="sophia"] — "sophia" | "simran"
    * @returns {Promise<string>} base64 WAV audio
    */
-  const tts = async (text) => {
-    const { data } = await api.post("/interview/tts", { text });
+  const tts = async (text, speaker = "simran") => {
+    const { data } = await api.post("/interview/tts", { text, speaker });
     return data.audio;
   };
 
