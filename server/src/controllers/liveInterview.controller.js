@@ -515,17 +515,23 @@ export async function fetchJobController(req, res) {
       .json({ message: "Please provide a valid LinkedIn job URL." });
   }
 
-  // Extract the numeric job ID from the URL path
-  // e.g. /jobs/view/4096789876  or  /jobs/view/senior-engineer-at-acme-4096789876/
+  // Extract job ID — handles two URL formats:
+  //   /jobs/view/4096789876  or  /jobs/view/title-4096789876/   (direct post)
+  //   ?currentJobId=4358923910                                  (collections/search pages)
   let jobId = null;
   try {
-    const { pathname } = new URL(trimmed);
-    const segments = pathname.split("/").filter(Boolean);
-    for (let i = segments.length - 1; i >= 0; i--) {
-      const m = segments[i].match(/(\d{7,})$/);
-      if (m) {
-        jobId = m[1];
-        break;
+    const { pathname, searchParams } = new URL(trimmed);
+    // 1. Query param — collections, search, recommended pages
+    jobId = searchParams.get("currentJobId") || null;
+    // 2. Path segment fallback — /jobs/view/{id} pages
+    if (!jobId) {
+      const segments = pathname.split("/").filter(Boolean);
+      for (let i = segments.length - 1; i >= 0; i--) {
+        const m = segments[i].match(/(\d{7,})$/);
+        if (m) {
+          jobId = m[1];
+          break;
+        }
       }
     }
   } catch {
