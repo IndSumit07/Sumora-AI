@@ -140,9 +140,11 @@ const SetupForm = ({ onStarted }) => {
         toast.error("Could not extract details. Please fill in manually.");
       }
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to fetch job details.",
-      );
+      const msg =
+        err.code === "ECONNABORTED"
+          ? "Request timed out. Please try again."
+          : err.response?.data?.message || "Failed to fetch job details.";
+      toast.error(msg);
     } finally {
       setFetchLoading(false);
     }

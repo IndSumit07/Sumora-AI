@@ -168,7 +168,7 @@ export const InterviewProvider = ({ children }) => {
    * @returns {Promise<{ role: string, company: string, jobDescription: string }>}
    */
   const fetchJobFromUrl = async (url) => {
-    const { data } = await api.post("/interview/fetch-job", { url });
+    const { data } = await api.post("/interview/fetch-job", { url }, { timeout: 15000 });
     return data;
   };
 

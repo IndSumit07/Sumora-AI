@@ -541,6 +541,9 @@ export async function fetchJobController(req, res) {
 
   const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${jobId}`;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+
   try {
     const response = await fetch(guestUrl, {
       headers: {
@@ -550,8 +553,9 @@ export async function fetchJobController(req, res) {
           "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
       },
-      signal: AbortSignal.timeout(12000),
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     if (response.status === 404) {
       return res.status(404).json({
@@ -615,7 +619,8 @@ export async function fetchJobController(req, res) {
 
     return res.status(200).json({ role, company, jobDescription });
   } catch (err) {
-    if (err.name === "TimeoutError") {
+    clearTimeout(timer);
+    if (err.name === "AbortError") {
       return res
         .status(504)
         .json({ message: "Request timed out. Please try again." });
