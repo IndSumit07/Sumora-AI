@@ -417,7 +417,11 @@ const AnalysisForm = ({ onReportGenerated }) => {
     }
     setFetchLoading(true);
     try {
-      const { role: r, company, jobDescription: jd } = await fetchJobFromUrl(linkedinUrl);
+      const {
+        role: r,
+        company,
+        jobDescription: jd,
+      } = await fetchJobFromUrl(linkedinUrl);
       if (r) setRole(r);
       if (jd) setJobDescription(jd);
       if (company) setFetchedCompany(company);
