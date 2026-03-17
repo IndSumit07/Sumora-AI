@@ -173,9 +173,16 @@ const DashboardPage = () => {
           {/* Right — search · bell · theme · user */}
           <div className="flex items-center gap-2">
             {/* Search */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-[#1e1e1e] text-gray-400 w-44">
-              <Search size={13} className="flex-shrink-0" />
-              <span className="text-xs truncate">Search…</span>
+            <div className="relative flex items-center">
+              <Search size={13} className="absolute left-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search…"
+                className="h-9 w-52 rounded-xl pl-8 pr-10 text-xs bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/40 transition-colors"
+              />
+              <kbd className="absolute right-2.5 flex items-center gap-0.5 text-[10px] font-medium text-gray-400 dark:text-gray-600 pointer-events-none">
+                <span className="text-[9px]">⌘</span>K
+              </kbd>
             </div>
 
             {/* Bell */}
