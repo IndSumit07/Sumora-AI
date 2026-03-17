@@ -14,12 +14,15 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
     try {
-      const { data } = await api.get("/me");
+      const { data } = await api.get("/me", { signal: controller.signal });
       setUser(data.user);
     } catch {
       setUser(null);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   };

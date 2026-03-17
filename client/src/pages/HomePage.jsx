@@ -12,7 +12,7 @@ import CommunitySection from "../components/home/CommunitySection";
 import Footer from "../components/home/Footer";
 
 const HomePage = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [showAccount, setShowAccount] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
@@ -27,14 +27,6 @@ const HomePage = () => {
     }
     localStorage.setItem("theme", theme);
   }, [theme]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[#0e0a09]">
-        <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#ea580c] border-t-transparent" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen font-sans text-gray-900 dark:text-white relative flex flex-col bg-white dark:bg-[#0e0a09] selection:bg-[#ea580c] selection:text-gray-900 dark:selection:text-white overflow-x-hidden">
