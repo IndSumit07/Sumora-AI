@@ -9,6 +9,7 @@ import VerifyOtpPage from "./pages/VerifyOtpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
+import DashboardHome from "./components/dashboard/DashboardHome";
 import InterviewView from "./components/dashboard/interview/InterviewView";
 import AnalyzeView from "./components/dashboard/analyze/AnalyzeView";
 import PrepareView from "./components/dashboard/prepare/PrepareView";
@@ -69,7 +70,7 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard/interview" replace />} />
+          <Route index element={<DashboardHome />} />
           <Route path="interview" element={<InterviewView />} />
           <Route path="analyze" element={<AnalyzeView />} />
           <Route path="prepare" element={<PrepareView />} />

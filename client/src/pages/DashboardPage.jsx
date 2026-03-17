@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Mic, BarChart2, BookOpen, Sun, Moon, Menu } from "lucide-react";
+import { Mic, BarChart2, BookOpen, Sun, Moon, Menu, Home } from "lucide-react";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
 const NAV = [
+  { to: "/dashboard", icon: Home, label: "Home", exact: true },
   { to: "/dashboard/interview", icon: Mic, label: "Interview" },
   { to: "/dashboard/analyze", icon: BarChart2, label: "Analyze" },
   { to: "/dashboard/prepare", icon: BookOpen, label: "Prepare" },
@@ -83,8 +84,10 @@ const DashboardPage = () => {
         </Link>
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-2">
-          {NAV.map(({ to, icon: Icon, label }) => {
-            const active = location.pathname.startsWith(to);
+          {NAV.map(({ to, icon: Icon, label, exact }) => {
+            const active = exact
+              ? location.pathname === to
+              : location.pathname.startsWith(to);
             return (
               <Link
                 key={to}
