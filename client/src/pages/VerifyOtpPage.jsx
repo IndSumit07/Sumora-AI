@@ -104,7 +104,11 @@ const VerifyOtpPage = () => {
         {/* Right Panel */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12 relative z-10">
           <div className="mb-6">
-            <img src="/light_logo.png" alt="Sumora" className="h-10 w-auto mb-6" />
+            <img
+              src="/light_logo.png"
+              alt="Sumora"
+              className="h-10 w-auto mb-6"
+            />
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-2 tracking-tight">
               Check your email
             </h1>

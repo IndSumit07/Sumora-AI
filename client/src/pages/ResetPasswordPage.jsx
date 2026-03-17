@@ -57,7 +57,8 @@ const ResetPasswordPage = () => {
     e.preventDefault();
     const code = otp.join("");
     if (code.length !== 6) return toast.error("Enter the 6-digit code");
-    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
+    if (newPassword.length < 6)
+      return toast.error("Password must be at least 6 characters");
     setLoading(true);
     try {
       await resetPassword(email, code, newPassword);
@@ -96,14 +97,18 @@ const ResetPasswordPage = () => {
         {/* Right Panel */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12 relative z-10">
           <div className="mb-6">
-            <img src="/light_logo.png" alt="Sumora" className="h-10 w-auto mb-6" />
+            <img
+              src="/light_logo.png"
+              alt="Sumora"
+              className="h-10 w-auto mb-6"
+            />
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-2 tracking-tight">
               Reset password
             </h1>
             <p className="text-gray-400 text-sm">
               Enter the code sent to{" "}
-              <span className="font-medium text-gray-700">{email}</span>{" "}
-              and choose a new password.
+              <span className="font-medium text-gray-700">{email}</span> and
+              choose a new password.
             </p>
           </div>
 
@@ -153,7 +158,9 @@ const ResetPasswordPage = () => {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <p className="text-xs text-gray-400">Must be at least 6 characters</p>
+              <p className="text-xs text-gray-400">
+                Must be at least 6 characters
+              </p>
             </div>
 
             <button
@@ -178,7 +185,9 @@ const ResetPasswordPage = () => {
                   await forgotPassword(email);
                   setCooldown(30);
                 } catch (err) {
-                  toast.error(err.response?.data?.message || "Failed to resend");
+                  toast.error(
+                    err.response?.data?.message || "Failed to resend",
+                  );
                 } finally {
                   setResending(false);
                 }
