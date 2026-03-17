@@ -70,7 +70,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const resetPassword = async (email, otp, newPassword) => {
-    const { data } = await api.post("/reset-password", { email, otp, newPassword });
+    const { data } = await api.post("/reset-password", {
+      email,
+      otp,
+      newPassword,
+    });
     toast.success("Password reset successfully");
     return data;
   };

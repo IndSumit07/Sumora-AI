@@ -68,7 +68,9 @@ const HomePage = () => {
           {/* Logo */}
           <div className="flex-1 flex items-center gap-2.5 z-10 shrink-0">
             <img src="/logo.png" alt="Sumora" className="h-12 w-auto" />
-            <span className="text-[19px] font-bold tracking-tight text-gray-900 dark:text-white">Sumora AI</span>
+            <span className="text-[19px] font-bold tracking-tight text-gray-900 dark:text-white">
+              Sumora AI
+            </span>
           </div>
 
           {/* Center Links (Capsule with single snake animation) */}
