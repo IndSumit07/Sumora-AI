@@ -26,46 +26,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
-
-// ── Speech recognition factory ────────────────────────────────────────────────
-
-function createRecognition(onResult, onEnd, onError) {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return null;
-
-  const rec = new SpeechRecognition();
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.lang = "en-US";
-
-  let finalTranscript = "";
-
-  rec.onresult = (e) => {
-    let interim = "";
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finalTranscript += t + " ";
-      else interim = t;
-    }
-    onResult((finalTranscript + interim).trimStart());
-  };
-
-  rec.onend = () => {
-    onEnd(finalTranscript.trim());
-    finalTranscript = "";
-  };
-
-  rec.onerror = (e) => {
-    if (e.error === "not-allowed" || e.error === "permission-denied") {
-      onError?.(e.error);
-    } else if (e.error !== "no-speech" && e.error !== "aborted") {
-      toast.error("Microphone error: " + e.error);
-    }
-  };
-
-  return rec;
-}
+import { useDeepgramTTS } from "../../../hooks/useDeepgramTTS";
 
 // ── Animated voice waveform ────────────────────────────────────────────────────
 
@@ -127,143 +88,132 @@ export default function InterviewChat({
   onAnswer,
   onEnd,
 }) {
-  const { answerInterview, endInterview, tts } = useInterview();
+  const { answerInterview, endInterview } = useInterview();
+  const { speak, stop, isSpeaking, isSynthesizing } = useDeepgramTTS();
 
   const [answer, setAnswer] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [endLoading, setEndLoading] = useState(false);
-  const [hasSpeechRec] = useState(
-    () => !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+  const [hasMicSupport] = useState(
+    () => !!navigator.mediaDevices?.getUserMedia,
   );
-  const recRef = useRef(null);
-  const audioRef = useRef(null);
+
+  const wsRef = useRef(null);        // Deepgram WebSocket
+  const streamRef = useRef(null);   // MediaStream
+  const recorderRef = useRef(null); // MediaRecorder
   const textareaRef = useRef(null);
-  const shouldRecordRef = useRef(false);
-  const baseAnswerRef = useRef("");
-
-  const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    setIsVoiceLoading(false);
-    setIsSpeaking(false);
-  }, []);
-
-  const speakWithSarvam = useCallback(
-    async (text) => {
-      stopAudio();
-      setIsVoiceLoading(true);
-      try {
-        const base64 = await tts(text, "simran");
-        const audio = new Audio(`data:audio/wav;base64,${base64}`);
-        audioRef.current = audio;
-        setIsVoiceLoading(false);
-        setIsSpeaking(true);
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
-        await audio.play();
-      } catch {
-        setIsVoiceLoading(false);
-        setIsSpeaking(false);
-      }
-    },
-    [tts, stopAudio],
-  );
+  const baseAnswerRef = useRef(""); // finalized transcript so far
 
   // Auto-play the question when it changes
   useEffect(() => {
-    speakWithSarvam(currentQuestion);
+    speak(currentQuestion);
     setAnswer("");
     textareaRef.current?.focus();
-    return () => stopAudio();
+    return () => stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      recRef.current?.stop();
-      stopAudio();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // ── STT stop ──────────────────────────────────────────────────────────────
+
+  const stopRec = useCallback(() => {
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+    if (wsRef.current) {
+      if (wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "CloseStream" }));
+      }
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setIsRecording(false);
   }, []);
 
-  const startRec = useCallback(() => {
-    if (recRef.current) return;
+  // ── STT start ─────────────────────────────────────────────────────────────
 
-    // Capture whatever is currently in the textbox
-    // We get the latest answer by relying on state setter callback if needed, but here we can just use a ref:
-    // Wait, let's keep a ref for the latest answer.
-    // Or we rely on `baseAnswerRef.current` which we ensure is up to date when startRec is called.
-    const currentBase = document.getElementById("answer-textarea")?.value || "";
-    baseAnswerRef.current = currentBase;
+  const startRec = useCallback(async () => {
+    if (wsRef.current || streamRef.current) return; // already running
 
-    const rec = createRecognition(
-      (transcript) => {
-        setAnswer((baseAnswerRef.current + " " + transcript).trim());
-      },
-      (finalText) => {
-        const finalAnswer = (baseAnswerRef.current + " " + finalText).trim();
-        setAnswer(finalAnswer);
-        recRef.current = null;
+    // Snapshot current textarea text as the base for this recording session
+    baseAnswerRef.current =
+      document.getElementById("answer-textarea")?.value || "";
 
-        if (shouldRecordRef.current) {
-          // Restart automatically to keep it always on
-          setTimeout(() => {
-            if (shouldRecordRef.current) {
-              startRec();
-            }
-          }, 100);
-        } else {
-          setIsRecording(false);
-        }
-      },
-      () => {
-        // Permission denied — stop all recording attempts immediately
-        shouldRecordRef.current = false;
-        recRef.current = null;
-        setIsRecording(false);
-        toast.error(
-          "Microphone access blocked. Enable it in browser settings.",
-          {
-            id: "mic-blocked",
-          },
-        );
-      },
-    );
-
-    if (!rec) {
-      toast.error("Speech recognition is not supported in this browser.");
-      return;
-    }
-
+    let stream;
     try {
-      rec.start();
-      recRef.current = rec;
-      setIsRecording(true);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       toast.error("Microphone access blocked. Enable it in browser settings.", {
         id: "mic-blocked",
       });
-      setIsRecording(false);
-      shouldRecordRef.current = false;
+      return;
     }
-  }, []); // no dependencies needed if we grab current value via document or ref
+    streamRef.current = stream;
+
+    const apiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
+    const ws = new WebSocket(
+      "wss://api.deepgram.com/v1/listen?model=nova-2&interim_results=true&smart_format=true&punctuate=true&language=en-US",
+      ["token", apiKey],
+    );
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+          ws.send(e.data);
+        }
+      };
+      recorder.start(250);
+      setIsRecording(true);
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        const text = data.channel?.alternatives?.[0]?.transcript ?? "";
+        if (!text) return;
+        if (data.is_final) {
+          baseAnswerRef.current = (baseAnswerRef.current + " " + text).trim();
+          setAnswer(baseAnswerRef.current);
+        } else {
+          setAnswer((baseAnswerRef.current + " " + text).trim());
+        }
+      } catch {
+        // ignore non-JSON keepalive frames
+      }
+    };
+
+    ws.onerror = () => {
+      stopRec();
+      toast.error("Voice recognition error. Please try again.");
+    };
+
+    ws.onclose = () => {
+      wsRef.current = null;
+    };
+  }, [stopRec]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopRec();
+      stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleRecording = useCallback(() => {
     if (isRecording) {
-      shouldRecordRef.current = false;
-      recRef.current?.stop();
-      setIsRecording(false);
+      stopRec();
     } else {
-      shouldRecordRef.current = true;
       startRec();
     }
-  }, [isRecording, startRec]);
+  }, [isRecording, startRec, stopRec]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleSubmitAnswer = async () => {
     if (!answer.trim()) {
@@ -271,45 +221,28 @@ export default function InterviewChat({
       return;
     }
 
-    // Stop recording momentarily so it doesn't capture background noise while loading
-    const wasRecording = shouldRecordRef.current;
-    if (wasRecording) {
-      shouldRecordRef.current = false; // suspend auto-restart temporarily
-      recRef.current?.stop();
-    }
+    const wasRecording = isRecording;
+    if (wasRecording) stopRec();
 
     setSubmitLoading(true);
     try {
       const data = await answerInterview(interviewId, answer.trim());
       onAnswer(data.question, answer.trim());
-
-      // Resume recording for the new question
-      if (wasRecording) {
-        shouldRecordRef.current = true;
-        setTimeout(() => startRec(), 100);
-      }
+      if (wasRecording) setTimeout(() => startRec(), 200);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit answer.");
-      if (wasRecording) {
-        shouldRecordRef.current = true;
-        startRec();
-      }
+      if (wasRecording) startRec();
     } finally {
       setSubmitLoading(false);
     }
   };
 
   const handleEndInterview = async () => {
-    shouldRecordRef.current = false;
-    if (isRecording) {
-      recRef.current?.stop();
-      setIsRecording(false);
-    }
-    stopAudio();
+    stopRec();
+    stop();
 
     setEndLoading(true);
     try {
-      // Auto-submit current answer if one exists before ending
       if (answer.trim()) {
         await answerInterview(interviewId, answer.trim());
       }
@@ -322,32 +255,32 @@ export default function InterviewChat({
     }
   };
 
-  const handleReplayQuestion = () => speakWithSarvam(currentQuestion);
+  const handleReplayQuestion = () => speak(currentQuestion);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-2xl space-y-5">
       {/* ── Current question card ── */}
       <div className="bg-[#0a0a0a] rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
-        {(isSpeaking || isVoiceLoading) && (
+        {(isSpeaking || isSynthesizing) && (
           <div className="absolute top-0 left-0 w-full h-full bg-[#ea580c]/[0.03] rounded-2xl pointer-events-none" />
         )}
 
         <div className="relative z-10">
-          {/* Question number — always visible */}
           <div className="flex items-center justify-between flex-wrap gap-y-2 mb-4">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c]">
               Question {questionIndex}
             </span>
 
             <div className="flex items-center gap-2">
-              {/* Replay / stop button */}
-              {!isVoiceLoading && (
+              {!isSynthesizing && (
                 <>
                   {isSpeaking ? (
                     <button
                       type="button"
-                      onClick={stopAudio}
+                      onClick={stop}
                       title="Stop speaking"
                       className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-white transition-colors"
                     >
@@ -370,8 +303,7 @@ export default function InterviewChat({
             </div>
           </div>
 
-          {isVoiceLoading ? (
-            /* Full card skeleton */
+          {isSynthesizing ? (
             <div className="animate-pulse space-y-3">
               <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1 mb-1">
                 <Loader2 size={10} className="animate-spin text-gray-500" />
@@ -407,7 +339,7 @@ export default function InterviewChat({
           <p className="text-sm font-semibold text-gray-900 dark:text-white">
             Your Answer
           </p>
-          {hasSpeechRec && (
+          {hasMicSupport && (
             <button
               type="button"
               onClick={toggleRecording}

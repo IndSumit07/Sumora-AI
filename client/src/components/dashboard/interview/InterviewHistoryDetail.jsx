@@ -11,7 +11,7 @@
  *   interview — full LiveInterview document (with parsed feedback object)
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -24,8 +24,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Volume2,
-  VolumeX,
   Lightbulb,
   ListChecks,
   MessageCircle,
@@ -33,29 +31,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useInterview } from "../../../context/InterviewContext";
-
-// ── Animated waveform ─────────────────────────────────────────────────────────
-
-const VoiceWaveform = ({ active }) => (
-  <div className="flex items-end gap-[3px] h-3.5">
-    {[0, 1, 2, 3, 4].map((i) => (
-      <span
-        key={i}
-        className="w-[3px] rounded-full bg-[#ea580c] transition-all"
-        style={
-          active
-            ? {
-                animation: `wave 0.9s ease-in-out infinite`,
-                animationDelay: `${i * 0.1}s`,
-                height: "100%",
-              }
-            : { height: "25%" }
-        }
-      />
-    ))}
-    <style>{`@keyframes wave{0%,100%{transform:scaleY(0.25)}50%{transform:scaleY(1)}}`}</style>
-  </div>
-);
 
 // ── Score ring ────────────────────────────────────────────────────────────────
 
@@ -232,50 +207,21 @@ const FeedbackSection = ({
 // ── Walkthrough view ──────────────────────────────────────────────────────────
 
 function WalkthroughView({ interview, onClose }) {
-  const { analyzeQuestion, tts } = useInterview();
+  const { analyzeQuestion } = useInterview();
   const conversation = interview.conversation || [];
   const total = conversation.length;
 
   const [walkIdx, setWalkIdx] = useState(0);
   const [teaching, setTeaching] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
   const cacheRef = useRef({});
-  const audioRef = useRef(null);
 
   const turn = conversation[walkIdx];
-
-  const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    setIsSpeaking(false);
-  }, []);
-
-  const speakWithSarvam = useCallback(
-    async (text) => {
-      stopAudio();
-      setIsSpeaking(true);
-      try {
-        const base64 = await tts(text);
-        const audio = new Audio(`data:audio/wav;base64,${base64}`);
-        audioRef.current = audio;
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
-        await audio.play();
-      } catch {
-        setIsSpeaking(false);
-      }
-    },
-    [tts, stopAudio],
-  );
 
   // Fetch teaching for the current question (cached per index)
   useEffect(() => {
     if (!turn) return;
-    stopAudio();
     setAnswerOpen(false);
 
     if (cacheRef.current[walkIdx]) {
@@ -295,27 +241,6 @@ function WalkthroughView({ interview, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walkIdx]);
 
-  // Auto-play the sample answer when teaching loads
-  useEffect(() => {
-    if (teaching?.sampleAnswer) speakWithSarvam(teaching.sampleAnswer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teaching]);
-
-  // Stop audio on unmount
-  useEffect(() => {
-    return () => stopAudio();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handlePlaySample = () => {
-    if (teaching?.sampleAnswer) speakWithSarvam(teaching.sampleAnswer);
-  };
-
-  const handleClose = () => {
-    stopAudio();
-    onClose();
-  };
-
   return (
     <div className="max-w-3xl space-y-4">
       {/* ── Walkthrough header ── */}
@@ -334,7 +259,7 @@ function WalkthroughView({ interview, onClose }) {
           </div>
         </div>
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-[#222] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] px-3 py-1.5 rounded-lg transition-colors"
         >
           <X size={13} /> Exit
@@ -406,14 +331,6 @@ function WalkthroughView({ interview, onClose }) {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
             How to Answer This
           </h3>
-          {isSpeaking && (
-            <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-[10px] text-[#ea580c] font-medium">
-                Speaking
-              </span>
-              <VoiceWaveform active />
-            </div>
-          )}
         </div>
 
         {loading ? (
@@ -472,33 +389,11 @@ function WalkthroughView({ interview, onClose }) {
                   <MessageCircle size={14} className="text-green-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-green-500">
-                      Sample Strong Answer
-                    </p>
-                    {isSpeaking ? (
-                      <button
-                        onClick={stopAudio}
-                        className="flex items-center gap-1.5 text-[11px] text-[#ea580c] hover:text-red-500 transition-colors"
-                      >
-                        <VolumeX size={12} /> Stop
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handlePlaySample}
-                        className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-[#ea580c] transition-colors"
-                      >
-                        <Volume2 size={12} /> Listen
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative bg-green-50 dark:bg-green-500/5 border border-green-100 dark:border-green-500/15 rounded-xl p-4">
-                    {isSpeaking && (
-                      <div className="absolute top-3 right-3">
-                        <VoiceWaveform active />
-                      </div>
-                    )}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic pr-8">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-green-500 mb-2">
+                    Sample Strong Answer
+                  </p>
+                  <div className="bg-green-50 dark:bg-green-500/5 border border-green-100 dark:border-green-500/15 rounded-xl p-4">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">
                       "{teaching.sampleAnswer}"
                     </p>
                   </div>

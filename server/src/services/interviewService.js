@@ -29,6 +29,19 @@ const messageHistories = new Map();
 // Map<interviewId, RunnableWithMessageHistory>
 const activeChains = new Map();
 
+// ── JSON helper ───────────────────────────────────────────────────────────────
+// LLMs occasionally emit invalid escape sequences (e.g. \# \C \' inside JSON
+// strings). Strip any backslash not followed by a recognised JSON escape char,
+// then retry parsing so a single stray character doesn't abort feedback.
+function safeJsonParse(str) {
+  try {
+    return JSON.parse(str);
+  } catch {
+    const cleaned = str.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
+    return JSON.parse(cleaned);
+  }
+}
+
 // ── Interview system prompt template ──────────────────────────────────────────
 const SYSTEM_TEMPLATE = `You are a professional technical interviewer conducting a real job interview.
 Interview the candidate based on their resume and the job description below.
@@ -375,11 +388,14 @@ Reply with ONLY valid JSON — no markdown fences, no extra text.
       : JSON.stringify(response);
 
   // Strip markdown code fences then extract first JSON object
-  const cleaned = raw.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+  const cleaned = raw
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("Model returned non-JSON analysis.");
 
-  const parsed = JSON.parse(match[0]);
+  const parsed = safeJsonParse(match[0]);
   return {
     why: parsed.why || "",
     structure: Array.isArray(parsed.structure) ? parsed.structure : [],
@@ -439,7 +455,7 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("Model returned non-JSON feedback.");
 
-  const parsed = JSON.parse(match[0]);
+  const parsed = safeJsonParse(match[0]);
 
   return {
     technicalScore: Math.min(
