@@ -148,7 +148,12 @@ const overallConfig = (s) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function InterviewFeedback({ feedback, score, onRetry, onAnalyze }) {
+export default function InterviewFeedback({
+  feedback,
+  score,
+  onRetry,
+  onAnalyze,
+}) {
   const { label, color, badgeClass } = overallConfig(score ?? 0);
 
   const techScore = feedback?.technicalScore ?? 0;
