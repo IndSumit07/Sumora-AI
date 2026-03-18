@@ -807,6 +807,22 @@ export default function PrepareView() {
 
   const handleRetry = () => handleNew();
 
+  const handleAnalyze = async () => {
+    if (!interviewId) return;
+    // Switch to detail view and load the completed session
+    setSelectedId(interviewId);
+    setView("detail");
+    setDetailLoading(true);
+    try {
+      const iv = await getLiveInterviewById(interviewId);
+      setSelectedSession(iv);
+    } catch {
+      toast.error("Failed to load session.");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* ── Left history panel ── */}
@@ -908,6 +924,7 @@ export default function PrepareView() {
             feedback={feedback}
             score={score}
             onRetry={handleRetry}
+            onAnalyze={handleAnalyze}
           />
         )}
       </div>

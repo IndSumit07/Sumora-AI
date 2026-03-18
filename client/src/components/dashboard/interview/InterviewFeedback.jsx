@@ -11,8 +11,9 @@
  *     weaknesses:         string[]
  *     improvements:       string[]
  *   }
- *   score      — overall score (0-100, computed server-side)
- *   onRetry()  — called when the user wants to start a new interview
+ *   score        — overall score (0-100, computed server-side)
+ *   onRetry()    — called when the user wants to start a new interview
+ *   onAnalyze()  — called when the user wants to analyze the interview (optional)
  */
 
 import {
@@ -20,6 +21,7 @@ import {
   AlertTriangle,
   TrendingUp,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 
 // ── Score ring ────────────────────────────────────────────────────────────────
@@ -146,7 +148,7 @@ const overallConfig = (s) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function InterviewFeedback({ feedback, score, onRetry }) {
+export default function InterviewFeedback({ feedback, score, onRetry, onAnalyze }) {
   const { label, color, badgeClass } = overallConfig(score ?? 0);
 
   const techScore = feedback?.technicalScore ?? 0;
@@ -232,15 +234,27 @@ export default function InterviewFeedback({ feedback, score, onRetry }) {
         emptyText="No specific improvement suggestions."
       />
 
-      {/* ── Retry ── */}
-      <button
-        type="button"
-        onClick={onRetry}
-        className="w-full h-12 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:bg-gray-50 dark:hover:bg-[#1e1e1e] flex items-center justify-center gap-2"
-      >
-        <RotateCcw size={14} />
-        Start Another Interview
-      </button>
+      {/* ── Action buttons ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {onAnalyze && (
+          <button
+            type="button"
+            onClick={onAnalyze}
+            className="h-12 flex-1 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 flex items-center justify-center gap-2"
+          >
+            <Sparkles size={14} />
+            Analyze Interview
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onRetry}
+          className="h-12 flex-1 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:bg-gray-50 dark:hover:bg-[#1e1e1e] flex items-center justify-center gap-2"
+        >
+          <RotateCcw size={14} />
+          Start Another Interview
+        </button>
+      </div>
     </div>
   );
 }

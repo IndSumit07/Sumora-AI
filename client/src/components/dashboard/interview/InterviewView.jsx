@@ -572,6 +572,22 @@ export default function InterviewView() {
 
   const handleRetry = () => handleNew();
 
+  const handleAnalyze = async () => {
+    if (!interviewId) return;
+    // Switch to detail view and load the completed interview
+    setSelectedId(interviewId);
+    setView("detail");
+    setDetailLoading(true);
+    try {
+      const iv = await getLiveInterviewById(interviewId);
+      setSelectedInterview(iv);
+    } catch {
+      toast.error("Failed to load interview.");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* ── Left history panel ── */}
@@ -671,6 +687,7 @@ export default function InterviewView() {
             feedback={feedback}
             score={score}
             onRetry={handleRetry}
+            onAnalyze={handleAnalyze}
           />
         )}
       </div>
