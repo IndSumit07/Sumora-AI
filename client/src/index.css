@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base background — switches cleanly with dark/light toggle */
+/* Base background - switches cleanly with dark/light toggle */
 body {
   background-color: #f9fafb;
 }

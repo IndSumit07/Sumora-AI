@@ -23,6 +23,8 @@ import HowItWorksSection from "../components/home/HowItWorksSection";
 import CTASection from "../components/home/CTASection";
 import Footer from "../components/home/Footer";
 import { LiquidMetalButton } from "../components/ui/liquid-metal-button";
+import { InteractiveNebulaShader } from "../components/ui/liquid-shader";
+import DatabaseWithRestApi from "../components/ui/database-with-rest-api";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -192,11 +194,20 @@ const HomePage = () => {
       {/* Main Content Sections */}
       <main className="relative z-10 flex-1 flex flex-col w-full">
         {/* Hero Section */}
-        <section className="relative pt-[120px] pb-12 flex flex-col items-center text-center px-4 w-full max-w-[1400px] mx-auto">
-          <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-gray-500 dark:text-[#ab9b95] mb-6 uppercase">
+        <section className="relative pt-[120px] pb-12 flex flex-col items-center justify-center text-center px-4 w-full max-w-[1400px] mx-auto min-h-[70vh]">
+          {/* Centered Liquid background */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] max-w-[100vw] max-h-[100vh] -z-10 rounded-full overflow-hidden pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_70%)]">
+            <InteractiveNebulaShader
+              isDark={theme === "dark"}
+              disableCenterDimming={true}
+              className="w-full h-full opacity-100 mix-blend-plus-lighter"
+            />
+          </div>
+
+          <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-gray-500 dark:text-[#ab9b95] mb-6 uppercase relative z-10">
             AI-POWERED INTERVIEW PREPARATION
           </p>
-          <h1 className="text-[1.5rem] sm:text-[2.25rem] md:text-[2.75rem] lg:text-[3.5rem] font-sans font-bold tracking-[-0.04em] text-gray-900 dark:text-[#ebe4de] max-w-2xl leading-[1.15] mb-4">
+          <h1 className="text-[1.5rem] sm:text-[2.25rem] md:text-[2.75rem] lg:text-[3.5rem] font-sans font-bold tracking-[-0.04em] text-gray-900 dark:text-[#ebe4de] max-w-2xl leading-[1.15] mb-4 relative z-10">
             Ace Your
             <br />
             Next Interview
@@ -205,20 +216,20 @@ const HomePage = () => {
             <br />
             Coaching
           </h1>
-          <p className="text-gray-600 dark:text-[#a8a19b] max-w-[580px] mb-6 text-[17px] leading-[1.6]">
+          <p className="text-gray-600 dark:text-[#a8a19b] max-w-[580px] mb-6 text-[17px] leading-[1.6] relative z-10">
             Upload your resume or job description and get personalized
             behavioral &amp; technical questions, instant answer scoring, and a
             full preparation plan built by AI.
           </p>
           {user ? (
-            <div className="mb-10 flex w-full justify-center">
+            <div className="mb-10 flex w-full justify-center relative z-10">
               <LiquidMetalButton
                 label="Go to Dashboard"
                 onClick={() => navigate("/dashboard")}
               />
             </div>
           ) : (
-            <div className="mb-10 flex w-full justify-center">
+            <div className="mb-10 flex w-full justify-center relative z-10">
               <LiquidMetalButton
                 label="Get Started"
                 onClick={() => navigate("/login")}
@@ -230,6 +241,21 @@ const HomePage = () => {
         <DashboardMockup />
         <IntegrationsSection />
         <FeatureSection />
+
+        <section className="relative py-24 px-6 md:px-12 w-full max-w-[1400px] mx-auto z-10 flex flex-col items-center">
+          <div className="text-center mb-16 max-w-2xl">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+              AI Models Pointing Forward
+            </h2>
+            <p className="text-gray-600 dark:text-[#a8a19b] text-lg leading-relaxed">
+              Sumora uniquely integrates the absolute best-in-class multi-modal
+              AI to guarantee your interviews are flawless and lightning-fast.
+            </p>
+          </div>
+          <div className="flex justify-center w-full">
+            <DatabaseWithRestApi />
+          </div>
+        </section>
 
         {/* Modes Section */}
         <section className="relative py-24 px-6 md:px-12 w-full max-w-[1400px] mx-auto z-10">
