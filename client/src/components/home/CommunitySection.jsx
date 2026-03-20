@@ -117,11 +117,6 @@ const CommunitySection = () => {
       <p className="text-gray-600 dark:text-[#a8a19b] text-lg mb-10 w-full block">
         See how candidates are landing their dream jobs with Sumora AI.
       </p>
-      <div className="flex justify-center mb-16">
-        <button className="flex items-center gap-2 bg-gray-100 dark:bg-[#1c1c1c] hover:bg-gray-200 dark:hover:bg-[#252528] border border-black/10 dark:border-white/10 text-gray-900 dark:text-white px-5 py-2 rounded-xl font-medium transition-colors text-[15px]">
-          <DiscordIcon /> Join us on Discord
-        </button>
-      </div>
 
       <div
         className="relative overflow-hidden"

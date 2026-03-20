@@ -17,10 +17,15 @@ export function useDeepgramVoiceAgent({
   const audioContextRef = useRef(null);
   const processorRef = useRef(null);
   const contextRef = useRef(null);
+  const keepAliveIntervalRef = useRef(null);
 
   const playbackContextRef = useRef(null);
   const nextPlayTimeRef = useRef(0);
   const activeSourcesRef = useRef(0);
+
+  // Queue to hold Agent responses while spacebar is held
+  const queuedBlobsRef = useRef([]);
+  const queuedTextRef = useRef([]);
 
   // Play audio chunks from Deepgram
   const playAudioChunk = useCallback(async (blob) => {
@@ -72,48 +77,53 @@ export function useDeepgramVoiceAgent({
   }, []);
 
   // Handle function calls from Deepgram Agent
-  const handleFunctionCall = useCallback(async (message) => {
-    const { function_call_id, function_name, input } = message;
+  const handleFunctionCall = useCallback(
+    async (message) => {
+      const { function_call_id, function_name, input } = message;
 
-    if (function_name === "get_ai_response") {
-      try {
-        // Call our backend to get AI response
-        const response = await fetch("/api/interview/voice-agent-response", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            userMessage: input.user_message,
-            context: contextRef.current || input.context || {},
-          }),
-        });
+      if (function_name === "get_ai_response") {
+        try {
+          // Call our backend to get AI response
+          const response = await fetch("/api/interview/voice-agent-response", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              userMessage: input.user_message,
+              context: contextRef.current || input.context || {},
+            }),
+          });
 
-        const data = await response.json();
-        const aiResponse = data.response || "I didn't understand that. Could you please repeat?";
+          const data = await response.json();
+          const aiResponse =
+            data.response ||
+            "I didn't understand that. Could you please repeat?";
 
-        // Display the agent's response on the UI since we generated it locally
-        onAgentMessage?.(aiResponse);
+          // Display the agent's response on the UI since we generated it locally
+          onAgentMessage?.(aiResponse);
 
-        // Send function result back to Deepgram
-        wsRef.current?.send(
-          JSON.stringify({
-            type: "FunctionCallResponse",
-            function_call_id,
-            output: aiResponse,
-          }),
-        );
-      } catch (err) {
-        console.error("[Function Call] Error:", err);
-        wsRef.current?.send(
-          JSON.stringify({
-            type: "FunctionCallResponse",
-            function_call_id,
-            output: "I'm having trouble connecting. Please try again.",
-          }),
-        );
+          // Send function result back to Deepgram
+          wsRef.current?.send(
+            JSON.stringify({
+              type: "FunctionCallResponse",
+              function_call_id,
+              output: aiResponse,
+            }),
+          );
+        } catch (err) {
+          console.error("[Function Call] Error:", err);
+          wsRef.current?.send(
+            JSON.stringify({
+              type: "FunctionCallResponse",
+              function_call_id,
+              output: "I'm having trouble connecting. Please try again.",
+            }),
+          );
+        }
       }
-    }
-  }, [onAgentMessage]);
+    },
+    [onAgentMessage],
+  );
 
   // Handle messages from Deepgram
   const handleDeepgramMessage = useCallback(
@@ -121,6 +131,9 @@ export function useDeepgramVoiceAgent({
       switch (message.type) {
         case "UserStartedSpeaking":
           setIsUserSpeaking(true);
+          // If the user interrupted the agent, wipe out any queued responses
+          queuedBlobsRef.current = [];
+          queuedTextRef.current = [];
           break;
 
         case "UserStoppedSpeaking":
@@ -128,11 +141,15 @@ export function useDeepgramVoiceAgent({
           break;
 
         case "AgentStartedSpeaking":
-          setIsAgentSpeaking(true);
+          if (!window.isSpacePressed) {
+             setIsAgentSpeaking(true);
+          }
           break;
 
         case "AgentStoppedSpeaking":
-          setIsAgentSpeaking(false);
+          if (!window.isSpacePressed) {
+             setIsAgentSpeaking(false);
+          }
           break;
 
         case "ConversationText":
@@ -142,7 +159,11 @@ export function useDeepgramVoiceAgent({
           }
           // Agent's text response
           else if (message.role === "agent" || message.role === "assistant") {
-            onAgentMessage?.(message.content);
+            if (window.isSpacePressed) {
+              queuedTextRef.current.push(message.content);
+            } else {
+              onAgentMessage?.(message.content);
+            }
           }
           break;
 
@@ -198,7 +219,13 @@ export function useDeepgramVoiceAgent({
 
         processor.onaudioprocess = (e) => {
           if (ws.readyState === WebSocket.OPEN) {
-            const inputData = e.inputBuffer.getChannelData(0);
+            let inputData = e.inputBuffer.getChannelData(0);
+
+            // Mute the microphone input to Deepgram unless spacebar is pressed
+            // We must send silent audio (zeros) instead of nothing to prevent Deepgram from timing out
+            if (!window.isSpacePressed) {
+               inputData = new Float32Array(inputData.length);
+            }
 
             // Local user voice activity detection for the visualizer
             let sumSquare = 0;
@@ -223,6 +250,13 @@ export function useDeepgramVoiceAgent({
               }
             }
 
+            // Mute the agent playback while spacebar is held down
+            if (window.isSpacePressed && playbackContextRef.current && playbackContextRef.current.state === "running") {
+               playbackContextRef.current.suspend();
+            } else if (!window.isSpacePressed && playbackContextRef.current && playbackContextRef.current.state === "suspended") {
+               playbackContextRef.current.resume();
+            }
+
             // Convert float32 to int16
             const pcm16 = new Int16Array(inputData.length);
             for (let i = 0; i < inputData.length; i++) {
@@ -243,7 +277,26 @@ export function useDeepgramVoiceAgent({
     [onError],
   );
 
+  const flushAgentQueues = useCallback(() => {
+    // Release all queued text
+    while (queuedTextRef.current.length > 0) {
+      const text = queuedTextRef.current.shift();
+      onAgentMessage?.(text);
+    }
+    // Release all queued audio
+    if (queuedBlobsRef.current.length > 0) {
+      setIsAgentSpeaking(true);
+    }
+    while (queuedBlobsRef.current.length > 0) {
+      const blob = queuedBlobsRef.current.shift();
+      playAudioChunk(blob);
+    }
+  }, [onAgentMessage, playAudioChunk]);
+
   const cleanup = useCallback(() => {
+    if (keepAliveIntervalRef.current) {
+      clearInterval(keepAliveIntervalRef.current);
+    }
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
@@ -385,16 +438,27 @@ export function useDeepgramVoiceAgent({
 
           setIsConnected(true);
           setIsLoading(false);
-          
+
+          // Start pinging KeepAlive every 5 seconds to prevent timeout
+          keepAliveIntervalRef.current = setInterval(() => {
+             if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "KeepAlive" }));
+             }
+          }, 5000);
+
           // Post the greeting message to the UI instantly so the user sees it
-          onAgentMessage?.(greetingMsg.replace(/\.\.\./g, ''));
-          
+          onAgentMessage?.(greetingMsg.replace(/\.\.\./g, ""));
+
           startAudioStreaming(stream, ws);
         };
 
         ws.onmessage = (event) => {
           if (event.data instanceof Blob) {
-            playAudioChunk(event.data);
+            if (window.isSpacePressed) {
+               queuedBlobsRef.current.push(event.data);
+            } else {
+               playAudioChunk(event.data);
+            }
             return;
           }
 
@@ -455,6 +519,7 @@ export function useDeepgramVoiceAgent({
     connect,
     disconnect,
     sendMessage,
+    flushAgentQueues,
     isConnected,
     isLoading,
     isAgentSpeaking,

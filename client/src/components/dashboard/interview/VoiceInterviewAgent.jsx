@@ -144,6 +144,7 @@ export default function VoiceInterviewAgent({
     connect,
     disconnect,
     sendMessage,
+    flushAgentQueues,
     isConnected,
     isLoading,
     isAgentSpeaking,
@@ -154,6 +155,19 @@ export default function VoiceInterviewAgent({
     onError: handleError,
   });
 
+  const [isHoldingToSpeak, setIsHoldingToSpeak] = useState(false);
+
+  const startHolding = useCallback(() => {
+    window.isSpacePressed = true;
+    setIsHoldingToSpeak(true);
+  }, []);
+
+  const stopHolding = useCallback(() => {
+    window.isSpacePressed = false;
+    setIsHoldingToSpeak(false);
+    flushAgentQueues();
+  }, [flushAgentQueues]);
+
   // Auto-connect on mount
   useEffect(() => {
     connect({
@@ -161,11 +175,33 @@ export default function VoiceInterviewAgent({
       context: { ...context, interviewId },
     });
 
+    const handleKeyDown = (e) => {
+      // Ignore space if typing in an input field (just in case)
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
+      if (e.code === "Space" && !e.repeat) {
+         e.preventDefault();
+         startHolding();
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
+      if (e.code === "Space") {
+         e.preventDefault();
+         stopHolding();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
     // Cleanup on unmount
     return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
       disconnect();
     };
-  }, [interviewId]);
+  }, [interviewId, connect, disconnect, context, systemPrompt, startHolding, stopHolding]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -363,13 +399,36 @@ export default function VoiceInterviewAgent({
         )}
       </div>
 
-      {/* Tips footer */}
-      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a]">
+      {/* Tips footer and Hold to speak button */}
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] flex flex-col sm:flex-row items-center justify-between gap-4">
+        
+        {/* Mobile / Desktop Hold to Speak Button */}
+        <button
+          onMouseDown={startHolding}
+          onMouseUp={stopHolding}
+          onMouseLeave={stopHolding}
+          onTouchStart={(e) => {
+            e.preventDefault(); // Prevent scrolling/zooming when holding
+            startHolding();
+          }}
+          onTouchEnd={stopHolding}
+          onTouchCancel={stopHolding}
+          className={`w-full sm:w-auto px-6 py-3 rounded-full font-semibold text-sm transition-all select-none flex-shrink-0 ${
+            isHoldingToSpeak 
+              ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50 scale-95" 
+              : "bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/30"
+          }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <Mic size={18} className={isHoldingToSpeak ? "animate-pulse" : ""} />
+            {isHoldingToSpeak ? "Listening..." : "Hold to Speak"}
+          </div>
+        </button>
+
         <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
           <Zap size={12} className="flex-shrink-0 mt-0.5 text-[#ea580c]" />
           <p>
-            <strong>Pro tip:</strong> You can interrupt the AI naturally, just
-            like a real conversation. Speak clearly and take your time.
+            <strong>Pro tip:</strong> Hold the <strong>Spacebar</strong> or the button to speak without interruption. The AI will listen and wait for you to release it!
           </p>
         </div>
       </div>

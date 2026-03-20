@@ -645,7 +645,9 @@ export async function voiceAgentResponseController(req, res) {
     const { interviewId, mode } = context;
 
     if (!interviewId)
-      return res.status(400).json({ message: "interviewId is required in context." });
+      return res
+        .status(400)
+        .json({ message: "interviewId is required in context." });
     if (!mongoose.Types.ObjectId.isValid(interviewId))
       return res.status(400).json({ message: "Invalid interviewId." });
 
@@ -658,7 +660,9 @@ export async function voiceAgentResponseController(req, res) {
       return res.status(404).json({ message: "Interview not found." });
 
     if (interview.status === "completed")
-      return res.status(400).json({ message: "This interview has already ended." });
+      return res
+        .status(400)
+        .json({ message: "This interview has already ended." });
 
     // Recover chain from DB if needed
     try {

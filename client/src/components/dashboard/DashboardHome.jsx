@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { LiquidMetalButton } from "../ui/liquid-metal-button";
 import { useAuth } from "../../context/AuthContext";
 import {
   Mic,
@@ -322,6 +323,15 @@ const DashboardHome = () => {
                   >
                     <Linkedin size={15} />
                   </a>
+
+                  <div className="ml-auto">
+                    <LiquidMetalButton
+                      label="Follow Me"
+                      onClick={() =>
+                        window.open("https://github.com/IndSumit07", "_blank")
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
