@@ -23,6 +23,7 @@ import {
   deleteLiveInterviewController,
   analyzeQuestionController,
   fetchJobController,
+  voiceAgentResponseController,
 } from "../controllers/liveInterview.controller.js";
 
 const interviewRouter = express.Router();
@@ -134,6 +135,13 @@ interviewRouter.post(
   aiLimiter,
   authMiddleware,
   analyzeQuestionController,
+);
+// POST /api/interview/voice-agent-response — Deepgram Voice Agent function call handler
+interviewRouter.post(
+  "/voice-agent-response",
+  apiLimiter,
+  authMiddleware,
+  voiceAgentResponseController,
 );
 
 export default interviewRouter;

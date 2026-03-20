@@ -1,0 +1,1 @@
+["{\"type\":\"Welcome\",\"request_id\":\"c297908e-18e0-48bf-8c93-29e031bde6c1\"}","{\"type\":\"SettingsApplied\"}","{\"type\":\"Error\",\"description\":\"We did not receive audio within our timeout. Please make sure you are sending binary messages containing user speech.\",\"code\":\"CLIENT_MESSAGE_TIMEOUT\"}"]

@@ -625,3 +625,83 @@ export async function analyzeQuestionController(req, res) {
       .json({ message: error?.message || "Internal server error" });
   }
 }
+
+// ── 10. Voice Agent Response (for Deepgram Voice Agent) ───────────────────────
+
+/**
+ * POST /api/interview/voice-agent-response
+ * Body: { userMessage: string, context: { interviewId, role, jobDescription, subject, topic, ... } }
+ *
+ * Called by Deepgram Voice Agent via function calling.
+ * Returns the next AI response for the live voice conversation.
+ */
+export async function voiceAgentResponseController(req, res) {
+  try {
+    const { userMessage, context = {} } = req.body;
+
+    if (!userMessage?.trim())
+      return res.status(400).json({ message: "userMessage is required." });
+
+    const { interviewId, mode } = context;
+
+    if (!interviewId)
+      return res.status(400).json({ message: "interviewId is required in context." });
+    if (!mongoose.Types.ObjectId.isValid(interviewId))
+      return res.status(400).json({ message: "Invalid interviewId." });
+
+    // Find the interview
+    const interview = await LiveInterview.findOne({
+      _id: interviewId,
+      user: req.user.id,
+    });
+    if (!interview)
+      return res.status(404).json({ message: "Interview not found." });
+
+    if (interview.status === "completed")
+      return res.status(400).json({ message: "This interview has already ended." });
+
+    // Recover chain from DB if needed
+    try {
+      await recoverChain(interview);
+    } catch (_) {
+      // Already in memory
+    }
+
+    // Handle initial greeting
+    if (userMessage === "[START]") {
+      // Get the first question without saving an answer
+      const firstQuestion = await sendAnswer(
+        interview._id.toString(),
+        "Hello, I'm ready to begin.",
+      );
+      return res.status(200).json({ response: firstQuestion });
+    }
+
+    // Save the user's message to conversation
+    if (interview.conversation.length === 0) {
+      // First turn - no previous question yet
+      interview.conversation.push({ question: "", answer: userMessage.trim() });
+    } else {
+      // Update the last turn's answer
+      const lastIdx = interview.conversation.length - 1;
+      interview.conversation[lastIdx].answer = userMessage.trim();
+    }
+
+    // Get AI response
+    const nextQuestion = await sendAnswer(
+      interview._id.toString(),
+      userMessage.trim(),
+    );
+
+    // Add new question turn
+    interview.conversation.push({ question: nextQuestion, answer: "" });
+    await interview.save();
+
+    return res.status(200).json({ response: nextQuestion });
+  } catch (error) {
+    console.error("Voice agent response error:", error);
+    return res
+      .status(500)
+      .json({ message: error?.message || "Internal server error" });
+  }
+}

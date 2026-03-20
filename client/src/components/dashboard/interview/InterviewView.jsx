@@ -12,12 +12,15 @@ import {
   Trash2,
   Link,
   CheckCircle2,
+  Radio,
+  MessageSquare,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 import InterviewChat from "./InterviewChat";
 import InterviewFeedback from "./InterviewFeedback";
 import InterviewHistoryDetail from "./InterviewHistoryDetail";
+import VoiceInterviewAgent from "./VoiceInterviewAgent";
 
 // ── Score / status badge ──────────────────────────────────────────────────────
 
@@ -117,6 +120,7 @@ const SetupForm = ({ onStarted }) => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
+  const [interviewMode, setInterviewMode] = useState("interactive"); // "voice" | "text"
   const fileRef = useRef(null);
 
   const handleFetchJob = async () => {
@@ -196,7 +200,10 @@ const SetupForm = ({ onStarted }) => {
         interviewId,
         firstQuestion: question,
         role: role.trim(),
+        jobDescription: jobDescription.trim(),
+        resumeText,
         difficulty,
+        mode: interviewMode, // Add mode to track if voice or text
       });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start interview.");
@@ -355,6 +362,41 @@ const SetupForm = ({ onStarted }) => {
           />
         </div>
 
+        {/* Interview Mode */}
+        <div>
+          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+            Interview Mode
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setInterviewMode("interactive")}
+              className={[
+                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
+                interviewMode === "interactive"
+                  ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              <Radio size={14} />
+              <span>Interactive</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterviewMode("analytic")}
+              className={[
+                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
+                interviewMode === "analytic"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              <MessageSquare size={14} />
+              <span>Analytic</span>
+            </button>
+          </div>
+        </div>
+
         {/* Difficulty */}
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
@@ -473,6 +515,8 @@ export default function InterviewView() {
   const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
+  const [interviewMode, setInterviewMode] = useState("analytic"); // "voice" | "text"
+  const [voiceContext, setVoiceContext] = useState(null); // For voice agent system prompt & context
 
   useEffect(() => {
     getAllLiveInterviews("job")
@@ -512,12 +556,50 @@ export default function InterviewView() {
     interviewId: id,
     firstQuestion,
     role,
+    jobDescription,
+    resumeText,
     difficulty,
+    mode,
   }) => {
     setInterviewId(id);
-    setCurrentQuestion(firstQuestion);
-    setQuestionIndex(1);
-    setHistory([]);
+    setInterviewMode(mode || "analytic");
+
+    if (mode === "interactive") {
+      // Setup voice agent context
+      const systemPrompt = `You are an expert interviewer conducting a job interview for the role of ${role}.
+
+Job Description:
+${jobDescription}
+
+${resumeText ? `Candidate's Resume:\n${resumeText}\n\n` : ""}
+
+Your job is to:
+1. Ask insightful questions about the candidate's experience, skills, and fit for the role
+2. Follow up on their answers naturally
+3. Ask both technical and behavioral questions
+4. Be conversational and engaging
+5. After 5-7 questions, wrap up the interview
+
+Start by introducing yourself and asking the first question.`;
+
+      setVoiceContext({
+        systemPrompt,
+        context: {
+          interviewId: id,
+          role,
+          jobDescription,
+          resumeText,
+          mode: "job",
+          interviewMode: "interactive",
+        },
+      });
+    } else {
+      // Text mode
+      setCurrentQuestion(firstQuestion);
+      setQuestionIndex(1);
+      setHistory([]);
+    }
+
     setView("new-interview");
     // add optimistic entry to list
     setInterviews((prev) => [
@@ -544,6 +626,11 @@ export default function InterviewView() {
   };
 
   const handleEnd = (fb, sc) => {
+    if (fb === null) {
+      setView("empty");
+      // Optional: Refresh history or clear states if needed
+      return;
+    }
     setFeedback(fb);
     setScore(sc);
     setView("new-feedback");
@@ -660,25 +747,40 @@ export default function InterviewView() {
 
         {view === "new-interview" && (
           <div>
-            <div className="flex items-center gap-2 mb-6 text-xs">
-              <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
-                Interview
-              </span>
-              <ChevronRight size={12} className="text-gray-400" />
-              <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <Briefcase size={11} />
-                {interviews.find((iv) => iv._id === interviewId)?.role ||
-                  "Mock Interview"}
-              </span>
-            </div>
-            <InterviewChat
-              interviewId={interviewId}
-              currentQuestion={currentQuestion}
-              questionIndex={questionIndex}
-              history={history}
-              onAnswer={handleAnswer}
-              onEnd={handleEnd}
-            />
+            {interviewMode === "interactive" && voiceContext ? (
+              <VoiceInterviewAgent
+                interviewId={interviewId}
+                systemPrompt={voiceContext.systemPrompt}
+                context={voiceContext.context}
+                onTranscriptUpdate={(msg) => {
+                  // Optional: track transcript for saving
+                  console.log("[Transcript]", msg);
+                }}
+                onEnd={handleEnd}
+              />
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-6 text-xs">
+                  <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+                    Interview
+                  </span>
+                  <ChevronRight size={12} className="text-gray-400" />
+                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <Briefcase size={11} />
+                    {interviews.find((iv) => iv._id === interviewId)?.role ||
+                      "Mock Interview"}
+                  </span>
+                </div>
+                <InterviewChat
+                  interviewId={interviewId}
+                  currentQuestion={currentQuestion}
+                  questionIndex={questionIndex}
+                  history={history}
+                  onAnswer={handleAnswer}
+                  onEnd={handleEnd}
+                />
+              </>
+            )}
           </div>
         )}
 

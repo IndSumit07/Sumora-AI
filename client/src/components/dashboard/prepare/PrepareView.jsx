@@ -19,12 +19,15 @@ import {
   Cloud,
   Shield,
   Trash2,
+  Radio,
+  MessageSquare,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 import InterviewChat from "../interview/InterviewChat";
 import InterviewFeedback from "../interview/InterviewFeedback";
 import InterviewHistoryDetail from "../interview/InterviewHistoryDetail";
+import VoiceInterviewAgent from "../interview/VoiceInterviewAgent";
 
 // ── Subject catalogue ──────────────────────────────────────────────────────────
 
@@ -297,6 +300,7 @@ const SetupForm = ({ onStarted }) => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
+  const [interviewMode, setInterviewMode] = useState("interactive"); // "interactive" | "analytic"
   const fileInputRef = useRef(null);
   const topicInputRef = useRef(null);
 
@@ -379,6 +383,8 @@ const SetupForm = ({ onStarted }) => {
         subject: selectedSubject.label,
         topic: topicString,
         difficulty,
+        mode: interviewMode,
+        resumeText,
       });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start session.");
@@ -586,6 +592,41 @@ const SetupForm = ({ onStarted }) => {
           />
         </div>
 
+        {/* Interview Mode */}
+        <div>
+          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+            Interview Mode
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setInterviewMode("interactive")}
+              className={[
+                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
+                interviewMode === "interactive"
+                  ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              <Radio size={14} />
+              <span>Interactive</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterviewMode("analytic")}
+              className={[
+                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
+                interviewMode === "analytic"
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+              ].join(" ")}
+            >
+              <MessageSquare size={14} />
+              <span>Analytic</span>
+            </button>
+          </div>
+        </div>
+
         {/* Difficulty */}
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
@@ -704,6 +745,8 @@ export default function PrepareView() {
   // Track subject/topic for breadcrumb
   const [activeSubject, setActiveSubject] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
+  const [interviewMode, setInterviewMode] = useState("analytic"); // "interactive" | "analytic"
+  const [voiceContext, setVoiceContext] = useState(null); // For voice agent
 
   useEffect(() => {
     getAllLiveInterviews("prepare")
@@ -746,19 +789,55 @@ export default function PrepareView() {
     subject,
     topic,
     difficulty,
+    mode,
+    resumeText,
   }) => {
     setInterviewId(id);
-    setCurrentQuestion(firstQuestion);
-    setQuestionIndex(1);
-    setHistory([]);
+    setInterviewMode(mode || "analytic");
     setActiveSubject(subject);
     setActiveTopic(topic);
+
+    if (mode === "interactive") {
+      // Setup voice agent context tailored for Preparation
+      const systemPrompt = `You are an expert technical interviewer helping a candidate prepare for interviews in ${subject}.
+Focus areas: ${topic}.
+
+${resumeText ? `Candidate's Background:\n${resumeText}\n\n` : ""}
+
+Your job is to:
+1. Ask targeted technical questions about ${topic}
+2. Provide hints if the candidate struggles
+3. Explain concepts clearly when needed
+4. Give constructive feedback
+5. Be conversatinal, keep responses brief, and wait for the candidate's answer before proceeding.
+
+Start by introducing the topic and asking the first question.`;
+
+      setVoiceContext({
+        systemPrompt,
+        context: {
+          interviewId: id,
+          subject,
+          topic,
+          resumeText,
+          mode: "prepare",
+          interviewMode: "interactive",
+        },
+      });
+    } else {
+      // Text mode
+      setCurrentQuestion(firstQuestion);
+      setQuestionIndex(1);
+      setHistory([]);
+    }
+
     setView("new-interview");
     // optimistic list entry
     setSessions((prev) => [
       {
         _id: id,
         mode: "prepare",
+        interviewMode: mode || "analytic",
         subject,
         topic,
         difficulty,
@@ -780,6 +859,10 @@ export default function PrepareView() {
   };
 
   const handleEnd = (fb, sc) => {
+    if (fb === null) {
+      setView("empty");
+      return;
+    }
     setFeedback(fb);
     setScore(sc);
     setView("new-feedback");
@@ -908,14 +991,24 @@ export default function PrepareView() {
                 {activeTopic}
               </span>
             </div>
-            <InterviewChat
-              interviewId={interviewId}
-              currentQuestion={currentQuestion}
-              questionIndex={questionIndex}
-              history={history}
-              onAnswer={handleAnswer}
-              onEnd={handleEnd}
-            />
+
+            {interviewMode === "interactive" && voiceContext ? (
+              <VoiceInterviewAgent
+                interviewId={interviewId}
+                systemPrompt={voiceContext.systemPrompt}
+                context={voiceContext.context}
+                onEnd={handleEnd}
+              />
+            ) : (
+              <InterviewChat
+                interviewId={interviewId}
+                currentQuestion={currentQuestion}
+                questionIndex={questionIndex}
+                history={history}
+                onAnswer={handleAnswer}
+                onEnd={handleEnd}
+              />
+            )}
           </div>
         )}
 
