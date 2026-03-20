@@ -21,7 +21,7 @@ export default function CTASection() {
         </p>
 
         <div className="relative z-10 flex justify-center">
-          <LiquidMetalButton 
+          <LiquidMetalButton
             label="Start for Free"
             onClick={() => navigate("/login")}
           />

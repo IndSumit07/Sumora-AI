@@ -191,7 +191,10 @@ export function PricingCard({
         ))}
       </div>
       <div
-        className={cn("mt-auto w-full p-6 lg:p-8 pt-0 flex justify-center", plan.highlighted && "")}
+        className={cn(
+          "mt-auto w-full p-6 lg:p-8 pt-0 flex justify-center",
+          plan.highlighted && "",
+        )}
       >
         <LiquidMetalButton
           label={plan.btn.text}

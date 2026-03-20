@@ -142,13 +142,13 @@ export function useDeepgramVoiceAgent({
 
         case "AgentStartedSpeaking":
           if (!window.isSpacePressed) {
-             setIsAgentSpeaking(true);
+            setIsAgentSpeaking(true);
           }
           break;
 
         case "AgentStoppedSpeaking":
           if (!window.isSpacePressed) {
-             setIsAgentSpeaking(false);
+            setIsAgentSpeaking(false);
           }
           break;
 
@@ -224,7 +224,7 @@ export function useDeepgramVoiceAgent({
             // Mute the microphone input to Deepgram unless spacebar is pressed
             // We must send silent audio (zeros) instead of nothing to prevent Deepgram from timing out
             if (!window.isSpacePressed) {
-               inputData = new Float32Array(inputData.length);
+              inputData = new Float32Array(inputData.length);
             }
 
             // Local user voice activity detection for the visualizer
@@ -251,10 +251,18 @@ export function useDeepgramVoiceAgent({
             }
 
             // Mute the agent playback while spacebar is held down
-            if (window.isSpacePressed && playbackContextRef.current && playbackContextRef.current.state === "running") {
-               playbackContextRef.current.suspend();
-            } else if (!window.isSpacePressed && playbackContextRef.current && playbackContextRef.current.state === "suspended") {
-               playbackContextRef.current.resume();
+            if (
+              window.isSpacePressed &&
+              playbackContextRef.current &&
+              playbackContextRef.current.state === "running"
+            ) {
+              playbackContextRef.current.suspend();
+            } else if (
+              !window.isSpacePressed &&
+              playbackContextRef.current &&
+              playbackContextRef.current.state === "suspended"
+            ) {
+              playbackContextRef.current.resume();
             }
 
             // Convert float32 to int16
@@ -441,9 +449,9 @@ export function useDeepgramVoiceAgent({
 
           // Start pinging KeepAlive every 5 seconds to prevent timeout
           keepAliveIntervalRef.current = setInterval(() => {
-             if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "KeepAlive" }));
-             }
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "KeepAlive" }));
+            }
           }, 5000);
 
           // Post the greeting message to the UI instantly so the user sees it
@@ -455,9 +463,9 @@ export function useDeepgramVoiceAgent({
         ws.onmessage = (event) => {
           if (event.data instanceof Blob) {
             if (window.isSpacePressed) {
-               queuedBlobsRef.current.push(event.data);
+              queuedBlobsRef.current.push(event.data);
             } else {
-               playAudioChunk(event.data);
+              playAudioChunk(event.data);
             }
             return;
           }
