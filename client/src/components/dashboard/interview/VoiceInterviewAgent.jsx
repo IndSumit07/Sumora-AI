@@ -12,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import { useDeepgramVoiceAgent } from "../../../hooks/useDeepgramVoiceAgent";
 import { useInterview } from "../../../context/InterviewContext";
+import { LiquidMetalButton } from "../../ui/liquid-metal-button";
 
 /**
  * VoiceInterviewAgent — Real-time voice interview using Deepgram Voice Agent
@@ -252,9 +253,9 @@ export default function VoiceInterviewAgent({
   }, [disconnect, endInterview, interviewId, onEnd, isEnding, context]);
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
+      <div className="flex-shrink-0 flex items-center justify-between mb-2 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-[#ea580c]/10 flex items-center justify-center">
             <Radio size={18} className="text-[#ea580c]" />
@@ -299,94 +300,8 @@ export default function VoiceInterviewAgent({
         </button>
       </div>
 
-      {/* Real-time status indicator */}
-      <div className="mb-6">
-        <div className="relative rounded-2xl border-2 border-gray-200 dark:border-[#2a2a2a] bg-gradient-to-br from-gray-50 to-white dark:from-[#0a0a0a] dark:to-[#161616] p-6 overflow-hidden">
-          {/* Animated background glow */}
-          {isAgentSpeaking && (
-            <div className="absolute inset-0 bg-gradient-to-r from-[#ea580c]/10 via-transparent to-[#ea580c]/10 animate-pulse" />
-          )}
-          {isUserSpeaking && (
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-blue-500/10 animate-pulse" />
-          )}
-
-          <div className="relative z-10 flex items-center justify-between">
-            {/* Agent speaking indicator */}
-            <div className="flex items-center gap-4 flex-1">
-              <div
-                className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${
-                  isAgentSpeaking
-                    ? "bg-[#ea580c] shadow-lg shadow-[#ea580c]/50"
-                    : "bg-gray-200 dark:bg-[#2a2a2a]"
-                }`}
-              >
-                <Volume2
-                  size={20}
-                  className={isAgentSpeaking ? "text-white" : "text-gray-400"}
-                />
-              </div>
-              <div className="flex-1">
-                <p
-                  className={`text-xs font-semibold uppercase tracking-wider mb-1 ${
-                    isAgentSpeaking
-                      ? "text-[#ea580c]"
-                      : "text-gray-400 dark:text-gray-500"
-                  }`}
-                >
-                  AI Interviewer
-                </p>
-                {isAgentSpeaking ? (
-                  <VoiceWaveform active={true} color="#ea580c" />
-                ) : (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Listening...
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="h-12 w-px bg-gray-300 dark:bg-[#333] mx-6" />
-
-            {/* User speaking indicator */}
-            <div className="flex items-center gap-4 flex-1">
-              <div className="flex-1 flex flex-col items-end">
-                <p
-                  className={`text-xs font-semibold uppercase tracking-wider mb-1 ${
-                    isUserSpeaking
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-400 dark:text-gray-500"
-                  }`}
-                >
-                  You
-                </p>
-                {isUserSpeaking ? (
-                  <VoiceWaveform active={true} color="#3b82f6" />
-                ) : (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    {isConnected ? "Ready to speak" : "Waiting..."}
-                  </p>
-                )}
-              </div>
-              <div
-                className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${
-                  isUserSpeaking
-                    ? "bg-blue-500 shadow-lg shadow-blue-500/50"
-                    : "bg-gray-200 dark:bg-[#2a2a2a]"
-                }`}
-              >
-                <Mic
-                  size={20}
-                  className={isUserSpeaking ? "text-white" : "text-gray-400"}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Conversation transcript */}
-      <div className="flex-1 overflow-y-auto px-1">
+      <div className="flex-1 overflow-y-auto px-1 min-h-0 pt-2">
         {transcript.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <div className="h-16 w-16 rounded-2xl bg-gray-100 dark:bg-[#1e1e1e] flex items-center justify-center mb-4">
@@ -416,9 +331,9 @@ export default function VoiceInterviewAgent({
       </div>
 
       {/* Tips footer and Hold to speak button */}
-      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex-shrink-0 mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] flex justify-center pb-2">
         {/* Mobile / Desktop Hold to Speak Button */}
-        <button
+        <div
           onMouseDown={startHolding}
           onMouseUp={stopHolding}
           onMouseLeave={stopHolding}
@@ -428,28 +343,15 @@ export default function VoiceInterviewAgent({
           }}
           onTouchEnd={stopHolding}
           onTouchCancel={stopHolding}
-          className={`w-full sm:w-auto px-6 py-3 rounded-full font-semibold text-sm transition-all select-none flex-shrink-0 ${
-            isHoldingToSpeak
-              ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50 scale-95"
-              : "bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/30"
-          }`}
+          className="cursor-pointer select-none"
         >
-          <div className="flex items-center justify-center gap-2">
-            <Mic
-              size={18}
-              className={isHoldingToSpeak ? "animate-pulse" : ""}
+          <div
+            className={`transition-transform duration-200 ${isHoldingToSpeak ? "scale-95" : "scale-100"}`}
+          >
+            <LiquidMetalButton
+              label={isHoldingToSpeak ? "Listening..." : "Hold Space to Speek"}
             />
-            {isHoldingToSpeak ? "Listening..." : "Hold to Speak"}
           </div>
-        </button>
-
-        <div className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <Zap size={12} className="flex-shrink-0 mt-0.5 text-[#ea580c]" />
-          <p>
-            <strong>Pro tip:</strong> Hold the <strong>Spacebar</strong> or the
-            button to speak without interruption. The AI will listen and wait
-            for you to release it!
-          </p>
         </div>
       </div>
     </div>

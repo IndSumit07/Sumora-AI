@@ -57,6 +57,20 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const googleLogin = async (credential) => {
+    const { data } = await api.post("/google", { credential });
+    setUser(data.user);
+    toast.success("Welcome back!");
+    return data;
+  };
+
+  const setPassword = async (newPassword) => {
+    const { data } = await api.post("/set-password", { newPassword });
+    await fetchUser(); // Refresh user to get updated hasPassword flag or authProvider
+    toast.success("Password set successfully");
+    return data;
+  };
+
   const logout = async () => {
     await api.post("/logout");
     setUser(null);
@@ -126,6 +140,8 @@ export const AuthProvider = ({ children }) => {
         verifyOtp,
         resendOtp,
         login,
+        googleLogin,
+        setPassword,
         logout,
         forgotPassword,
         resetPassword,

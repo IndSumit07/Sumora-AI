@@ -731,7 +731,9 @@ Start by introducing yourself and asking the first question.`;
       </aside>
 
       {/* ── Right content panel ── */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+      <div
+        className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
+      >
         {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
         {view === "detail" &&
@@ -746,7 +748,7 @@ Start by introducing yourself and asking the first question.`;
         {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
 
         {view === "new-interview" && (
-          <div>
+          <div className="flex-1 min-h-0">
             {interviewMode === "interactive" && voiceContext ? (
               <VoiceInterviewAgent
                 interviewId={interviewId}

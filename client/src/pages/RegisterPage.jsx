@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import AuthLayout from "../components/AuthLayout";
+import { GoogleLogin } from "@react-oauth/google";
 
 const INPUT =
   "h-12 w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]";
@@ -10,7 +11,7 @@ const INPUT =
 const RegisterPage = () => {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) =>
@@ -24,6 +25,18 @@ const RegisterPage = () => {
       navigate("/verify-otp", { state: { email: form.email } });
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      navigate("/dashboard");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Google signup failed");
     } finally {
       setLoading(false);
     }
@@ -112,6 +125,24 @@ const RegisterPage = () => {
             "Create new account"
           )}
         </button>
+
+        <div className="flex items-center gap-4 py-2">
+          <div className="h-px flex-1 bg-gray-200 dark:bg-[#2a2a2a]" />
+          <span className="text-xs text-gray-500 uppercase">Or</span>
+          <div className="h-px flex-1 bg-gray-200 dark:bg-[#2a2a2a]" />
+        </div>
+
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              toast.error("Google signup failed");
+            }}
+            theme="filled_black"
+            text="continue_with"
+            width="100%"
+          />
+        </div>
       </form>
     </AuthLayout>
   );

@@ -454,9 +454,6 @@ export function useDeepgramVoiceAgent({
             }
           }, 5000);
 
-          // Post the greeting message to the UI instantly so the user sees it
-          onAgentMessage?.(greetingMsg.replace(/\.\.\./g, ""));
-
           startAudioStreaming(stream, ws);
         };
 

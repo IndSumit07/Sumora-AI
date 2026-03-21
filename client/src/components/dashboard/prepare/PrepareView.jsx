@@ -962,7 +962,9 @@ Start by introducing the topic and asking the first question.`;
       </aside>
 
       {/* ── Right content panel ── */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+      <div
+        className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
+      >
         {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
         {view === "detail" &&
@@ -977,8 +979,8 @@ Start by introducing the topic and asking the first question.`;
         {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
 
         {view === "new-interview" && (
-          <div>
-            <div className="flex items-center gap-2 mb-6 text-xs flex-wrap">
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex-shrink-0 flex items-center gap-2 mb-6 text-xs flex-wrap">
               <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
                 Prepare
               </span>
@@ -992,23 +994,25 @@ Start by introducing the topic and asking the first question.`;
               </span>
             </div>
 
-            {interviewMode === "interactive" && voiceContext ? (
-              <VoiceInterviewAgent
-                interviewId={interviewId}
-                systemPrompt={voiceContext.systemPrompt}
-                context={voiceContext.context}
-                onEnd={handleEnd}
-              />
-            ) : (
-              <InterviewChat
-                interviewId={interviewId}
-                currentQuestion={currentQuestion}
-                questionIndex={questionIndex}
-                history={history}
-                onAnswer={handleAnswer}
-                onEnd={handleEnd}
-              />
-            )}
+            <div className="flex-1 min-h-0">
+              {interviewMode === "interactive" && voiceContext ? (
+                <VoiceInterviewAgent
+                  interviewId={interviewId}
+                  systemPrompt={voiceContext.systemPrompt}
+                  context={voiceContext.context}
+                  onEnd={handleEnd}
+                />
+              ) : (
+                <InterviewChat
+                  interviewId={interviewId}
+                  currentQuestion={currentQuestion}
+                  questionIndex={questionIndex}
+                  history={history}
+                  onAnswer={handleAnswer}
+                  onEnd={handleEnd}
+                />
+              )}
+            </div>
           </div>
         )}
 

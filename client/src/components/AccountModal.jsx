@@ -11,6 +11,7 @@ const AccountModal = ({ open, onClose }) => {
     verifyEmailChange,
     sendChangePasswordOtp,
     changePassword,
+    setPassword,
     deleteAccount,
     logout,
   } = useAuth();
@@ -159,6 +160,22 @@ const AccountModal = ({ open, onClose }) => {
   };
 
   const handleChangePassword = async () => {
+    if (user.authProvider === "google" && !user.hasPassword) {
+      // it's a set password flow
+      if (newPassword.length < 6)
+        return toast.error("Password must be at least 6 characters");
+      setPwStep("submitting");
+      try {
+        await setPassword(newPassword);
+        setPwStep("idle");
+        setNewPassword("");
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Failed to set password");
+        setPwStep("idle");
+      }
+      return;
+    }
+
     const code = pwOtp.join("");
     if (code.length !== 6) return toast.error("Enter the 6-digit code");
     if (newPassword.length < 6)
@@ -365,42 +382,54 @@ const AccountModal = ({ open, onClose }) => {
 
             {pwStep === "idle" && (
               <button
-                onClick={handleSendPwOtp}
+                onClick={() => {
+                  if (user.authProvider === "google" && !user.hasPassword) {
+                    setPwStep("otp-sent"); // skip otp for setting password
+                  } else {
+                    handleSendPwOtp();
+                  }
+                }}
                 disabled={sendingOtp}
                 className="flex h-11 items-center gap-2 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#1c1c1c] px-4 text-sm font-medium text-gray-900 dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-50"
               >
                 {sendingOtp ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 dark:border-white/20 border-t-[#ea580c]" />
                 ) : null}
-                Change password
+                {user.authProvider === "google" && !user.hasPassword
+                  ? "Set Password"
+                  : "Change password"}
               </button>
             )}
 
             {(pwStep === "otp-sent" || pwStep === "submitting") && (
               <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#1c1c1c] p-5 mt-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  A verification code has been sent to{" "}
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {user.email}
-                  </span>
-                </p>
+                {user.hasPassword && (
+                  <>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      A verification code has been sent to{" "}
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {user.email}
+                      </span>
+                    </p>
 
-                {/* OTP Inputs */}
-                <div className="flex gap-1.5" onPaste={handlePwOtpPaste}>
-                  {pwOtp.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => (pwInputsRef.current[i] = el)}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handlePwOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handlePwOtpKeyDown(i, e)}
-                      className="flex-1 min-w-0 h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
-                    />
-                  ))}
-                </div>
+                    {/* OTP Inputs */}
+                    <div className="flex gap-1.5" onPaste={handlePwOtpPaste}>
+                      {pwOtp.map((digit, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => (pwInputsRef.current[i] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handlePwOtpChange(i, e.target.value)}
+                          onKeyDown={(e) => handlePwOtpKeyDown(i, e)}
+                          className="flex-1 min-w-0 h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] text-center text-lg font-semibold text-gray-900 dark:text-white outline-none transition-all hover:border-gray-300 dark:hover:border-white/20 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]"
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 {/* New password */}
                 <div className="relative">
@@ -426,7 +455,11 @@ const AccountModal = ({ open, onClose }) => {
                     disabled={pwStep === "submitting"}
                     className="h-9 rounded-lg bg-gray-900 border border-gray-900 dark:border-white/10 dark:bg-black/20 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
                   >
-                    {pwStep === "submitting" ? "..." : "Update password"}
+                    {pwStep === "submitting"
+                      ? "..."
+                      : user.hasPassword
+                        ? "Update password"
+                        : "Set password"}
                   </button>
                   <button
                     onClick={() => {
@@ -440,33 +473,35 @@ const AccountModal = ({ open, onClose }) => {
                   </button>
                 </div>
 
-                <p className="text-xs text-gray-500">
-                  Didn&apos;t receive a code?{" "}
-                  <button
-                    onClick={async () => {
-                      setResendingPwOtp(true);
-                      try {
-                        await sendChangePasswordOtp();
-                        setPwOtp(["", "", "", "", "", ""]);
-                        setPwCooldown(30);
-                      } catch (err) {
-                        toast.error(
-                          err.response?.data?.message || "Failed to resend",
-                        );
-                      } finally {
-                        setResendingPwOtp(false);
-                      }
-                    }}
-                    disabled={resendingPwOtp || pwCooldown > 0}
-                    className="font-medium text-gray-900 dark:text-white transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50"
-                  >
-                    {resendingPwOtp
-                      ? "Sending..."
-                      : pwCooldown > 0
-                        ? `Resend in ${pwCooldown}s`
-                        : "Resend"}
-                  </button>
-                </p>
+                {user.hasPassword && (
+                  <p className="text-xs text-gray-500">
+                    Didn&apos;t receive a code?{" "}
+                    <button
+                      onClick={async () => {
+                        setResendingPwOtp(true);
+                        try {
+                          await sendChangePasswordOtp();
+                          setPwOtp(["", "", "", "", "", ""]);
+                          setPwCooldown(30);
+                        } catch (err) {
+                          toast.error(
+                            err.response?.data?.message || "Failed to resend",
+                          );
+                        } finally {
+                          setResendingPwOtp(false);
+                        }
+                      }}
+                      disabled={resendingPwOtp || pwCooldown > 0}
+                      className="font-medium text-gray-900 dark:text-white transition-colors hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50"
+                    >
+                      {resendingPwOtp
+                        ? "Sending..."
+                        : pwCooldown > 0
+                          ? `Resend in ${pwCooldown}s`
+                          : "Resend"}
+                    </button>
+                  </p>
+                )}
               </div>
             )}
           </div>

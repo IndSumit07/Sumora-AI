@@ -4,6 +4,9 @@ import Blacklist from "../models/blacklist.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendOtpEmail, generateOtp } from "../services/brevo.service.js";
+import { OAuth2Client } from "google-auth-library";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 function signToken(user) {
   return jwt.sign(
@@ -23,7 +26,13 @@ function setTokenCookie(res, token) {
 }
 
 function userPayload(user) {
-  return { id: user._id, username: user.username, email: user.email };
+  return {
+    id: user._id,
+    username: user.username,
+    email: user.email,
+    authProvider: user.authProvider,
+    hasPassword: !!user.password,
+  };
 }
 
 /**
@@ -36,11 +45,9 @@ export async function registerUserController(req, res) {
     // Remove unverified user with same email/username so they can re-register
     const existing = await User.findOne({ $or: [{ username }, { email }] });
     if (existing && existing.isVerified) {
-      return res
-        .status(400)
-        .json({
-          message: "An account with that username or email already exists",
-        });
+      return res.status(400).json({
+        message: "An account with that username or email already exists",
+      });
     }
     if (existing && !existing.isVerified) {
       await User.findByIdAndDelete(existing._id);
@@ -93,12 +100,10 @@ export async function verifyOtpController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
-    res
-      .status(200)
-      .json({
-        message: "Email verified successfully",
-        user: userPayload(user),
-      });
+    res.status(200).json({
+      message: "Email verified successfully",
+      user: userPayload(user),
+    });
   } catch (error) {
     console.error("Verify OTP error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -229,12 +234,10 @@ export async function updateProfileController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
-    res
-      .status(200)
-      .json({
-        message: "Profile updated successfully",
-        user: userPayload(user),
-      });
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: userPayload(user),
+    });
   } catch (error) {
     console.error("Update profile error:", error);
     if (error.name === "ValidationError") {
@@ -442,7 +445,105 @@ export async function resetPasswordController(req, res) {
 }
 
 /**
- * DELETE /api/auth/delete-account  (protected)
+ * POST /api/auth/google
+ */
+export async function googleLoginController(req, res) {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: "Google credential is required" });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, sub: googleId, name, given_name } = payload;
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      // derive a unique username based on the email prefix, not the name
+      let baseUsername = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+      if (baseUsername.length < 3) baseUsername += "user";
+      let username = baseUsername.substring(0, 20);
+
+      let usernameExists = await User.findOne({ username });
+      while (usernameExists) {
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        username = `${baseUsername.substring(0, 20)}${randomSuffix}`;
+        usernameExists = await User.findOne({ username });
+      }
+
+      user = await User.create({
+        username,
+        email,
+        googleId,
+        authProvider: "google",
+        isVerified: true,
+      });
+    } else {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = user.password ? "local" : "google";
+        user.isVerified = true;
+        await user.save();
+      }
+    }
+
+    const token = signToken(user);
+    setTokenCookie(res, token);
+
+    res.status(200).json({
+      message: "Google login successful",
+      user: { ...userPayload(user), hasPassword: !!user.password },
+    });
+  } catch (error) {
+    console.error("Google login error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * POST /api/auth/set-password  (protected)
+ */
+export async function setPasswordController(req, res) {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.password) {
+      return res
+        .status(400)
+        .json({
+          message: "Password is already set. Use change password instead.",
+        });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    user.authProvider = "local"; // they now have local auth
+    await user.save();
+
+    res.status(200).json({ message: "Password set successfully" });
+  } catch (error) {
+    console.error("Set password error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * DELETE /api/auth/delete-account
  */
 export async function deleteAccountController(req, res) {
   try {
