@@ -187,8 +187,8 @@ export function LiquidMetalButton({
             {viewMode === "icon" && (
               <Sparkles
                 size={16}
+                className="text-gray-700 dark:text-[#666666]"
                 style={{
-                  color: "#666666",
                   filter: "drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.5))",
                   transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   transform: "scale(1)",
@@ -197,11 +197,11 @@ export function LiquidMetalButton({
             )}
             {viewMode === "text" && (
               <span
+                className="text-gray-800 dark:text-[#666666]"
                 style={{
                   fontSize: "14px",
-                  color: "#666666",
                   fontWeight: 600,
-                  textShadow: "0px 1px 2px rgba(0, 0, 0, 0.5)",
+                  textShadow: "0px 1px 2px rgba(0, 0, 0, 0.3)",
                   transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   transform: "scale(1)",
                   whiteSpace: "nowrap",
@@ -227,12 +227,12 @@ export function LiquidMetalButton({
             }}
           >
             <div
+              className="bg-[linear-gradient(180deg,#f0f0f0_0%,#e0e0e0_100%)] dark:bg-[linear-gradient(180deg,#202020_0%,#000000_100%)]"
               style={{
                 width: `${dimensions.innerWidth}px`,
                 height: `${dimensions.innerHeight}px`,
                 margin: "2px",
                 borderRadius: "100px",
-                background: "linear-gradient(180deg, #202020 0%, #000000 100%)",
                 boxShadow: isPressed
                   ? "inset 0px 2px 4px rgba(0, 0, 0, 0.4), inset 0px 1px 2px rgba(0, 0, 0, 0.3)"
                   : "none",

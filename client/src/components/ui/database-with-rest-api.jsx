@@ -58,10 +58,9 @@ export function DatabaseWithRestApi({ className }) {
           {/* PATHS - BACKGROUND. Mapped exact to offset-paths in index.css */}
           {/* Note that lines drop DOWN, then ACROSS, then DOWN to exactly x=180, y=76 */}
           <g
-            stroke="#52525b"
             fill="none"
             strokeWidth="0.6"
-            className="opacity-60"
+            className="stroke-zinc-300 dark:stroke-[#52525b] opacity-60"
           >
             {/* 1. Deepgram STT */}
             <path d="M 41 26 v 20 q 0 5 5 5 h 129 q 5 0 5 5 v 20" />
@@ -97,6 +96,18 @@ export function DatabaseWithRestApi({ className }) {
 
           {/* MAIN BOX CONTAINER */}
           <rect
+            className="block dark:hidden"
+            x="25"
+            y="145"
+            width="310"
+            height="100"
+            rx="8"
+            fill="#f4f4f5"
+            stroke="#d4d4d8"
+            strokeWidth="0.5"
+          />
+          <rect
+            className="hidden dark:block"
             x="25"
             y="145"
             width="310"
@@ -220,9 +231,8 @@ export function DatabaseWithRestApi({ className }) {
               width="60"
               height="16"
               rx="4"
-              stroke="#52525b"
               strokeWidth="0.6"
-              fill="#18181b"
+              className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#52525b]"
             />
             <foreignObject x="5" y="3.5" width="9" height="9">
               <Mic className="w-full h-full text-[#ea580c]" />
@@ -232,7 +242,7 @@ export function DatabaseWithRestApi({ className }) {
               y="8.5"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#e2e8f0"
+              className="fill-zinc-800 dark:fill-[#e2e8f0]"
               fontSize="5"
               fontWeight="500"
             >
@@ -246,9 +256,8 @@ export function DatabaseWithRestApi({ className }) {
               width="60"
               height="16"
               rx="4"
-              stroke="#52525b"
               strokeWidth="0.6"
-              fill="#18181b"
+              className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#52525b]"
             />
             <foreignObject x="5" y="3.5" width="9" height="9">
               <Brain className="w-full h-full text-[#ea580c]" />
@@ -258,7 +267,7 @@ export function DatabaseWithRestApi({ className }) {
               y="8.5"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#e2e8f0"
+              className="fill-zinc-800 dark:fill-[#e2e8f0]"
               fontSize="5"
               fontWeight="500"
             >
@@ -272,9 +281,8 @@ export function DatabaseWithRestApi({ className }) {
               width="78"
               height="16"
               rx="4"
-              stroke="#52525b"
               strokeWidth="0.6"
-              fill="#18181b"
+              className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#52525b]"
             />
             <foreignObject x="6" y="3.5" width="9" height="9">
               <Zap className="w-full h-full text-[#ea580c]" />
@@ -284,7 +292,7 @@ export function DatabaseWithRestApi({ className }) {
               y="8.5"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#e2e8f0"
+              className="fill-zinc-800 dark:fill-[#e2e8f0]"
               fontSize="5"
               fontWeight="500"
             >
@@ -298,9 +306,8 @@ export function DatabaseWithRestApi({ className }) {
               width="52"
               height="16"
               rx="4"
-              stroke="#52525b"
               strokeWidth="0.6"
-              fill="#18181b"
+              className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#52525b]"
             />
             <foreignObject x="6" y="3.5" width="9" height="9">
               <Activity className="w-full h-full text-[#ea580c]" />
@@ -310,7 +317,7 @@ export function DatabaseWithRestApi({ className }) {
               y="8.5"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#e2e8f0"
+              className="fill-zinc-800 dark:fill-[#e2e8f0]"
               fontSize="5"
               fontWeight="500"
             >
@@ -324,9 +331,8 @@ export function DatabaseWithRestApi({ className }) {
               width="72"
               height="16"
               rx="4"
-              stroke="#52525b"
               strokeWidth="0.6"
-              fill="#18181b"
+              className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#52525b]"
             />
             <foreignObject x="5" y="3.5" width="9" height="9">
               <Volume2 className="w-full h-full text-[#ea580c]" />
@@ -336,7 +342,7 @@ export function DatabaseWithRestApi({ className }) {
               y="8.5"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#e2e8f0"
+              className="fill-zinc-800 dark:fill-[#e2e8f0]"
               fontSize="5"
               fontWeight="500"
             >
@@ -353,7 +359,7 @@ export function DatabaseWithRestApi({ className }) {
               stroke="#0ea5e9"
               strokeWidth="1.2"
               strokeDasharray="4 3"
-              fill="#111827"
+              className="fill-sky-50 dark:fill-[#111827]"
             />
             <foreignObject x="14" y="6" width="14" height="14">
               <Waves className="w-full h-full text-[#0ea5e9]" />
@@ -363,7 +369,7 @@ export function DatabaseWithRestApi({ className }) {
               y="14"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#f8fafc"
+              className="fill-sky-950 dark:fill-[#f8fafc]"
               fontSize="7"
               fontWeight="500"
             >
@@ -377,9 +383,8 @@ export function DatabaseWithRestApi({ className }) {
               width="130"
               height="16"
               rx="8"
-              stroke="#52525b"
               strokeWidth="0.6"
-              fill="#27272a"
+              className="fill-zinc-100 dark:fill-[#27272a] stroke-zinc-300 dark:stroke-[#52525b]"
             />
             <foreignObject x="18" y="4.5" width="7" height="7">
               <Sparkles className="w-full h-full text-[#ea580c]" />
@@ -389,7 +394,7 @@ export function DatabaseWithRestApi({ className }) {
               y="8.5"
               alignmentBaseline="middle"
               dominantBaseline="middle"
-              fill="#e5e7eb"
+              className="fill-zinc-800 dark:fill-[#e5e7eb]"
               fontSize="5.5"
               fontWeight="500"
             >
@@ -405,8 +410,7 @@ export function DatabaseWithRestApi({ className }) {
                 width="78"
                 height="14"
                 rx="4"
-                stroke="#3f3f46"
-                fill="#18181b"
+                className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#3f3f46]"
               />
               <foreignObject x="6" y="3.5" width="7" height="7">
                 <Zap className="w-full h-full text-[#60a5fa]" />
@@ -416,7 +420,7 @@ export function DatabaseWithRestApi({ className }) {
                 y="7.5"
                 alignmentBaseline="middle"
                 dominantBaseline="middle"
-                fill="#d1d5db"
+                className="fill-zinc-800 dark:fill-[#d1d5db]"
                 fontSize="4.5"
                 fontWeight="400"
               >
@@ -429,8 +433,7 @@ export function DatabaseWithRestApi({ className }) {
                 width="82"
                 height="14"
                 rx="4"
-                stroke="#3f3f46"
-                fill="#18181b"
+                className="fill-white dark:fill-[#18181b] stroke-zinc-300 dark:stroke-[#3f3f46]"
               />
               <foreignObject x="6" y="3.5" width="7" height="7">
                 <Brain className="w-full h-full text-[#4ade80]" />
@@ -440,7 +443,7 @@ export function DatabaseWithRestApi({ className }) {
                 y="7.5"
                 alignmentBaseline="middle"
                 dominantBaseline="middle"
-                fill="#d1d5db"
+                className="fill-zinc-800 dark:fill-[#d1d5db]"
                 fontSize="4.5"
                 fontWeight="400"
               >

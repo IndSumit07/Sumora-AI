@@ -25,6 +25,7 @@ import Footer from "../components/home/Footer";
 import { LiquidMetalButton } from "../components/ui/liquid-metal-button";
 import { InteractiveNebulaShader } from "../components/ui/liquid-shader";
 import DatabaseWithRestApi from "../components/ui/database-with-rest-api";
+import { FadeIn } from "../components/ui/fade-in";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -142,12 +143,12 @@ const HomePage = () => {
             {user ? (
               <UserDropdown onManageAccount={() => setShowAccount(true)} />
             ) : (
-              <Link
-                to="/login"
-                className="hidden md:flex w-[36px] h-[36px] rounded-full bg-black dark:bg-white text-white dark:text-black font-bold items-center justify-center hover:opacity-80 transition-opacity text-sm"
-              >
-                S
-              </Link>
+              <div className="hidden md:flex items-center">
+                <LiquidMetalButton
+                  label="Login"
+                  onClick={() => navigate("/login")}
+                />
+              </div>
             )}
 
             {/* Mobile hamburger */}
@@ -238,12 +239,20 @@ const HomePage = () => {
           )}
         </section>
 
-        <DashboardMockup />
-        <IntegrationsSection />
-        <FeatureSection />
+        <FadeIn>
+          <DashboardMockup />
+        </FadeIn>
+
+        <FadeIn delay={0.1}>
+          <IntegrationsSection />
+        </FadeIn>
+
+        <FadeIn>
+          <FeatureSection />
+        </FadeIn>
 
         <section className="relative py-24 px-6 md:px-12 w-full max-w-[1400px] mx-auto z-10 flex flex-col items-center">
-          <div className="text-center mb-16 max-w-2xl">
+          <FadeIn className="text-center mb-16 max-w-2xl">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               AI Models Pointing Forward
             </h2>
@@ -251,15 +260,15 @@ const HomePage = () => {
               Sumora uniquely integrates the absolute best-in-class multi-modal
               AI to guarantee your interviews are flawless and lightning-fast.
             </p>
-          </div>
-          <div className="flex justify-center w-full">
+          </FadeIn>
+          <FadeIn delay={0.2} className="flex justify-center w-full">
             <DatabaseWithRestApi />
-          </div>
+          </FadeIn>
         </section>
 
         {/* Modes Section */}
         <section className="relative py-24 px-6 md:px-12 w-full max-w-[1400px] mx-auto z-10">
-          <div className="text-center mb-16">
+          <FadeIn className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               Choose Your Interview Style
             </h2>
@@ -268,95 +277,110 @@ const HomePage = () => {
               conversational screening or a rigorous written assessment, Sumora
               adapts to your needs.
             </p>
-          </div>
+          </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 max-w-6xl mx-auto">
             {/* Interactive Mode Card */}
-            <div className="p-8 sm:p-10 rounded-[2rem] border border-gray-200 dark:border-[#2a2a2a] bg-white/40 dark:bg-[#161616]/40 backdrop-blur-md transition-all duration-300 hover:border-[#ea580c]/50 hover:bg-white/60 dark:hover:bg-[#161616]/60 group relative overflow-hidden flex flex-col h-full">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#ea580c] opacity-[0.03] group-hover:opacity-[0.06] blur-3xl transition-opacity duration-500 rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+            <FadeIn>
+              <div className="p-8 sm:p-10 rounded-[2rem] border border-gray-200 dark:border-[#2a2a2a] bg-white/40 dark:bg-[#161616]/40 backdrop-blur-md transition-all duration-300 hover:border-[#ea580c]/50 hover:bg-white/60 dark:hover:bg-[#161616]/60 group relative overflow-hidden flex flex-col h-full">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#ea580c] opacity-[0.03] group-hover:opacity-[0.06] blur-3xl transition-opacity duration-500 rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
 
-              <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-2xl bg-[#ea580c]/10 text-[#ea580c] mb-6 sm:mb-8 shrink-0 shadow-inner">
-                <Radio size={28} className="sm:hidden" />
-                <Radio size={32} className="hidden sm:block" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-2xl bg-[#ea580c]/10 text-[#ea580c] mb-6 sm:mb-8 shrink-0 shadow-inner">
+                  <Radio size={28} className="sm:hidden" />
+                  <Radio size={32} className="hidden sm:block" />
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                  Interactive Mode
+                </h3>
+
+                <p className="text-[15px] sm:text-[17px] text-gray-600 dark:text-[#a8a19b] mb-8 leading-relaxed flex-1">
+                  Experience a real-time conversational interview. The AI speaks
+                  to you naturally, listens to your voice, and generates
+                  intelligent follow-up questions dynamically based strictly on
+                  your answers.
+                </p>
+
+                <ul className="space-y-4 mt-auto border-t border-gray-100 dark:border-white/5 pt-8">
+                  {[
+                    "Natural, low-latency conversational AI",
+                    "Dynamic verbal follow-up questions",
+                    "Builds speaking confidence under pressure",
+                    "Simulates realistic recruiter interactions",
+                  ].map((benefit, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3.5 text-[15px] text-gray-700 dark:text-gray-300 font-medium"
+                    >
+                      <CheckCircle2 className="w-[22px] h-[22px] text-[#ea580c] shrink-0 mt-0.5" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                Interactive Mode
-              </h3>
-
-              <p className="text-[15px] sm:text-[17px] text-gray-600 dark:text-[#a8a19b] mb-8 leading-relaxed flex-1">
-                Experience a real-time conversational interview. The AI speaks
-                to you naturally, listens to your voice, and generates
-                intelligent follow-up questions dynamically based strictly on
-                your answers.
-              </p>
-
-              <ul className="space-y-4 mt-auto border-t border-gray-100 dark:border-white/5 pt-8">
-                {[
-                  "Natural, low-latency conversational AI",
-                  "Dynamic verbal follow-up questions",
-                  "Builds speaking confidence under pressure",
-                  "Simulates realistic recruiter interactions",
-                ].map((benefit, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-3.5 text-[15px] text-gray-700 dark:text-gray-300 font-medium"
-                  >
-                    <CheckCircle2 className="w-[22px] h-[22px] text-[#ea580c] shrink-0 mt-0.5" />
-                    <span>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </FadeIn>
 
             {/* Analytic Mode Card */}
-            <div className="p-8 sm:p-10 rounded-[2rem] border border-gray-200 dark:border-[#2a2a2a] bg-white/40 dark:bg-[#161616]/40 backdrop-blur-md transition-all duration-300 hover:border-[#0ea5e9]/50 hover:bg-white/60 dark:hover:bg-[#161616]/60 group relative overflow-hidden flex flex-col h-full">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#0ea5e9] opacity-[0.03] group-hover:opacity-[0.06] blur-3xl transition-opacity duration-500 rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+            <FadeIn delay={0.2}>
+              <div className="p-8 sm:p-10 rounded-[2rem] border border-gray-200 dark:border-[#2a2a2a] bg-white/40 dark:bg-[#161616]/40 backdrop-blur-md transition-all duration-300 hover:border-[#0ea5e9]/50 hover:bg-white/60 dark:hover:bg-[#161616]/60 group relative overflow-hidden flex flex-col h-full">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#0ea5e9] opacity-[0.03] group-hover:opacity-[0.06] blur-3xl transition-opacity duration-500 rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
 
-              <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-2xl bg-[#0ea5e9]/10 text-[#0ea5e9] mb-6 sm:mb-8 shrink-0 shadow-inner">
-                <MessageSquare size={28} className="sm:hidden" />
-                <MessageSquare size={32} className="hidden sm:block" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-2xl bg-[#0ea5e9]/10 text-[#0ea5e9] mb-6 sm:mb-8 shrink-0 shadow-inner">
+                  <MessageSquare size={28} className="sm:hidden" />
+                  <MessageSquare size={32} className="hidden sm:block" />
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                  Analytic Mode
+                </h3>
+
+                <p className="text-[15px] sm:text-[17px] text-gray-600 dark:text-[#a8a19b] mb-8 leading-relaxed flex-1">
+                  Take a rigorous written test without the time pressure. Read
+                  all your assigned interview questions at once, think through
+                  your structural reasoning thoughtfully, and receive detailed
+                  metrics.
+                </p>
+
+                <ul className="space-y-4 mt-auto border-t border-gray-100 dark:border-white/5 pt-8">
+                  {[
+                    "Stress-free written answer formatting",
+                    "Deep dive into your technical reasoning",
+                    "Comprehensive post-answer analysis",
+                    "Easily identify specific knowledge gaps",
+                  ].map((benefit, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3.5 text-[15px] text-gray-700 dark:text-gray-300 font-medium"
+                    >
+                      <CheckCircle2 className="w-[22px] h-[22px] text-[#0ea5e9] shrink-0 mt-0.5" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                Analytic Mode
-              </h3>
-
-              <p className="text-[15px] sm:text-[17px] text-gray-600 dark:text-[#a8a19b] mb-8 leading-relaxed flex-1">
-                Take a rigorous written test without the time pressure. Read all
-                your assigned interview questions at once, think through your
-                structural reasoning thoughtfully, and receive detailed metrics.
-              </p>
-
-              <ul className="space-y-4 mt-auto border-t border-gray-100 dark:border-white/5 pt-8">
-                {[
-                  "Stress-free written answer formatting",
-                  "Deep dive into your technical reasoning",
-                  "Comprehensive post-answer analysis",
-                  "Easily identify specific knowledge gaps",
-                ].map((benefit, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-3.5 text-[15px] text-gray-700 dark:text-gray-300 font-medium"
-                  >
-                    <CheckCircle2 className="w-[22px] h-[22px] text-[#0ea5e9] shrink-0 mt-0.5" />
-                    <span>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </FadeIn>
           </div>
         </section>
 
-        <HowItWorksSection />
+        <FadeIn>
+          <HowItWorksSection />
+        </FadeIn>
 
-        <PricingSection />
+        <FadeIn>
+          <PricingSection />
+        </FadeIn>
 
-        <FAQSection />
+        <FadeIn>
+          <FAQSection />
+        </FadeIn>
 
-        <CommunitySection />
+        <FadeIn>
+          <CommunitySection />
+        </FadeIn>
 
-        <CTASection />
+        <FadeIn>
+          <CTASection />
+        </FadeIn>
       </main>
 
       <Footer />
