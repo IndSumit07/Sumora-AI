@@ -455,11 +455,20 @@ export async function googleLoginController(req, res) {
       return res.status(400).json({ message: "Google credential is required" });
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
+    const response = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${credential}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch user profile from Google");
+    }
+
+    const payload = await response.json();
     const { email, sub: googleId, name, given_name } = payload;
 
     let user = await User.findOne({ email });
@@ -524,11 +533,9 @@ export async function setPasswordController(req, res) {
     }
 
     if (user.password) {
-      return res
-        .status(400)
-        .json({
-          message: "Password is already set. Use change password instead.",
-        });
+      return res.status(400).json({
+        message: "Password is already set. Use change password instead.",
+      });
     }
 
     user.password = await bcrypt.hash(newPassword, 12);
