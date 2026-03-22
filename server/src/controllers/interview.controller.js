@@ -1,12 +1,19 @@
 import mongoose from "mongoose";
 import { createRequire } from "module";
 import InterviewReport from "../models/interviewReport.model.js";
+import User from "../models/user.model.js";
 import {
   generateInterviewReport,
   generateResumePdf,
 } from "../services/ai.service.js";
 
 const _require = createRequire(import.meta.url);
+
+// Define Costs
+const COSTS = {
+  REPORT_GENERATION: 25,
+  RESUME_PDF: 5,
+};
 
 /**
  * POST /api/interview/
@@ -19,6 +26,13 @@ export async function generateInterViewReportController(req, res) {
 
     if (!jobDescription?.trim())
       return res.status(400).json({ message: "jobDescription is required." });
+
+    const user = await User.findById(req.user.id);
+    if (!user || user.tokens < COSTS.REPORT_GENERATION) {
+      return res
+        .status(402)
+        .json({ message: "Insufficient tokens. Please purchase more." });
+    }
 
     let resumeText = "";
     if (req.file) {
@@ -53,9 +67,14 @@ export async function generateInterViewReportController(req, res) {
       selfDescription: selfDescription.trim().slice(0, 2000),
     });
 
+    // Deduct tokens
+    user.tokens -= COSTS.REPORT_GENERATION;
+    await user.save();
+
     return res.status(201).json({
       message: "Interview report generated successfully",
       report: interviewReport,
+      tokensLeft: user.tokens,
     });
   } catch (error) {
     console.error("Generate interview report error:", error);

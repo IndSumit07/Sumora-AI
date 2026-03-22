@@ -8,19 +8,21 @@ import {
 } from "./tooltip";
 import { cn } from "../../lib/utils";
 import { CheckCircleIcon, StarIcon } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-const frequencies = ["monthly", "yearly"];
+const defaultFrequencies = ["monthly", "yearly"];
 
 export function PricingSection({
   plans,
   heading,
   description,
   className,
+  frequencies = defaultFrequencies,
+  hideFrequencyToggle = false,
   ...props
 }) {
-  const [frequency, setFrequency] = React.useState("monthly");
+  const [frequency, setFrequency] = React.useState(frequencies[0]);
 
   return (
     <div
@@ -40,10 +42,13 @@ export function PricingSection({
           </p>
         )}
       </div>
-      <PricingFrequencyToggle
-        frequency={frequency}
-        setFrequency={setFrequency}
-      />
+      {!hideFrequencyToggle && (
+        <PricingFrequencyToggle
+          frequencies={frequencies}
+          frequency={frequency}
+          setFrequency={setFrequency}
+        />
+      )}
       <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 mt-8">
         {plans.map((plan) => (
           <PricingCard plan={plan} key={plan.name} frequency={frequency} />
@@ -54,6 +59,7 @@ export function PricingSection({
 }
 
 export function PricingFrequencyToggle({
+  frequencies = defaultFrequencies,
   frequency,
   setFrequency,
   className,
@@ -95,9 +101,11 @@ export function PricingFrequencyToggle({
 export function PricingCard({
   plan,
   className,
-  frequency = frequencies[0],
+  frequency = defaultFrequencies[0],
   ...props
 }) {
+  const navigate = useNavigate();
+
   return (
     <div
       key={plan.name}
@@ -199,7 +207,7 @@ export function PricingCard({
         <LiquidMetalButton
           label={plan.btn.text}
           onClick={() => {
-            window.location.href = plan.btn.href;
+            navigate(plan.btn.href);
           }}
         />
       </div>

@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    tokens: {
+      type: Number,
+      default: 100, // 100 free tokens for new users
+      min: [0, "Tokens cannot be negative"],
+    },
   },
   { timestamps: true },
 );

@@ -11,6 +11,8 @@ import {
   Home,
   Search,
   Bell,
+  CreditCard,
+  Zap,
 } from "lucide-react";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
@@ -23,6 +25,7 @@ const NAV = [
   { to: "/dashboard/interview", icon: Mic, label: "Interview" },
   { to: "/dashboard/analyze", icon: BarChart2, label: "Analyze" },
   { to: "/dashboard/prepare", icon: BookOpen, label: "Prepare" },
+  { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },
 ];
 
 const DashboardPage = () => {
@@ -105,6 +108,15 @@ const DashboardPage = () => {
             <Bell size={15} className="text-gray-400" />
             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
           </div>
+
+          <Link
+            to="/dashboard/billing"
+            className="hidden sm:flex items-center gap-1.5 bg-orange-50 dark:bg-[#ea580c]/10 text-[#ea580c] px-3 py-1.5 rounded-full text-[11px] font-bold hover:bg-orange-100 dark:hover:bg-[#ea580c]/20 transition-colors"
+          >
+            <Zap size={12} className="fill-[#ea580c]" />
+            {user?.tokens || 0}
+          </Link>
+
           <button
             onClick={() => setShowAccount(true)}
             className="w-7 h-7 rounded-full bg-[#ea580c] flex items-center justify-center text-[9px] font-bold text-white hover:bg-[#d24e0b] transition-colors"
@@ -203,6 +215,14 @@ const DashboardPage = () => {
 
           {/* Right — search · bell · theme · user */}
           <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/billing"
+              className="hidden sm:flex items-center gap-1.5 bg-orange-50 dark:bg-[#ea580c]/10 text-[#ea580c] px-3 h-8 mr-2 rounded-full text-xs font-bold hover:bg-orange-100 dark:hover:bg-[#ea580c]/20 transition-colors"
+            >
+              <Zap size={14} className="fill-[#ea580c]" />
+              {user?.tokens || 0} Tokens
+            </Link>
+
             {/* Search trigger */}
             <button
               onClick={() => setCmdOpen(true)}
@@ -243,7 +263,9 @@ const DashboardPage = () => {
           </div>
         </header>
 
-        <Outlet />
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
       </main>
 
       <AccountModal open={showAccount} onClose={() => setShowAccount(false)} />

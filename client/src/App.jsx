@@ -13,6 +13,7 @@ import DashboardHome from "./components/dashboard/DashboardHome";
 import InterviewView from "./components/dashboard/interview/InterviewView";
 import AnalyzeView from "./components/dashboard/analyze/AnalyzeView";
 import PrepareView from "./components/dashboard/prepare/PrepareView";
+import BillingView from "./components/dashboard/billing/BillingView";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -74,6 +75,7 @@ const App = () => {
           <Route path="interview" element={<InterviewView />} />
           <Route path="analyze" element={<AnalyzeView />} />
           <Route path="prepare" element={<PrepareView />} />
+          <Route path="billing" element={<BillingView />} />
         </Route>
 
         {/* Fallback */}

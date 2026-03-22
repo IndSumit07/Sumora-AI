@@ -3,74 +3,68 @@ import { PricingSection as UIPricingSection } from "../ui/pricing";
 
 const PLANS = [
   {
-    id: "basic",
-    name: "Basic",
-    info: "Perfect for quick preparations",
+    id: "free",
+    name: "Free Tier",
+    info: "Test the waters with our platform",
     price: {
-      monthly: 0,
-      yearly: 0,
+      once: 0,
     },
     features: [
-      { text: "3 AI Interviews per month" },
-      { text: "Basic textual feedback" },
-      { text: "Standard difficulty models" },
+      { text: "100 Free Tokens on Signup" },
+      { text: "Live Technical Interviews" },
+      { text: "Resume Analyzer Access" },
       {
         text: "Community access",
         tooltip: "Get answers quickly on Discord",
       },
-      { text: "Resume tips" },
     ],
     btn: {
       text: "Start for Free",
-      href: "#",
+      href: "/dashboard/billing",
     },
   },
   {
     highlighted: true,
-    id: "pro",
-    name: "Pro",
-    info: "For serious job seekers",
+    id: "starter",
+    name: "Starter Pack",
+    info: "Perfect for quick interview prep",
     price: {
-      monthly: 1499,
-      yearly: Math.round(1499 * 12 * (1 - 0.2)), // 20% off for yearly
+      once: 9,
     },
     features: [
-      { text: "Unlimited AI Interviews" },
-      { text: "Deep-dive analytic feedback" },
-      { text: "Advanced voice LLM capabilities" },
+      { text: "100 AI Tokens" },
+      { text: "Up to 5 Live Interviews" },
+      { text: "Advanced AI Feedback" },
       {
         text: "Resume optimizer tool",
         tooltip: "Upload your resume and get ATS optimizations",
       },
-      { text: "Priority support", tooltip: "Get 24/7 dedicated support" },
-      { text: "Save specific session history" },
+      { text: "No Token Expiry" },
     ],
     btn: {
-      text: "Upgrade to Pro",
-      href: "#",
+      text: "Buy for ₹9",
+      href: "/dashboard/billing",
     },
   },
   {
-    name: "Business",
-    info: "For hiring teams & large organizations",
+    name: "Pro Pack",
+    info: "For serious job seekers",
     price: {
-      monthly: 5999,
-      yearly: Math.round(5999 * 12 * (1 - 0.25)), // 25% off for yearly
+      once: 59,
     },
     features: [
-      { text: "Unlimited organization usage" },
+      { text: "1000 AI Tokens" },
+      { text: "Up to 50 Live Interviews" },
       {
-        text: "Custom AI personas",
-        tooltip: "Train the AI on your specific hiring needs",
+        text: "Best value bundle",
+        tooltip: "Highest token-per-rupee ratio",
       },
-      { text: "Role-specific assessment rubrics" },
-      { text: "Advanced analytics dashboard" },
-      { text: "API Access", tooltip: "Integrate directly into your ATS" },
-      { text: "Dedicated Account Manager" },
+      { text: "Save specific session history" },
+      { text: "Premium Dedicated Support" },
     ],
     btn: {
-      text: "Contact Team",
-      href: "#",
+      text: "Buy for ₹59",
+      href: "/dashboard/billing",
     },
   },
 ];
@@ -80,8 +74,10 @@ export default function PricingSection() {
     <div className="py-24 relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12">
       <UIPricingSection
         plans={PLANS}
-        heading="Plans that Scale with You"
-        description="Whether you're preparing for your first interview or optimizing your hiring process, we have the right plan for you."
+        frequencies={["once"]}
+        hideFrequencyToggle={true}
+        heading="Simple Token-Based Pricing"
+        description="Get started with 100 free tokens. Buy more tokens whenever you need them. No recurring subscriptions!"
       />
     </div>
   );

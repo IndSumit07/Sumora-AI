@@ -16,6 +16,7 @@
 import { createRequire } from "module";
 import mongoose from "mongoose";
 import LiveInterview from "../models/liveInterview.model.js";
+import User from "../models/user.model.js";
 import {
   initInterview,
   initPrepareInterview,
@@ -27,6 +28,11 @@ import {
 } from "../services/interviewService.js";
 
 const _require = createRequire(import.meta.url);
+
+const COSTS = {
+  LIVE_INTERVIEW: 20,
+  PREPARE_INTERVIEW: 20,
+};
 
 // ── Helper: parse PDF buffer via pdf-parse ────────────────────────────────────
 
@@ -102,6 +108,13 @@ export async function startInterviewController(req, res) {
     if (!jobDescription?.trim())
       return res.status(400).json({ message: "jobDescription is required." });
 
+    const user = await User.findById(req.user.id);
+    if (!user || user.tokens < COSTS.LIVE_INTERVIEW) {
+      return res
+        .status(402)
+        .json({ message: "Insufficient tokens to start a live interview." });
+    }
+
     // Persist the interview document first so we have the _id for the chain key
     const interview = await LiveInterview.create({
       user: req.user.id,
@@ -128,9 +141,14 @@ export async function startInterviewController(req, res) {
     interview.conversation.push({ question: firstQuestion, answer: "" });
     await interview.save();
 
+    // Deduct tokens
+    user.tokens -= COSTS.LIVE_INTERVIEW;
+    await user.save();
+
     return res.status(201).json({
       interviewId: interview._id,
       question: firstQuestion,
+      tokensLeft: user.tokens,
     });
   } catch (error) {
     console.error("Start interview error:", error);
@@ -158,6 +176,13 @@ export async function startPrepareController(req, res) {
     if (!topic?.trim())
       return res.status(400).json({ message: "topic is required." });
 
+    const user = await User.findById(req.user.id);
+    if (!user || user.tokens < COSTS.PREPARE_INTERVIEW) {
+      return res
+        .status(402)
+        .json({ message: "Insufficient tokens for prepare mode." });
+    }
+
     const interview = await LiveInterview.create({
       user: req.user.id,
       mode: "prepare",
@@ -181,9 +206,13 @@ export async function startPrepareController(req, res) {
     interview.conversation.push({ question: firstQuestion, answer: "" });
     await interview.save();
 
+    user.tokens -= COSTS.PREPARE_INTERVIEW;
+    await user.save();
+
     return res.status(201).json({
       interviewId: interview._id,
       question: firstQuestion,
+      tokensLeft: user.tokens,
     });
   } catch (error) {
     console.error("Start prepare interview error:", error);
