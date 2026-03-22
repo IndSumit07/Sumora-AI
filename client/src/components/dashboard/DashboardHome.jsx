@@ -28,23 +28,6 @@ const greeting = () => {
 
 /* ── Sub-components ──────────────────────────────────── */
 
-const StatCard = ({ icon: Icon, value, label, color }) => (
-  <div className="flex items-center gap-4 p-5 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222]">
-    <div
-      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-      style={{ backgroundColor: `${color}18` }}
-    >
-      <Icon size={22} style={{ color }} />
-    </div>
-    <div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-        {value}
-      </p>
-      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-    </div>
-  </div>
-);
-
 const FeatureCard = ({ to, icon: Icon, title, description, tag, color }) => (
   <Link
     to={to}
@@ -117,39 +100,6 @@ const DashboardHome = () => {
                 <Zap size={16} /> Start Interview
               </Link>
             </div>
-          </div>
-        </section>
-
-        {/* ── Stats ──────────────────────────────────────── */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">
-            Platform at a Glance
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              icon={Users}
-              value="12 K+"
-              label="Users trained"
-              color="#ea580c"
-            />
-            <StatCard
-              icon={Mic}
-              value="48 K+"
-              label="Mock interviews"
-              color="#7c3aed"
-            />
-            <StatCard
-              icon={BarChart2}
-              value="31 K+"
-              label="Reports generated"
-              color="#0ea5e9"
-            />
-            <StatCard
-              icon={Star}
-              value="4.9 ★"
-              label="Average rating"
-              color="#f59e0b"
-            />
           </div>
         </section>
 
