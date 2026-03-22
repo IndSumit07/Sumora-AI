@@ -209,7 +209,7 @@ export default function VoiceInterviewAgent({
     flushAgentQueues();
   }, [flushAgentQueues]);
 
-  const [speakMode, setSpeakMode] = useState("hold"); // "hold" or "normal"
+  const [speakMode, setSpeakMode] = useState(window.speakMode || "hold"); // "hold" or "normal"
 
   useEffect(() => {
     window.speakMode = speakMode;

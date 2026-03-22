@@ -424,7 +424,7 @@ const SetupForm = ({ onStarted }) => {
                 }}
                 className={[
                   "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                  (window.speakMode || "hold") === "normal"
+                  speakMode === "normal"
                     ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
                     : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
                 ].join(" ")}
@@ -439,7 +439,7 @@ const SetupForm = ({ onStarted }) => {
                 }}
                 className={[
                   "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                  (window.speakMode || "hold") === "hold"
+                  speakMode === "hold"
                     ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
                     : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
                 ].join(" ")}
