@@ -110,43 +110,57 @@ const BillingView = () => {
   };
 
   const handleRefund = async (transactionId) => {
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">Are you sure you want to refund this transaction?</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">You will immediately lose the tokens associated with it.</p>
-        <div className="flex gap-2 justify-end">
-          <button
-            className="px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] text-gray-800 dark:text-gray-200 rounded-md transition-colors"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            Cancel
-          </button>
-          <button
-            className="px-3 py-1.5 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-            onClick={async () => {
-              toast.dismiss(t.id);
-              const toastId = toast.loading("Processing your refund...");
-              try {
-                const res = await api.post("/api/payment/refund", { transactionId });
-                if (res.data.success) {
-                  toast.success("Refund successful. Tokens removed.", { id: toastId });
-                  fetchTokenData();
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">
+            Are you sure you want to refund this transaction?
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            You will immediately lose the tokens associated with it.
+          </p>
+          <div className="flex gap-2 justify-end">
+            <button
+              className="px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] text-gray-800 dark:text-gray-200 rounded-md transition-colors"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-3 py-1.5 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                const toastId = toast.loading("Processing your refund...");
+                try {
+                  const res = await api.post("/api/payment/refund", {
+                    transactionId,
+                  });
+                  if (res.data.success) {
+                    toast.success("Refund successful. Tokens removed.", {
+                      id: toastId,
+                    });
+                    fetchTokenData();
+                  }
+                } catch (error) {
+                  toast.error(
+                    error?.response?.data?.message || "Refund failed.",
+                    { id: toastId },
+                  );
                 }
-              } catch (error) {
-                toast.error(error?.response?.data?.message || "Refund failed.", { id: toastId });
-              }
-            }}
-          >
-            Confirm Refund
-          </button>
+              }}
+            >
+              Confirm Refund
+            </button>
+          </div>
         </div>
-      </div>
-    ), {
-      duration: 10000,
-      style: {
-        minWidth: '300px',
-      }
-    });
+      ),
+      {
+        duration: 10000,
+        style: {
+          minWidth: "300px",
+        },
+      },
+    );
   };
 
   const canRefund = (dateString, status) => {

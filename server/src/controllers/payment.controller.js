@@ -54,12 +54,10 @@ export const createOrder = async (req, res) => {
     const order = await razorpay.orders.create(options);
 
     if (!order) {
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: "Failed to process payment creation",
-        });
+      return res.status(500).json({
+        success: false,
+        message: "Failed to process payment creation",
+      });
     }
 
     // Save transaction trace as created
@@ -84,12 +82,10 @@ export const createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("Create Order Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error creating payment order.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server error creating payment order.",
+    });
   }
 };
 
@@ -180,12 +176,10 @@ export const requestRefund = async (req, res) => {
     });
 
     if (!transaction) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Valid successful transaction not found.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Valid successful transaction not found.",
+      });
     }
 
     // Check if within 10 minutes
@@ -194,24 +188,20 @@ export const requestRefund = async (req, res) => {
     const tenMinutesInMs = 10 * 60 * 1000;
 
     if (currentTime - transactionTime > tenMinutesInMs) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Refunds are only allowed within 10 minutes of purchase.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Refunds are only allowed within 10 minutes of purchase.",
+      });
     }
 
     // Check if user still has the tokens (to prevent free-riding)
     // They shouldn't have spent the tokens yet
     const user = await User.findById(userId);
     if ((user.tokens || 0) < transaction.tokensAdded) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Insufficient tokens for refund. Tokens already consumed.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient tokens for refund. Tokens already consumed.",
+      });
     }
 
     // Initiate Razorpay Refund
@@ -224,16 +214,14 @@ export const requestRefund = async (req, res) => {
           notes: {
             reason: "User requested refund inside 10 minutes window",
           },
-        }
+        },
       );
 
       if (!refund) {
-        return res
-          .status(500)
-          .json({
-            success: false,
-            message: "Failed to initiate refund with payment gateway.",
-          });
+        return res.status(500).json({
+          success: false,
+          message: "Failed to initiate refund with payment gateway.",
+        });
       }
 
       // Update Transaction
@@ -254,7 +242,9 @@ export const requestRefund = async (req, res) => {
       console.error("Razorpay Refund Error:", razorpayError);
       return res.status(500).json({
         success: false,
-        message: razorpayError?.error?.description || "Gateway error while processing refund.",
+        message:
+          razorpayError?.error?.description ||
+          "Gateway error while processing refund.",
       });
     }
   } catch (error) {
