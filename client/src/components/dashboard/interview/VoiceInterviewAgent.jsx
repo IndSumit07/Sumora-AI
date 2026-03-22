@@ -279,12 +279,20 @@ export default function VoiceInterviewAgent({
     disconnect();
 
     if (context?.interviewMode === "interactive") {
-      toast.success(
-        "Great job keeping up! Keep practicing. Use Analytic mode next time to generate detailed reports.",
-        { duration: 5000 },
-      );
-      onEnd?.(null, null); // Provide nulls to skip report generation rendering
-      setIsEnding(false);
+      try {
+        const data = await endInterview(interviewId, { skipFeedback: true });
+        toast.success(
+          "Interview completed. Use Analytic mode next time to generate detailed reports.",
+          { duration: 5000 },
+        );
+        onEnd?.(data.feedback, data.score);
+      } catch (error) {
+        console.error("Failed to complete interview:", error);
+        toast.error("Failed to complete interview.");
+        onEnd?.(null, 0);
+      } finally {
+        setIsEnding(false);
+      }
       return;
     }
 

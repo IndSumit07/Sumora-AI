@@ -294,7 +294,7 @@ export async function answerInterviewController(req, res) {
  */
 export async function endInterviewController(req, res) {
   try {
-    const { interviewId } = req.body;
+    const { interviewId, skipFeedback = false } = req.body;
 
     if (!interviewId)
       return res.status(400).json({ message: "interviewId is required." });
@@ -312,16 +312,21 @@ export async function endInterviewController(req, res) {
         .status(400)
         .json({ message: "This interview was already ended." });
 
-    // Generate structured feedback from the stored conversation
-    const feedback = await generateFeedback(interview.conversation);
+    let feedback = null;
+    let overallScore = 0;
 
-    // Weighted composite score (tech 60%, communication 40%), scaled to 0-100
-    const overallScore = Math.round(
-      feedback.technicalScore * 6 + feedback.communicationScore * 4,
-    );
+    if (!skipFeedback) {
+      // Generate structured feedback from the stored conversation
+      feedback = await generateFeedback(interview.conversation);
+
+      // Weighted composite score (tech 60%, communication 40%), scaled to 0-100
+      overallScore = Math.round(
+        feedback.technicalScore * 6 + feedback.communicationScore * 4,
+      );
+    }
 
     // Persist
-    interview.feedback = JSON.stringify(feedback);
+    interview.feedback = feedback ? JSON.stringify(feedback) : "";
     interview.score = overallScore;
     interview.status = "completed";
     await interview.save();

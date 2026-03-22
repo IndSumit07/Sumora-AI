@@ -31,6 +31,11 @@ const statusBadge = (interview) => {
       cls: "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400",
     };
   const s = interview.score ?? 0;
+  if (s <= 0)
+    return {
+      label: "Completed",
+      cls: "bg-gray-100 dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-300",
+    };
   if (s >= 70) return { label: "Strong", cls: "bg-green-50 text-green-700" };
   if (s >= 45) return { label: "Good", cls: "bg-amber-50 text-amber-700" };
   return { label: "Needs Work", cls: "bg-red-50 text-red-600" };
@@ -679,20 +684,23 @@ Start by introducing yourself and asking the first question.`;
   };
 
   const handleEnd = (fb, sc) => {
-    if (fb === null) {
-      setView("empty");
-      // Optional: Refresh history or clear states if needed
-      return;
-    }
-    setFeedback(fb);
-    setScore(sc);
-    setView("new-feedback");
-    // update the optimistic entry with final score
+    const finalScore = Number.isFinite(sc) ? sc : 0;
     setInterviews((prev) =>
       prev.map((iv) =>
-        iv._id === interviewId ? { ...iv, score: sc, status: "completed" } : iv,
+        iv._id === interviewId
+          ? { ...iv, score: finalScore, status: "completed" }
+          : iv,
       ),
     );
+
+    if (fb === null) {
+      setView("empty");
+      return;
+    }
+
+    setFeedback(fb);
+    setScore(finalScore);
+    setView("new-feedback");
   };
 
   const handleDeleteInterview = async (id) => {

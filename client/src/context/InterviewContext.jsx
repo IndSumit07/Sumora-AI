@@ -112,10 +112,14 @@ export const InterviewProvider = ({ children }) => {
   /**
    * endInterview — ends the interview and returns structured feedback + score.
    * @param {string} interviewId
+   * @param {{ skipFeedback?: boolean }} [options]
    * @returns {{ feedback: object, score: number }}
    */
-  const endInterview = async (interviewId) => {
-    const { data } = await api.post("/interview/end", { interviewId });
+  const endInterview = async (interviewId, options = {}) => {
+    const { data } = await api.post("/interview/end", {
+      interviewId,
+      ...options,
+    });
     return data;
   };
 
