@@ -38,7 +38,11 @@ async function parsePdf(buffer) {
         ? mod
         : typeof mod?.default === "function"
           ? mod.default
-          : null;
+          : typeof mod?.PDFParse === "function"
+            ? mod.PDFParse
+            : typeof mod?.pdf === "function"
+              ? mod.pdf
+              : null;
     if (!fn) throw new Error("pdf-parse module not callable");
     const result = await fn(buffer);
     return (result.text || "").trim().slice(0, 8000);

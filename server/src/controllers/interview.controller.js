@@ -24,7 +24,14 @@ export async function generateInterViewReportController(req, res) {
     if (req.file) {
       try {
         const mod = _require("pdf-parse");
-        const pdfParse = typeof mod === "function" ? mod : mod.default || mod;
+        const pdfParse =
+          typeof mod === "function"
+            ? mod
+            : typeof mod?.default === "function"
+              ? mod.default
+              : typeof mod?.PDFParse === "function"
+                ? mod.PDFParse
+                : mod;
         const result = await pdfParse(req.file.buffer);
         resumeText = (result.text || "").trim().slice(0, 8000);
       } catch (parseErr) {

@@ -393,7 +393,17 @@ Reply with ONLY valid JSON — no markdown fences, no extra text.
     .replace(/```/g, "")
     .trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("Model returned non-JSON analysis.");
+
+  if (!match) {
+    console.warn("Model returned non-JSON analysis. Raw response:", raw);
+    return {
+      why: "The analysis system was unable to parse the model's reason.",
+      structure: [],
+      sampleAnswer:
+        "An ideal answer should clearly address the question logically, ideally using the STAR method if applicable.",
+      tip: "Ensure your response is structured and directly answers the technical or behavioral core of the prompt.",
+    };
+  }
 
   const parsed = safeJsonParse(match[0]);
   return {
@@ -452,8 +462,22 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
       : JSON.stringify(response);
 
   // Strip markdown code fences if the model wrapped the JSON
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("Model returned non-JSON feedback.");
+  const cleaned = raw
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+
+  if (!match) {
+    console.warn("Model returned non-JSON feedback. Raw response:", raw);
+    return {
+      technicalScore: 0,
+      communicationScore: 0,
+      strengths: ["Attempted the interview"],
+      weaknesses: ["The AI failed to generate structured feedback"],
+      improvements: ["Check the raw answer logs if you need details"],
+    };
+  }
 
   const parsed = safeJsonParse(match[0]);
 
