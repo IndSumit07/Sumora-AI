@@ -4,8 +4,9 @@ import User from "../models/user.model.js";
 import Transaction from "../models/transaction.model.js";
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "test_key", // Use env config
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "test_secret",
+  key_id: process.env.RAZORPAY_LIVE_API_KEY || process.env.RAZORPAY_KEY_ID, // Use env config
+  key_secret:
+    process.env.RAZORPAY_LIVE_API_SECRET || process.env.RAZORPAY_KEY_SECRET,
 });
 
 // Store plans directly in mapping for strict validation
@@ -77,7 +78,7 @@ export const createOrder = async (req, res) => {
         orderId: order.id,
         amount: order.amount,
         currency: order.currency,
-        keyId: process.env.RAZORPAY_KEY_ID, // Send publishable key to frontend
+        keyId: process.env.RAZORPAY_LIVE_API_KEY || process.env.RAZORPAY_KEY_ID, // Send publishable key to frontend
       },
     });
   } catch (error) {
@@ -124,7 +125,9 @@ export const verifyPayment = async (req, res) => {
     // Checking signature
     const hmac = crypto.createHmac(
       "sha256",
-      process.env.RAZORPAY_KEY_SECRET || "test_secret",
+      process.env.RAZORPAY_LIVE_API_SECRET ||
+        process.env.RAZORPAY_KEY_SECRET ||
+        "test_secret",
     );
     hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
     const generatedSignature = hmac.digest("hex");
