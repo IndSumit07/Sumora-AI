@@ -113,15 +113,15 @@ const BillingView = () => {
     toast(
       (t) => (
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-gray-900 dark:text-white">
+          <p className="text-sm font-medium text-white">
             Are you sure you want to refund this transaction?
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-300">
             You will immediately lose the tokens associated with it.
           </p>
           <div className="flex gap-2 justify-end">
             <button
-              className="px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] text-gray-800 dark:text-gray-200 rounded-md transition-colors"
+              className="px-3 py-1.5 text-xs font-medium bg-[#2a2a2a] hover:bg-[#333] text-gray-200 rounded-md transition-colors"
               onClick={() => toast.dismiss(t.id)}
             >
               Cancel
