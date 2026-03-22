@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Mic, BarChart2, BookOpen, Search } from "lucide-react";
+import {
+  Home,
+  Mic,
+  BarChart2,
+  BookOpen,
+  Search,
+  CreditCard,
+} from "lucide-react";
 
 const ITEMS = [
   {
@@ -26,6 +33,12 @@ const ITEMS = [
     icon: BookOpen,
     label: "Prepare",
     description: "Study & preparation",
+  },
+  {
+    to: "/dashboard/billing",
+    icon: CreditCard,
+    label: "Pricing",
+    description: "Plans, tokens & billing",
   },
 ];
 

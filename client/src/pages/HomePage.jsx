@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
@@ -91,34 +91,34 @@ const HomePage = () => {
           </div>
 
           {/* Center Links (Capsule with single snake animation) */}
-          <div className="hidden md:flex flex-none z-10 p-[1px] rounded-[30px] overflow-hidden absolute left-1/2 -translate-x-1/2">
+          <div className="hidden md:flex flex-none z-30 p-[1px] rounded-[30px] overflow-hidden absolute left-1/2 -translate-x-1/2 pointer-events-none">
             {/* Spinning single Snake background */}
-            <div className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_80%,#ea580c_100%)] opacity-100 z-0" />
+            <div className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_80%,#ea580c_100%)] opacity-100 z-0 pointer-events-none" />
 
-            <nav className="relative z-10 flex items-center gap-8 px-8 py-[10px] rounded-[30px] text-[14px] font-medium text-gray-700 dark:text-gray-300 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md">
+            <nav className="relative z-10 pointer-events-auto flex items-center gap-8 px-8 py-[10px] rounded-[30px] text-[14px] font-medium text-gray-700 dark:text-gray-300 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md">
               <a
-                href="#"
+                href="#features"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Features
               </a>
               <a
-                href="#"
+                href="#pricing"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Pricing
               </a>
               <a
-                href="#"
+                href="#community"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                Blog
+                Community
               </a>
               <a
-                href="#"
+                href="#faq"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                Docs
+                FAQ
               </a>
             </nav>
           </div>
@@ -167,14 +167,19 @@ const HomePage = () => {
       {mobileMenuOpen && (
         <div className="fixed top-[82px] inset-x-0 z-40 md:hidden px-4">
           <nav className="rounded-2xl border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md shadow-xl p-4 flex flex-col gap-1">
-            {["Features", "Pricing", "Blog", "Docs"].map((item) => (
+            {[
+              { label: "Features", href: "#features" },
+              { label: "Pricing", href: "#pricing" },
+              { label: "Community", href: "#community" },
+              { label: "FAQ", href: "#faq" },
+            ].map((item) => (
               <a
-                key={item}
-                href="#"
+                key={item.label}
+                href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center px-4 py-3 rounded-xl text-[15px] font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
               >
-                {item}
+                {item.label}
               </a>
             ))}
             {!user && (
@@ -247,9 +252,11 @@ const HomePage = () => {
           <IntegrationsSection />
         </FadeIn>
 
-        <FadeIn>
-          <FeatureSection />
-        </FadeIn>
+        <section id="features" className="scroll-mt-28">
+          <FadeIn>
+            <FeatureSection />
+          </FadeIn>
+        </section>
 
         <section className="relative py-24 px-6 md:px-12 w-full max-w-[1400px] mx-auto z-10 flex flex-col items-center">
           <FadeIn className="text-center mb-16 max-w-2xl">
@@ -366,17 +373,23 @@ const HomePage = () => {
           <HowItWorksSection />
         </FadeIn>
 
-        <FadeIn>
-          <PricingSection />
-        </FadeIn>
+        <section id="pricing" className="scroll-mt-28">
+          <FadeIn>
+            <PricingSection />
+          </FadeIn>
+        </section>
 
-        <FadeIn>
-          <FAQSection />
-        </FadeIn>
+        <section id="faq" className="scroll-mt-28">
+          <FadeIn>
+            <FAQSection />
+          </FadeIn>
+        </section>
 
-        <FadeIn>
-          <CommunitySection />
-        </FadeIn>
+        <section id="community" className="scroll-mt-28">
+          <FadeIn>
+            <CommunitySection />
+          </FadeIn>
+        </section>
 
         <FadeIn>
           <CTASection />
