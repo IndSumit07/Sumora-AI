@@ -134,7 +134,7 @@ export function useDeepgramVoiceAgent({
           // If the user interrupted the agent, wipe out any queued responses
           queuedBlobsRef.current = [];
           queuedTextRef.current = [];
-          
+
           if (window.speakMode === "normal") {
             window.speechTurnId = (window.speechTurnId || 0) + 1;
           }

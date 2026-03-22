@@ -117,8 +117,11 @@ export default function VoiceInterviewAgent({
         hour: "2-digit",
         minute: "2-digit",
       });
-      const currentTurnId = window.speakMode === "normal" ? window.speechTurnId : spacePressIdRef.current;
-      
+      const currentTurnId =
+        window.speakMode === "normal"
+          ? window.speechTurnId
+          : spacePressIdRef.current;
+
       setTranscript((prev) => {
         const last = prev[prev.length - 1];
         if (last && last.role === "user" && last.pressId === currentTurnId) {
@@ -131,7 +134,12 @@ export default function VoiceInterviewAgent({
           onTranscriptUpdate?.(updatedList[updatedList.length - 1]);
           return updatedList;
         }
-        const newMsg = { role: "user", text, timestamp, pressId: currentTurnId };
+        const newMsg = {
+          role: "user",
+          text,
+          timestamp,
+          pressId: currentTurnId,
+        };
         onTranscriptUpdate?.(newMsg);
         return [...prev, newMsg];
       });
@@ -308,7 +316,10 @@ export default function VoiceInterviewAgent({
               {isConnected ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Connected • {speakMode === "hold" ? "Hold Space to Speak" : "Speak Normally"}
+                  Connected •{" "}
+                  {speakMode === "hold"
+                    ? "Hold Space to Speak"
+                    : "Speak Normally"}
                 </>
               ) : isLoading ? (
                 <>
@@ -416,7 +427,9 @@ export default function VoiceInterviewAgent({
               className={`transition-transform duration-200 ${isHoldingToSpeak ? "scale-95" : "scale-100"}`}
             >
               <LiquidMetalButton
-                label={isHoldingToSpeak ? "Listening..." : "Hold Space to Speak"}
+                label={
+                  isHoldingToSpeak ? "Listening..." : "Hold Space to Speak"
+                }
               />
             </div>
           </div>
