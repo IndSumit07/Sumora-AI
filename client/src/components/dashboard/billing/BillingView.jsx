@@ -19,18 +19,17 @@ const loadRazorpayScript = () => {
   });
 };
 
-const RefundTimer = ({ createdAt, onTimeout }) => {
+const RefundTimer = ({ updatedAt, onTimeout }) => {
   const [timeLeft, setTimeLeft] = useState(() => {
-    const txTime = new Date(createdAt).getTime();
+    const txTime = new Date(updatedAt).getTime();
     const endTime = txTime + 60 * 1000; // 1 minute
     return Math.max(0, Math.floor((endTime - Date.now()) / 1000));
   });
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
-
+    // Start interval
     const timer = setInterval(() => {
-      const txTime = new Date(createdAt).getTime();
+      const txTime = new Date(updatedAt).getTime();
       const endTime = txTime + 60 * 1000;
       const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
 
@@ -43,7 +42,8 @@ const RefundTimer = ({ createdAt, onTimeout }) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [createdAt, onTimeout, timeLeft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updatedAt]);
 
   if (timeLeft <= 0) return null;
 
@@ -121,6 +121,7 @@ const BillingView = () => {
               toast.success("Payment successful! Tokens added.");
             }
           } catch (err) {
+            console.error("Payment Error:", err);
             toast.error("Payment verification failed.");
           }
         },
@@ -205,7 +206,7 @@ const BillingView = () => {
     if (status !== "success") return false;
     const txTime = new Date(dateString).getTime();
     const now = Date.now();
-    return now - txTime <= 1 * 60 * 1000; // 1 minute
+    return now - txTime <= 1 * 60 * 1000; // 1 minute from the time it succeeded
   };
 
   return (
@@ -256,9 +257,9 @@ const BillingView = () => {
               Starter Pack
             </h3>
             <div className="mt-4 flex items-baseline text-4xl font-extrabold text-gray-900 dark:text-white">
-              ₹9
+              ₹49
               <span className="ml-2 text-lg font-medium text-gray-400 line-through">
-                ₹49
+                ₹99
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-500">
@@ -296,9 +297,9 @@ const BillingView = () => {
               Pro Pack
             </h3>
             <div className="mt-4 flex items-baseline text-4xl font-extrabold text-gray-900 dark:text-white">
-              ₹59
+              ₹99
               <span className="ml-2 text-lg font-medium text-gray-400 line-through">
-                ₹99
+                ₹199
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-500">
@@ -383,7 +384,7 @@ const BillingView = () => {
                       </span>
                     </div>
 
-                    {canRefund(tx.createdAt, tx.status) &&
+                    {canRefund(tx.updatedAt, tx.status) &&
                       tokens >= tx.tokensAdded && (
                         <div className="flex items-center gap-2">
                           <button
@@ -393,7 +394,7 @@ const BillingView = () => {
                             Refund
                           </button>
                           <RefundTimer
-                            createdAt={tx.createdAt}
+                            updatedAt={tx.updatedAt}
                             onTimeout={() =>
                               setTransactions((prev) => [...prev])
                             }

@@ -13,12 +13,12 @@ const razorpay = new Razorpay({
 const TOKEN_PLANS = {
   plan_100: {
     tokens: 100,
-    price: 9, // real price 49 (showed in UI)
+    price: 49, // real price 49 (showed in UI)
     name: "100 Tokens Pack",
   },
   plan_1000: {
     tokens: 1000,
-    price: 59, // real price 99
+    price: 99, // real price 99
     name: "1000 Tokens Pack",
   },
 };

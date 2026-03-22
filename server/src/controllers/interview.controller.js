@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
-import { createRequire } from "module";
+import { PDFParse } from "pdf-parse";
 import InterviewReport from "../models/interviewReport.model.js";
 import User from "../models/user.model.js";
 import {
   generateInterviewReport,
   generateResumePdf,
 } from "../services/ai.service.js";
-
-const _require = createRequire(import.meta.url);
 
 // Define Costs
 const COSTS = {
@@ -37,16 +35,8 @@ export async function generateInterViewReportController(req, res) {
     let resumeText = "";
     if (req.file) {
       try {
-        const mod = _require("pdf-parse");
-        const pdfParse =
-          typeof mod === "function"
-            ? mod
-            : typeof mod?.default === "function"
-              ? mod.default
-              : typeof mod?.PDFParse === "function"
-                ? mod.PDFParse
-                : mod;
-        const result = await pdfParse(req.file.buffer);
+        const parser = new PDFParse({ data: req.file.buffer });
+        const result = await parser.getText();
         resumeText = (result.text || "").trim().slice(0, 8000);
       } catch (parseErr) {
         console.warn("PDF text extraction failed:", parseErr.message);

@@ -253,8 +253,14 @@ const ReportDetailView = () => {
 
   const handleGenResumeFile = (file) => {
     if (!file) return;
-    if (file.type !== "application/pdf") { toast.error("Only PDF files are supported"); return; }
-    if (file.size > 3 * 1024 * 1024) { toast.error("File must be under 3 MB"); return; }
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are supported");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("File must be under 3 MB");
+      return;
+    }
     setGenResumeFile(file);
   };
 
@@ -449,41 +455,6 @@ const ReportDetailView = () => {
             </div>
           )}
         </Section>
-
-        {/* Generate Resume PDF */}
-        <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#222] rounded-2xl p-5 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Generate Resume PDF
-              </h2>
-              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                {activeReport.resumePdfUrl
-                  ? "PDF already generated — click to download again."
-                  : "AI-tailored resume for this job — ATS-friendly and ready to send."}
-              </p>
-            </div>
-            <button
-              onClick={handleGeneratePdf}
-              disabled={pdfLoading}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 transition-all disabled:opacity-50 disabled:pointer-events-none shrink-0"
-            >
-              {pdfLoading ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white dark:border-gray-900 border-t-transparent" />
-                  Generating…
-                </>
-              ) : (
-                <>
-                  <ExternalLink size={14} />
-                  {activeReport.resumePdfUrl
-                    ? "Download Resume PDF"
-                    : "Generate Resume PDF"}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
 
         {/* New session CTA */}
         <div className="flex justify-center pb-4">
@@ -797,7 +768,10 @@ const ReportDetailView = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={() => { setGenModalOpen(false); setGenResumeFile(null); }}
+            onClick={() => {
+              setGenModalOpen(false);
+              setGenResumeFile(null);
+            }}
           />
           <div className="relative bg-white dark:bg-[#121212] rounded-2xl border border-gray-200 dark:border-[#222] p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
@@ -812,7 +786,10 @@ const ReportDetailView = () => {
             {genResumeFile ? (
               <div className="flex items-center justify-between px-4 py-3 mb-5 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 rounded-xl">
                 <div className="flex items-center gap-2 min-w-0">
-                  <FileText size={14} className="text-green-600 dark:text-green-400 shrink-0" />
+                  <FileText
+                    size={14}
+                    className="text-green-600 dark:text-green-400 shrink-0"
+                  />
                   <span className="text-sm text-green-700 dark:text-green-300 font-medium truncate">
                     {genResumeFile.name}
                   </span>
@@ -827,9 +804,16 @@ const ReportDetailView = () => {
               </div>
             ) : (
               <div
-                onDragOver={(e) => { e.preventDefault(); setGenDragging(true); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setGenDragging(true);
+                }}
                 onDragLeave={() => setGenDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setGenDragging(false); handleGenResumeFile(e.dataTransfer.files[0]); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setGenDragging(false);
+                  handleGenResumeFile(e.dataTransfer.files[0]);
+                }}
                 onClick={() => genFileRef.current?.click()}
                 className={`flex flex-col items-center justify-center py-8 mb-5 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
                   genDragging
@@ -837,7 +821,10 @@ const ReportDetailView = () => {
                     : "border-gray-200 dark:border-[#333] hover:border-gray-300 dark:hover:border-gray-500 bg-gray-50 dark:bg-[#1a1a1a]"
                 }`}
               >
-                <Upload size={18} className="text-gray-400 dark:text-gray-500 mb-2" />
+                <Upload
+                  size={18}
+                  className="text-gray-400 dark:text-gray-500 mb-2"
+                />
                 <p className="text-sm text-gray-400 dark:text-gray-500">
                   Drop your resume or{" "}
                   <span className="text-[#ea580c] font-medium">browse</span>

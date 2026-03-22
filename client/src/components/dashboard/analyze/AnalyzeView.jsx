@@ -219,18 +219,6 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
             <MatchScoreRing score={report.matchScore ?? 0} />
-            <button
-              onClick={onDownloadPdf}
-              disabled={pdfLoading}
-              className="flex items-center gap-2 h-10 px-4 rounded-xl bg-black/8 hover:bg-black/12 dark:bg-white/10 dark:hover:bg-white/15 text-gray-800 dark:text-white text-sm font-medium transition-colors disabled:opacity-50 border border-black/10 dark:border-white/10"
-            >
-              {pdfLoading ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Download size={14} />
-              )}
-              Download Resume PDF
-            </button>
           </div>
         </div>
       </div>

@@ -32,6 +32,7 @@ function userPayload(user) {
     email: user.email,
     authProvider: user.authProvider,
     hasPassword: !!user.password,
+    tokens: user.tokens,
   };
 }
 

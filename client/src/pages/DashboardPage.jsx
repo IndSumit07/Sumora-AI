@@ -22,9 +22,9 @@ const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
 const NAV = [
   { to: "/dashboard", icon: Home, label: "Home", exact: true },
+  { to: "/dashboard/prepare", icon: BookOpen, label: "Prepare" },
   { to: "/dashboard/interview", icon: Mic, label: "Interview" },
   { to: "/dashboard/analyze", icon: BarChart2, label: "Analyze" },
-  { to: "/dashboard/prepare", icon: BookOpen, label: "Prepare" },
   { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },
 ];
 

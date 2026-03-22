@@ -136,9 +136,12 @@ async function generateInterviewReport({
   jobDescription,
 }) {
   const prompt = `Generate an interview report for a candidate with the following details:
-                        Resume: ${resume}
-                        Self Description: ${selfDescription}
-                        Job Description: ${jobDescription}
+  Resume: ${resume}
+  Self Description: ${selfDescription}
+  Job Description: ${jobDescription}
+  
+  IMPORTANT INSTRUCTIONS:
+  You must generate exactly 10 technical questions and exactly 10 behavioral questions based on the candidate's resume and the job description. Do not provide fewer than 10 of each type. Ensure they are relevant and well-crafted.
 `;
 
   const response = await ai.models.generateContent({
