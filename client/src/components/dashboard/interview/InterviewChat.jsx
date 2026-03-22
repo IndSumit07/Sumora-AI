@@ -99,8 +99,8 @@ export default function InterviewChat({
     () => !!navigator.mediaDevices?.getUserMedia,
   );
 
-  const wsRef = useRef(null);        // Deepgram WebSocket
-  const streamRef = useRef(null);   // MediaStream
+  const wsRef = useRef(null); // Deepgram WebSocket
+  const streamRef = useRef(null); // MediaStream
   const recorderRef = useRef(null); // MediaRecorder
   const textareaRef = useRef(null);
   const baseAnswerRef = useRef(""); // finalized transcript so far

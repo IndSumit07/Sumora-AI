@@ -74,7 +74,10 @@ export default function InterviewPage({ session, onBack, onDone }) {
             Back to History
           </button>
         )}
-        <InterviewSetup session={session} onInterviewStart={handleInterviewStart} />
+        <InterviewSetup
+          session={session}
+          onInterviewStart={handleInterviewStart}
+        />
       </div>
     );
   }

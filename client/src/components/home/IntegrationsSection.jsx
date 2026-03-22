@@ -15,7 +15,10 @@ const IntegrationsSection = () => (
       {/* quote body */}
       <blockquote>
         <p className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-[#ebe4de] leading-tight tracking-tight">
-          <span className="text-[#ea580c] font-serif text-5xl md:text-7xl leading-none relative top-3 md:top-5 select-none opacity-80">&ldquo;</span>{" "}Talent gets you in the room.{" "}
+          <span className="text-[#ea580c] font-serif text-5xl md:text-7xl leading-none relative top-3 md:top-5 select-none opacity-80">
+            &ldquo;
+          </span>{" "}
+          Talent gets you in the room.{" "}
           <span className="text-[#ea580c]">Preparation</span> gets you the job.
         </p>
 

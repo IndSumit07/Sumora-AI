@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Plus,
   BookOpen,
@@ -292,7 +292,7 @@ const PrepareCard = ({ interview, active, onClick, onDelete }) => {
 
 const SetupForm = ({ onStarted }) => {
   const { uploadResume, startPrepareInterview } = useInterview();
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [topicInput, setTopicInput] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
@@ -304,10 +304,30 @@ const SetupForm = ({ onStarted }) => {
   const fileInputRef = useRef(null);
   const topicInputRef = useRef(null);
 
-  const handleSubjectSelect = (s) => {
-    setSelectedSubject(s);
-    setSelectedTopics([]);
-    setTopicInput("");
+  // Sync external store to force re-render when window.speakMode changes
+  const speakMode = useSyncExternalStore(
+    (onStoreChange) => {
+      document.addEventListener("speakModeChanged", onStoreChange);
+      return () =>
+        document.removeEventListener("speakModeChanged", onStoreChange);
+    },
+    () => window.speakMode || "hold",
+  );
+
+  const handleSubjectToggle = (s) => {
+    setSelectedSubjects((prev) => {
+      if (prev.find((sub) => sub.id === s.id)) {
+        // If unselecting a subject, optionally remove its topics from selectedTopics
+        const remainingSubjects = prev.filter((sub) => sub.id !== s.id);
+        const subjectTopics = s.topics || [];
+        setSelectedTopics((prevTopics) =>
+          prevTopics.filter((t) => !subjectTopics.includes(t)),
+        );
+        return remainingSubjects;
+      } else {
+        return [...prev, s];
+      }
+    });
   };
 
   const toggleTopic = (label) => {
@@ -356,8 +376,8 @@ const SetupForm = ({ onStarted }) => {
   };
 
   const handleStart = async () => {
-    if (!selectedSubject) {
-      toast.error("Please select a subject.");
+    if (selectedSubjects.length === 0) {
+      toast.error("Please select at least one subject.");
       return;
     }
     const allTopics = [...selectedTopics];
@@ -368,11 +388,12 @@ const SetupForm = ({ onStarted }) => {
       toast.error("Please select or enter at least one topic.");
       return;
     }
+    const subjectString = selectedSubjects.map((s) => s.label).join(", ");
     const topicString = allTopics.join(", ");
     setStartLoading(true);
     try {
       const { interviewId, question } = await startPrepareInterview({
-        subject: selectedSubject.label,
+        subject: subjectString,
         topic: topicString,
         resumeText,
         difficulty,
@@ -380,7 +401,7 @@ const SetupForm = ({ onStarted }) => {
       onStarted({
         interviewId,
         firstQuestion: question,
-        subject: selectedSubject.label,
+        subject: subjectString,
         topic: topicString,
         difficulty,
         mode: interviewMode,
@@ -396,7 +417,7 @@ const SetupForm = ({ onStarted }) => {
   const canStart =
     !startLoading &&
     !uploadLoading &&
-    selectedSubject &&
+    selectedSubjects.length > 0 &&
     (selectedTopics.length > 0 || topicInput.trim().length > 0);
 
   return (
@@ -410,7 +431,8 @@ const SetupForm = ({ onStarted }) => {
             New Preparation Session
           </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Select a subject, pick topics or type your own, then start drilling.
+            Select one or more subjects, pick topics or type your own, then
+            start drilling.
           </p>
         </div>
       </div>
@@ -418,17 +440,17 @@ const SetupForm = ({ onStarted }) => {
       {/* Subject grid */}
       <div className="mb-5">
         <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
-          Subject
+          Subjects
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {SUBJECTS.map((s) => {
             const Icon = s.icon;
-            const active = selectedSubject?.id === s.id;
+            const active = !!selectedSubjects.find((sub) => sub.id === s.id);
             return (
               <button
                 key={s.id}
                 type="button"
-                onClick={() => handleSubjectSelect(s)}
+                onClick={() => handleSubjectToggle(s)}
                 className={[
                   "flex flex-col items-start gap-2 p-3 rounded-xl border text-left transition-all duration-150",
                   active
@@ -460,36 +482,38 @@ const SetupForm = ({ onStarted }) => {
       </div>
 
       {/* Topic picker — shown after subject is selected */}
-      {selectedSubject && (
+      {selectedSubjects.length > 0 && (
         <div className="mb-5 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#161616] p-4">
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
             Topics{" "}
             <span className="normal-case font-normal text-gray-400 dark:text-gray-500">
-              — pick one or more
+              — pick one or more across selected subjects
             </span>
           </p>
 
           {/* Suggested topic chips */}
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {selectedSubject.topics.map((t) => {
-              const picked = selectedTopics.includes(t);
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => toggleTopic(t)}
-                  className={[
-                    "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all",
-                    picked
-                      ? "border-[#ea580c] bg-[#ea580c] text-white"
-                      : "border-gray-200 dark:border-[#333] bg-white dark:bg-[#1e1e1e] text-gray-700 dark:text-gray-300 hover:border-[#ea580c]/50 hover:text-[#ea580c]",
-                  ].join(" ")}
-                >
-                  {t}
-                  {picked && <X size={10} className="ml-0.5" />}
-                </button>
-              );
-            })}
+            {selectedSubjects
+              .flatMap((s) => s.topics)
+              .map((t) => {
+                const picked = selectedTopics.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleTopic(t)}
+                    className={[
+                      "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                      picked
+                        ? "border-[#ea580c] bg-[#ea580c] text-white"
+                        : "border-gray-200 dark:border-[#333] bg-white dark:bg-[#1e1e1e] text-gray-700 dark:text-gray-300 hover:border-[#ea580c]/50 hover:text-[#ea580c]",
+                    ].join(" ")}
+                  >
+                    {t}
+                    {picked && <X size={10} className="ml-0.5" />}
+                  </button>
+                );
+              })}
           </div>
 
           {/* Custom topic input */}
@@ -626,6 +650,47 @@ const SetupForm = ({ onStarted }) => {
             </button>
           </div>
         </div>
+
+        {/* Speak Mode Settings (Only visible for interactive mode) */}
+        {interviewMode === "interactive" && (
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+              Speak Mode
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.speakMode = "normal";
+                  document.dispatchEvent(new Event("speakModeChanged"));
+                }}
+                className={[
+                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                  (window.speakMode || "hold") === "normal"
+                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                Speak Normally
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.speakMode = "hold";
+                  document.dispatchEvent(new Event("speakModeChanged"));
+                }}
+                className={[
+                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                  (window.speakMode || "hold") === "hold"
+                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                Hold Space to Speak
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Difficulty */}
         <div>

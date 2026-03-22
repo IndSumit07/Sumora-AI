@@ -6,7 +6,7 @@
  * Only asks for an optional resume upload to improve question quality.
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { Mic, FileText, Upload, Loader2, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
@@ -17,6 +17,15 @@ export default function InterviewSetup({ session, onInterviewStart }) {
   const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+
+  const speakMode = useSyncExternalStore(
+    (onStoreChange) => {
+      document.addEventListener("speakModeChanged", onStoreChange);
+      return () =>
+        document.removeEventListener("speakModeChanged", onStoreChange);
+    },
+    () => window.speakMode || "hold",
+  );
 
   // These come directly from the session — no need to show editable fields
   const role = session?.jobTitle || session?.title || "Software Engineer";
@@ -178,6 +187,45 @@ export default function InterviewSetup({ session, onInterviewStart }) {
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ── Speak Mode Settings ── */}
+      <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-6 shadow-sm">
+        <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
+          Speak Mode
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              window.speakMode = "normal";
+              document.dispatchEvent(new Event("speakModeChanged"));
+            }}
+            className={[
+              "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+              speakMode === "normal"
+                ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+            ].join(" ")}
+          >
+            Speak Normally
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              window.speakMode = "hold";
+              document.dispatchEvent(new Event("speakModeChanged"));
+            }}
+            className={[
+              "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+              speakMode === "hold"
+                ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+            ].join(" ")}
+          >
+            Hold Space to Speak
+          </button>
         </div>
       </div>
 

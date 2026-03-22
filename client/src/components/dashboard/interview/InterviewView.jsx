@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Plus,
   Mic,
@@ -122,6 +122,16 @@ const SetupForm = ({ onStarted }) => {
   const [difficulty, setDifficulty] = useState("medium");
   const [interviewMode, setInterviewMode] = useState("interactive"); // "voice" | "text"
   const fileRef = useRef(null);
+
+  // Sync external store to force re-render when window.speakMode changes
+  const speakMode = useSyncExternalStore(
+    (onStoreChange) => {
+      document.addEventListener("speakModeChanged", onStoreChange);
+      return () =>
+        document.removeEventListener("speakModeChanged", onStoreChange);
+    },
+    () => window.speakMode || "hold",
+  );
 
   const handleFetchJob = async () => {
     if (!isLinkedInJobUrl(linkedinUrl)) {
@@ -396,6 +406,49 @@ const SetupForm = ({ onStarted }) => {
             </button>
           </div>
         </div>
+
+        {/* Speak Mode Settings (Only visible for interactive mode) */}
+        {interviewMode === "interactive" && (
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+              Speak Mode
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.speakMode = "normal";
+                  // To trigger a re-render if needed, you could add state,
+                  // or rely on VoiceInterviewAgent to pick this up.
+                  document.dispatchEvent(new Event("speakModeChanged"));
+                }}
+                className={[
+                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                  (window.speakMode || "hold") === "normal"
+                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                Speak Normally
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.speakMode = "hold";
+                  document.dispatchEvent(new Event("speakModeChanged"));
+                }}
+                className={[
+                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                  (window.speakMode || "hold") === "hold"
+                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                Hold Space to Speak
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Difficulty */}
         <div>
