@@ -165,7 +165,7 @@ export const verifyPayment = async (req, res) => {
 };
 
 /**
- * Request refund if within 10 minutes of successful transaction
+ * Request refund if within 1 minute of successful transaction
  */
 export const requestRefund = async (req, res) => {
   try {
@@ -185,15 +185,15 @@ export const requestRefund = async (req, res) => {
       });
     }
 
-    // Check if within 10 minutes
+    // Check if within 1 minute
     const transactionTime = new Date(transaction.updatedAt).getTime();
     const currentTime = Date.now();
-    const tenMinutesInMs = 10 * 60 * 1000;
+    const oneMinuteInMs = 1 * 60 * 1000;
 
-    if (currentTime - transactionTime > tenMinutesInMs) {
+    if (currentTime - transactionTime > oneMinuteInMs) {
       return res.status(400).json({
         success: false,
-        message: "Refunds are only allowed within 10 minutes of purchase.",
+        message: "Refunds are only allowed within 1 minute of purchase.",
       });
     }
 
@@ -215,7 +215,7 @@ export const requestRefund = async (req, res) => {
           amount: transaction.amount * 100,
           speed: "normal",
           notes: {
-            reason: "User requested refund inside 10 minutes window",
+            reason: "User requested refund inside 1 minute window",
           },
         },
       );

@@ -19,6 +19,44 @@ const loadRazorpayScript = () => {
   });
 };
 
+const RefundTimer = ({ createdAt, onTimeout }) => {
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const txTime = new Date(createdAt).getTime();
+    const endTime = txTime + 60 * 1000; // 1 minute
+    return Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+  });
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      const txTime = new Date(createdAt).getTime();
+      const endTime = txTime + 60 * 1000;
+      const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+
+      setTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        if (onTimeout) onTimeout();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [createdAt, onTimeout, timeLeft]);
+
+  if (timeLeft <= 0) return null;
+
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+
+  return (
+    <span className="text-xs font-mono text-[#ea580c] ml-2">
+      ({m}:{s.toString().padStart(2, "0")})
+    </span>
+  );
+};
+
 const BillingView = () => {
   const { user, setUser } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState(null);
@@ -167,7 +205,7 @@ const BillingView = () => {
     if (status !== "success") return false;
     const txTime = new Date(dateString).getTime();
     const now = Date.now();
-    return now - txTime <= 10 * 60 * 1000; // 10 minutes
+    return now - txTime <= 1 * 60 * 1000; // 1 minute
   };
 
   return (
@@ -347,12 +385,20 @@ const BillingView = () => {
 
                     {canRefund(tx.createdAt, tx.status) &&
                       tokens >= tx.tokensAdded && (
-                        <button
-                          onClick={() => handleRefund(tx._id)}
-                          className="text-xs font-medium text-red-500 hover:text-red-600 underline underline-offset-2"
-                        >
-                          Refund
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleRefund(tx._id)}
+                            className="text-xs font-medium text-red-500 hover:text-red-600 underline underline-offset-2"
+                          >
+                            Refund
+                          </button>
+                          <RefundTimer
+                            createdAt={tx.createdAt}
+                            onTimeout={() =>
+                              setTransactions((prev) => [...prev])
+                            }
+                          />
+                        </div>
                       )}
                   </div>
                 </div>
