@@ -1,0 +1,54 @@
+{
+  "free": {
+    "id": "free",
+    "name": "Free Tier",
+    "price": 0,
+    "tokens": 100,
+    "info": "Test the waters with our platform",
+    "features": [
+      { "text": "100 Free Tokens on Signup" },
+      { "text": "Live Technical Interviews" },
+      { "text": "Resume Analyzer Access" },
+      {
+        "text": "Community access",
+        "tooltip": "Get answers quickly on Discord"
+      }
+    ]
+  },
+  "starter": {
+    "id": "plan_100",
+    "name": "Starter Pack",
+    "price": 49,
+    "originalPrice": 99,
+    "tokens": 100,
+    "info": "Perfect for quick interview prep",
+    "features": [
+      { "text": "100 AI Tokens" },
+      { "text": "Advanced AI Feedback" },
+      {
+        "text": "Resume optimizer tool",
+        "tooltip": "Upload your resume and get ATS optimizations"
+      },
+      { "text": "No Token Expiry" }
+    ],
+    "discountText": "Limited time 80% discount"
+  },
+  "pro": {
+    "id": "plan_1000",
+    "name": "Pro Pack",
+    "price": 99,
+    "originalPrice": 299,
+    "tokens": 1000,
+    "info": "For serious job seekers",
+    "features": [
+      { "text": "1000 AI Tokens" },
+      {
+        "text": "Best value bundle",
+        "tooltip": "Highest token-per-rupee ratio"
+      },
+      { "text": "Save specific session history" },
+      { "text": "Premium Dedicated Support" }
+    ],
+    "discountText": "Limited time 60% discount"
+  }
+}

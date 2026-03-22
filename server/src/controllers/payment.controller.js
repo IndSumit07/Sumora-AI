@@ -2,6 +2,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import User from "../models/user.model.js";
 import Transaction from "../models/transaction.model.js";
+import PRICING_PLANS from "../config/pricing.json" with { type: "json" };
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_LIVE_API_KEY || process.env.RAZORPAY_KEY_ID, // Use env config
@@ -11,15 +12,15 @@ const razorpay = new Razorpay({
 
 // Store plans directly in mapping for strict validation
 const TOKEN_PLANS = {
-  plan_100: {
-    tokens: 100,
-    price: 49, // real price 49 (showed in UI)
-    name: "100 Tokens Pack",
+  [PRICING_PLANS.starter.id]: {
+    tokens: PRICING_PLANS.starter.tokens,
+    price: PRICING_PLANS.starter.price,
+    name: PRICING_PLANS.starter.name,
   },
-  plan_1000: {
-    tokens: 1000,
-    price: 99, // real price 99
-    name: "1000 Tokens Pack",
+  [PRICING_PLANS.pro.id]: {
+    tokens: PRICING_PLANS.pro.tokens,
+    price: PRICING_PLANS.pro.price,
+    name: PRICING_PLANS.pro.name,
   },
 };
 

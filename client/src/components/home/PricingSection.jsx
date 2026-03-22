@@ -1,23 +1,16 @@
 import React from "react";
 import { PricingSection as UIPricingSection } from "../ui/pricing";
+import PRICING_PLANS from "../../shared/pricing.json";
 
 const PLANS = [
   {
-    id: "free",
-    name: "Free Tier",
-    info: "Test the waters with our platform",
+    id: PRICING_PLANS.free.id,
+    name: PRICING_PLANS.free.name,
+    info: PRICING_PLANS.free.info,
     price: {
-      once: 0,
+      once: PRICING_PLANS.free.price,
     },
-    features: [
-      { text: "100 Free Tokens on Signup" },
-      { text: "Live Technical Interviews" },
-      { text: "Resume Analyzer Access" },
-      {
-        text: "Community access",
-        tooltip: "Get answers quickly on Discord",
-      },
-    ],
+    features: PRICING_PLANS.free.features,
     btn: {
       text: "Start for Free",
       href: "/dashboard/billing",
@@ -25,45 +18,33 @@ const PLANS = [
   },
   {
     highlighted: true,
-    id: "starter",
-    name: "Starter Pack",
-    info: "Perfect for quick interview prep",
+    id: PRICING_PLANS.starter.id,
+    name: PRICING_PLANS.starter.name,
+    info: PRICING_PLANS.starter.info,
+    originalPrice: PRICING_PLANS.starter.originalPrice,
+    discountText: PRICING_PLANS.starter.discountText,
+    tokens: PRICING_PLANS.starter.tokens,
     price: {
-      once: 9,
+      once: PRICING_PLANS.starter.price,
     },
-    features: [
-      { text: "100 AI Tokens" },
-      { text: "Up to 5 Live Interviews" },
-      { text: "Advanced AI Feedback" },
-      {
-        text: "Resume optimizer tool",
-        tooltip: "Upload your resume and get ATS optimizations",
-      },
-      { text: "No Token Expiry" },
-    ],
+    features: PRICING_PLANS.starter.features,
     btn: {
-      text: "Buy for ₹9",
+      text: `Buy for ₹${PRICING_PLANS.starter.price}`,
       href: "/dashboard/billing",
     },
   },
   {
-    name: "Pro Pack",
-    info: "For serious job seekers",
+    name: PRICING_PLANS.pro.name,
+    info: PRICING_PLANS.pro.info,
+    originalPrice: PRICING_PLANS.pro.originalPrice,
+    discountText: PRICING_PLANS.pro.discountText,
+    tokens: PRICING_PLANS.pro.tokens,
     price: {
-      once: 59,
+      once: PRICING_PLANS.pro.price,
     },
-    features: [
-      { text: "1000 AI Tokens" },
-      { text: "Up to 50 Live Interviews" },
-      {
-        text: "Best value bundle",
-        tooltip: "Highest token-per-rupee ratio",
-      },
-      { text: "Save specific session history" },
-      { text: "Premium Dedicated Support" },
-    ],
+    features: PRICING_PLANS.pro.features,
     btn: {
-      text: "Buy for ₹59",
+      text: `Buy for ₹${PRICING_PLANS.pro.price}`,
       href: "/dashboard/billing",
     },
   },

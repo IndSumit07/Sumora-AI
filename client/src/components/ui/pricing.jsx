@@ -154,11 +154,16 @@ export function PricingCard({
           <span className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white">
             ₹{plan.price[frequency]}
           </span>
-          <span className="text-gray-500 dark:text-gray-400 font-medium ml-1 text-sm sm:text-base">
-            {plan.price[frequency] !== 0
-              ? "/" + (frequency === "monthly" ? "mo" : "yr")
-              : "/ forever"}
-          </span>
+          {plan.originalPrice && (
+            <span className="ml-2 text-lg font-medium text-gray-400 line-through">
+              ₹{plan.originalPrice}
+            </span>
+          )}
+          {plan.price[frequency] === 0 && (
+            <span className="text-gray-500 dark:text-gray-400 font-medium ml-1 text-sm sm:text-base">
+              / forever
+            </span>
+          )}
         </h3>
       </div>
       <div

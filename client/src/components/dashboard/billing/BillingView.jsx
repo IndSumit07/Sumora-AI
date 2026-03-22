@@ -3,9 +3,10 @@ import { CreditCard, Check, Zap, Loader2, AlertCircle } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext";
 import toast from "react-hot-toast";
+import PRICING_PLANS from "../../../shared/pricing.json";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "", // falls back to relative /api
+  baseURL: import.meta.env.VITE_API_URL || "",
   withCredentials: true,
 });
 
@@ -254,36 +255,37 @@ const BillingView = () => {
               Popular
             </div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Starter Pack
+              {PRICING_PLANS.starter.name}
             </h3>
             <div className="mt-4 flex items-baseline text-4xl font-extrabold text-gray-900 dark:text-white">
-              ₹49
+              ₹{PRICING_PLANS.starter.price}
               <span className="ml-2 text-lg font-medium text-gray-400 line-through">
-                ₹99
+                ₹{PRICING_PLANS.starter.originalPrice}
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              Get 100 AI generation tokens.
+              Get {PRICING_PLANS.starter.tokens} AI generation tokens.
             </p>
             <ul className="mt-6 space-y-3">
-              <li className="flex gap-3 text-sm text-gray-600 dark:text-gray-300">
-                <Check className="text-[#ea580c] shrink-0" size={18} /> Limited
-                time 80% discount
-              </li>
-              <li className="flex gap-3 text-sm text-gray-600 dark:text-gray-300">
-                <Check className="text-[#ea580c] shrink-0" size={18} /> Valid
-                for all AI functionalities
-              </li>
+              {PRICING_PLANS.starter.features.map((feature, idx) => (
+                <li
+                  key={idx}
+                  className="flex gap-3 text-sm text-gray-600 dark:text-gray-300"
+                >
+                  <Check className="text-[#ea580c] shrink-0" size={18} />
+                  {feature.text}
+                </li>
+              ))}
             </ul>
             <button
-              onClick={() => handlePurchase("plan_100")}
-              disabled={loadingPlan === "plan_100"}
+              onClick={() => handlePurchase(PRICING_PLANS.starter.id)}
+              disabled={loadingPlan === PRICING_PLANS.starter.id}
               className="mt-8 w-full bg-[#ea580c] hover:bg-[#d24e0b] text-white py-2.5 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
             >
-              {loadingPlan === "plan_100" ? (
+              {loadingPlan === PRICING_PLANS.starter.id ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Purchase 100 Tokens"
+                `Purchase ${PRICING_PLANS.starter.tokens} Tokens`
               )}
             </button>
           </div>
@@ -294,36 +296,37 @@ const BillingView = () => {
               Best Value
             </div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Pro Pack
+              {PRICING_PLANS.pro.name}
             </h3>
             <div className="mt-4 flex items-baseline text-4xl font-extrabold text-gray-900 dark:text-white">
-              ₹99
+              ₹{PRICING_PLANS.pro.price}
               <span className="ml-2 text-lg font-medium text-gray-400 line-through">
-                ₹199
+                ₹{PRICING_PLANS.pro.originalPrice}
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              Bulk pack of 1000 AI generation tokens.
+              Get {PRICING_PLANS.pro.tokens} AI generation tokens.
             </p>
             <ul className="mt-6 space-y-3">
-              <li className="flex gap-3 text-sm text-gray-600 dark:text-gray-300">
-                <Check className="text-[#ea580c] shrink-0" size={18} /> Amazing
-                value for pros
-              </li>
-              <li className="flex gap-3 text-sm text-gray-600 dark:text-gray-300">
-                <Check className="text-[#ea580c] shrink-0" size={18} /> Premium
-                priority processing
-              </li>
+              {PRICING_PLANS.pro.features.map((feature, idx) => (
+                <li
+                  key={idx}
+                  className="flex gap-3 text-sm text-gray-600 dark:text-gray-300"
+                >
+                  <Check className="text-[#ea580c] shrink-0" size={18} />
+                  {feature.text}
+                </li>
+              ))}
             </ul>
             <button
-              onClick={() => handlePurchase("plan_1000")}
-              disabled={loadingPlan === "plan_1000"}
-              className="mt-8 w-full bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-gray-900 py-2.5 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              onClick={() => handlePurchase(PRICING_PLANS.pro.id)}
+              disabled={loadingPlan === PRICING_PLANS.pro.id}
+              className="mt-8 w-full bg-[#ea580c] hover:bg-[#d24e0b] text-white py-2.5 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
             >
-              {loadingPlan === "plan_1000" ? (
+              {loadingPlan === PRICING_PLANS.pro.id ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Purchase 1000 Tokens"
+                `Purchase ${PRICING_PLANS.pro.tokens} Tokens`
               )}
             </button>
           </div>
