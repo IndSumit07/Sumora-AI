@@ -134,6 +134,10 @@ export function useDeepgramVoiceAgent({
           // If the user interrupted the agent, wipe out any queued responses
           queuedBlobsRef.current = [];
           queuedTextRef.current = [];
+          
+          if (window.speakMode === "normal") {
+            window.speechTurnId = (window.speechTurnId || 0) + 1;
+          }
           break;
 
         case "UserStoppedSpeaking":
@@ -141,13 +145,13 @@ export function useDeepgramVoiceAgent({
           break;
 
         case "AgentStartedSpeaking":
-          if (!window.isSpacePressed) {
+          if (window.speakMode === "normal" || !window.isSpacePressed) {
             setIsAgentSpeaking(true);
           }
           break;
 
         case "AgentStoppedSpeaking":
-          if (!window.isSpacePressed) {
+          if (window.speakMode === "normal" || !window.isSpacePressed) {
             setIsAgentSpeaking(false);
           }
           break;
@@ -159,7 +163,7 @@ export function useDeepgramVoiceAgent({
           }
           // Agent's text response
           else if (message.role === "agent" || message.role === "assistant") {
-            if (window.isSpacePressed) {
+            if (window.speakMode !== "normal" && window.isSpacePressed) {
               queuedTextRef.current.push(message.content);
             } else {
               onAgentMessage?.(message.content);
@@ -221,9 +225,9 @@ export function useDeepgramVoiceAgent({
           if (ws.readyState === WebSocket.OPEN) {
             let inputData = e.inputBuffer.getChannelData(0);
 
-            // Mute the microphone input to Deepgram unless spacebar is pressed
+            // Mute the microphone input to Deepgram unless spacebar is pressed OR speakMode is 'normal'
             // We must send silent audio (zeros) instead of nothing to prevent Deepgram from timing out
-            if (!window.isSpacePressed) {
+            if (window.speakMode !== "normal" && !window.isSpacePressed) {
               inputData = new Float32Array(inputData.length);
             }
 
@@ -250,15 +254,16 @@ export function useDeepgramVoiceAgent({
               }
             }
 
-            // Mute the agent playback while spacebar is held down
+            // Mute the agent playback while spacebar is held down (only in 'hold' mode)
             if (
+              window.speakMode !== "normal" &&
               window.isSpacePressed &&
               playbackContextRef.current &&
               playbackContextRef.current.state === "running"
             ) {
               playbackContextRef.current.suspend();
             } else if (
-              !window.isSpacePressed &&
+              (window.speakMode === "normal" || !window.isSpacePressed) &&
               playbackContextRef.current &&
               playbackContextRef.current.state === "suspended"
             ) {

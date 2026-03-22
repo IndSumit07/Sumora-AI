@@ -109,6 +109,7 @@ export default function VoiceInterviewAgent({
   const [currentUserText, setCurrentUserText] = useState("");
   const [currentAgentText, setCurrentAgentText] = useState("");
   const transcriptEndRef = useRef(null);
+  const spacePressIdRef = useRef(0);
 
   const handleTranscript = useCallback(
     (text) => {
@@ -116,9 +117,25 @@ export default function VoiceInterviewAgent({
         hour: "2-digit",
         minute: "2-digit",
       });
-      setTranscript((prev) => [...prev, { role: "user", text, timestamp }]);
+      const currentTurnId = window.speakMode === "normal" ? window.speechTurnId : spacePressIdRef.current;
+      
+      setTranscript((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === "user" && last.pressId === currentTurnId) {
+          const updatedList = [...prev];
+          updatedList[updatedList.length - 1] = {
+            ...last,
+            text: last.text.trim() + " " + text.trim(),
+            timestamp,
+          };
+          onTranscriptUpdate?.(updatedList[updatedList.length - 1]);
+          return updatedList;
+        }
+        const newMsg = { role: "user", text, timestamp, pressId: currentTurnId };
+        onTranscriptUpdate?.(newMsg);
+        return [...prev, newMsg];
+      });
       setCurrentUserText("");
-      onTranscriptUpdate?.({ role: "user", text, timestamp });
     },
     [onTranscriptUpdate],
   );
@@ -129,9 +146,23 @@ export default function VoiceInterviewAgent({
         hour: "2-digit",
         minute: "2-digit",
       });
-      setTranscript((prev) => [...prev, { role: "agent", text, timestamp }]);
+      setTranscript((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === "agent") {
+          const updatedList = [...prev];
+          updatedList[updatedList.length - 1] = {
+            ...last,
+            text: last.text.trim() + " " + text.trim(),
+            timestamp,
+          };
+          onTranscriptUpdate?.(updatedList[updatedList.length - 1]);
+          return updatedList;
+        }
+        const newMsg = { role: "agent", text, timestamp };
+        onTranscriptUpdate?.(newMsg);
+        return [...prev, newMsg];
+      });
       setCurrentAgentText("");
-      onTranscriptUpdate?.({ role: "agent", text, timestamp });
     },
     [onTranscriptUpdate],
   );
@@ -160,6 +191,7 @@ export default function VoiceInterviewAgent({
 
   const startHolding = useCallback(() => {
     window.isSpacePressed = true;
+    spacePressIdRef.current += 1;
     setIsHoldingToSpeak(true);
   }, []);
 
@@ -169,6 +201,12 @@ export default function VoiceInterviewAgent({
     flushAgentQueues();
   }, [flushAgentQueues]);
 
+  const [speakMode, setSpeakMode] = useState("hold"); // "hold" or "normal"
+
+  useEffect(() => {
+    window.speakMode = speakMode;
+  }, [speakMode]);
+
   // Auto-connect on mount
   useEffect(() => {
     connect({
@@ -177,6 +215,7 @@ export default function VoiceInterviewAgent({
     });
 
     const handleKeyDown = (e) => {
+      if (window.speakMode === "normal") return;
       // Ignore space if typing in an input field (just in case)
       if (
         document.activeElement.tagName === "INPUT" ||
@@ -190,6 +229,7 @@ export default function VoiceInterviewAgent({
     };
 
     const handleKeyUp = (e) => {
+      if (window.speakMode === "normal") return;
       if (
         document.activeElement.tagName === "INPUT" ||
         document.activeElement.tagName === "TEXTAREA"
@@ -268,7 +308,7 @@ export default function VoiceInterviewAgent({
               {isConnected ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Connected • Speak naturally
+                  Connected • {speakMode === "hold" ? "Hold Space to Speak" : "Speak Normally"}
                 </>
               ) : isLoading ? (
                 <>
@@ -285,19 +325,45 @@ export default function VoiceInterviewAgent({
           </div>
         </div>
 
-        {/* End interview button */}
-        <button
-          onClick={handleEndInterview}
-          disabled={(!isConnected && !isLoading) || isEnding}
-          className="flex items-center gap-2 h-9 px-4 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isEnding ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <PhoneOff size={14} />
-          )}
-          {isEnding ? "Ending..." : "End Interview"}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Speak Mode Toggle */}
+          <div className="flex items-center bg-gray-100 dark:bg-[#1a1a1a] rounded-xl p-1">
+            <button
+              onClick={() => setSpeakMode("hold")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                speakMode === "hold"
+                  ? "bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              Hold to Speak
+            </button>
+            <button
+              onClick={() => setSpeakMode("normal")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                speakMode === "normal"
+                  ? "bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              Speak Normally
+            </button>
+          </div>
+
+          {/* End interview button */}
+          <button
+            onClick={handleEndInterview}
+            disabled={(!isConnected && !isLoading) || isEnding}
+            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isEnding ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <PhoneOff size={14} />
+            )}
+            {isEnding ? "Ending..." : "End Interview"}
+          </button>
+        </div>
       </div>
 
       {/* Conversation transcript */}
@@ -331,28 +397,37 @@ export default function VoiceInterviewAgent({
       </div>
 
       {/* Tips footer and Hold to speak button */}
-      <div className="flex-shrink-0 mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] flex justify-center pb-2">
-        {/* Mobile / Desktop Hold to Speak Button */}
-        <div
-          onMouseDown={startHolding}
-          onMouseUp={stopHolding}
-          onMouseLeave={stopHolding}
-          onTouchStart={(e) => {
-            e.preventDefault(); // Prevent scrolling/zooming when holding
-            startHolding();
-          }}
-          onTouchEnd={stopHolding}
-          onTouchCancel={stopHolding}
-          className="cursor-pointer select-none"
-        >
+      <div className="flex-shrink-0 mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] flex flex-col items-center justify-center pb-2">
+        {speakMode === "hold" ? (
+          /* Mobile / Desktop Hold to Speak Button */
           <div
-            className={`transition-transform duration-200 ${isHoldingToSpeak ? "scale-95" : "scale-100"}`}
+            onMouseDown={startHolding}
+            onMouseUp={stopHolding}
+            onMouseLeave={stopHolding}
+            onTouchStart={(e) => {
+              e.preventDefault(); // Prevent scrolling/zooming when holding
+              startHolding();
+            }}
+            onTouchEnd={stopHolding}
+            onTouchCancel={stopHolding}
+            className="cursor-pointer select-none"
           >
-            <LiquidMetalButton
-              label={isHoldingToSpeak ? "Listening..." : "Hold Space to Speek"}
-            />
+            <div
+              className={`transition-transform duration-200 ${isHoldingToSpeak ? "scale-95" : "scale-100"}`}
+            >
+              <LiquidMetalButton
+                label={isHoldingToSpeak ? "Listening..." : "Hold Space to Speak"}
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <VoiceWaveform active={isUserSpeaking} color="#3b82f6" />
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Listening continuously... Speak normally.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
