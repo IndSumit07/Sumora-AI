@@ -227,10 +227,10 @@ const HomeNavbar = memo(function HomeNavbar({
   return (
     <>
       <div className="fixed top-0 inset-x-0 z-50 flex justify-center py-4">
-        <header className="relative flex h-[70px] items-center px-6 md:px-12 w-full max-w-[1500px] mx-auto bg-transparent border-transparent">
-          <div className="flex-1 flex items-center gap-2.5 z-10 shrink-0">
-            <img src="/logo.png" alt="Sumora" className="h-12 w-auto" />
-            <span className="text-[19px] font-bold tracking-tight text-gray-900 dark:text-white">
+        <header className="relative flex h-[70px] items-center px-4 sm:px-6 md:px-12 w-full max-w-[1500px] mx-auto bg-transparent border-transparent">
+          <div className="flex-1 flex items-center gap-2 z-10 shrink-0 min-w-0">
+            <img src="/logo.png" alt="Sumora" className="h-10 sm:h-12 w-auto" />
+            <span className="hidden sm:block text-[19px] font-bold tracking-tight text-gray-900 dark:text-white whitespace-nowrap">
               Sumora AI
             </span>
           </div>
@@ -266,13 +266,13 @@ const HomeNavbar = memo(function HomeNavbar({
             </nav>
           </div>
 
-          <div className="flex-1 flex justify-end items-center gap-3 z-10">
-            <div className="flex items-center rounded-[30px] border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/80 p-1 mr-2 backdrop-blur-md gap-1">
+          <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3 z-10 min-w-0">
+            <div className="flex items-center rounded-[30px] border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/80 p-1 backdrop-blur-md gap-1">
               <button
                 type="button"
                 aria-label="Switch to light theme"
                 onClick={onSetThemeLight}
-                className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-colors ${theme === "light" ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+                className={`w-7 h-7 sm:w-7 sm:h-7 rounded-full flex items-center justify-center cursor-pointer transition-colors ${theme === "light" ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
               >
                 <Sun size={14} fill="currentColor" />
               </button>
@@ -287,7 +287,7 @@ const HomeNavbar = memo(function HomeNavbar({
             </div>
 
             {user ? (
-              <UserDropdown onManageAccount={onManageAccount} />
+              <UserDropdown onManageAccount={onManageAccount} compact />
             ) : (
               <div className="hidden md:flex items-center">
                 <LiquidMetalButton label="Login" onClick={onLogin} />

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { LogOut, Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
-const UserDropdown = ({ onManageAccount }) => {
+const UserDropdown = ({ onManageAccount, compact = false }) => {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -34,19 +34,23 @@ const UserDropdown = ({ onManageAccount }) => {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative z-10 flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-2 py-1.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+        className={`relative z-10 flex items-center rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 transition-colors hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer ${compact ? "gap-1.5 px-1.5 py-1" : "gap-2 px-2 py-1.5"}`}
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-[#ea580c] to-[#f97316] text-[11px] font-bold text-white shadow-sm">
+        <div
+          className={`flex items-center justify-center rounded-full bg-gradient-to-tr from-[#ea580c] to-[#f97316] text-[11px] font-bold text-white shadow-sm ${compact ? "h-8 w-8" : "h-7 w-7"}`}
+        >
           {user.username?.charAt(0).toUpperCase()}
         </div>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 pr-1 pl-1">
+        <span
+          className={`text-sm font-medium text-gray-800 dark:text-gray-200 pr-1 pl-1 ${compact ? "hidden sm:inline" : ""}`}
+        >
           {user.username}
         </span>
         <svg
           width="12"
           height="12"
           viewBox="0 0 12 12"
-          className={`text-gray-600 dark:text-gray-400 mr-2 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`text-gray-600 dark:text-gray-400 transition-transform duration-200 ${compact ? "mr-1" : "mr-2"} ${open ? "rotate-180" : ""}`}
         >
           <path
             d="M3 4.5L6 7.5L9 4.5"
