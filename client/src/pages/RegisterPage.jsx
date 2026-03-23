@@ -7,7 +7,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { Turnstile } from "react-turnstile";
 
 const INPUT =
-  "h-12 w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]";
+  "h-11 sm:h-12 w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] px-3 sm:px-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]";
 
 const RegisterPage = () => {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -88,7 +88,7 @@ const RegisterPage = () => {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5">
         <div className="flex justify-center flex-col gap-2">
           <button
             type="button"

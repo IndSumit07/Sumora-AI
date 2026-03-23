@@ -20,7 +20,7 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
   }, [isDark]);
 
   return (
-    <div className="min-h-screen flex items-stretch sm:items-center justify-center p-0 sm:p-8 bg-[#372314] dark:bg-[#1b0e05]">
+    <div className="min-h-screen flex items-stretch sm:items-center justify-center p-0 sm:p-8 bg-white dark:bg-[#0f0f0f]">
       {/* Floating theme toggle */}
       <button
         onClick={() => setIsDark((d) => !d)}
@@ -47,9 +47,9 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
         </div>
 
         {/* Right panel */}
-        <div className="flex-1 flex flex-col justify-center px-0 sm:px-8 lg:px-16 py-8 sm:py-12">
+        <div className="flex-1 flex flex-col justify-center px-3 sm:px-8 lg:px-16 py-5 sm:py-12">
           {/* Logo */}
-          <div className="flex items-center gap-2.5 mb-6">
+          <div className="flex items-center gap-2.5 mb-4 sm:mb-6">
             <img src="/logo.png" alt="Sumora" className="h-14 w-auto" />
             <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
               Sumora AI
@@ -57,14 +57,14 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
           </div>
 
           {/* Heading */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <h1 className="text-[2rem] font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">
               {heading}
             </h1>
             <p className="text-gray-400 text-sm">{subheading}</p>
           </div>
 
-          <div className="h-px bg-gray-100 dark:bg-[#222] w-full mb-8" />
+          <div className="h-px bg-gray-100 dark:bg-[#222] w-full mb-5 sm:mb-8" />
 
           {/* Page-specific form content */}
           {children}
