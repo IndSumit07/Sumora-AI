@@ -34,7 +34,11 @@ const RegisterPage = () => {
       await register(form.username, form.email, form.password, turnstileToken);
       navigate("/verify-otp", { state: { email: form.email } });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed");
+      const message =
+        err.response?.data?.reason && err.response?.data?.message
+          ? `${err.response.data.message} (${err.response.data.reason})`
+          : err.response?.data?.message || "Registration failed";
+      toast.error(message);
       setTurnstileToken("");
       turnstileRef.current?.reset();
     } finally {

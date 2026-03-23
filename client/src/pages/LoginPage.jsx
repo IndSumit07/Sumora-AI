@@ -49,7 +49,11 @@ const LoginPage = () => {
       await login(form.email, form.password, turnstileToken);
       navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      const message =
+        err.response?.data?.reason && err.response?.data?.message
+          ? `${err.response.data.message} (${err.response.data.reason})`
+          : err.response?.data?.message || "Login failed";
+      toast.error(message);
       setTurnstileToken("");
       turnstileRef.current?.reset();
     } finally {
