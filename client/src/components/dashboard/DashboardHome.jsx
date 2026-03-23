@@ -315,12 +315,6 @@ const DashboardHome = () => {
             </div>
           </div>
         </section>
-
-        {/* ── Footer ─────────────────────────────────────── */}
-        <footer className="text-center text-xs text-gray-400 dark:text-gray-600 pb-4">
-          © {new Date().getFullYear()} Sumora AI — Built with ❤️ using React,
-          LangChain &amp; Groq
-        </footer>
       </div>
     </div>
   );
