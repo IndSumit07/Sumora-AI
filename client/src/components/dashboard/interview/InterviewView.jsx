@@ -737,7 +737,40 @@ Start by introducing yourself and asking the first question.`;
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden flex-col md:flex-row">
+      {/* ── Mobile history panel ── */}
+      <section className="md:hidden border-b border-gray-200 dark:border-[#222] bg-white dark:bg-[#121212] p-3 space-y-3">
+        <button
+          type="button"
+          onClick={handleNew}
+          className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
+        >
+          <Plus size={14} /> New Interview
+        </button>
+
+        <div className="max-h-44 overflow-y-auto space-y-1">
+          {listLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 size={18} className="animate-spin text-[#ea580c]" />
+            </div>
+          ) : interviews.length === 0 ? (
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
+              No interviews yet.
+            </p>
+          ) : (
+            interviews.map((iv) => (
+              <InterviewCard
+                key={iv._id}
+                interview={iv}
+                active={selectedId === iv._id}
+                onClick={() => handleSelectInterview(iv._id)}
+                onDelete={handleDeleteInterview}
+              />
+            ))
+          )}
+        </div>
+      </section>
+
       {/* ── Left history panel ── */}
       <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
