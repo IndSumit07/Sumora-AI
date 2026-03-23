@@ -7,6 +7,7 @@ import {
   X,
   FileText,
   Calendar,
+  ChevronLeft,
   ChevronRight,
   Zap,
   Monitor,
@@ -804,6 +805,7 @@ export default function PrepareView() {
   // Selected session detail
   const [selectedSession, setSelectedSession] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(true);
 
   // Active session state
   const [interviewId, setInterviewId] = useState(null);
@@ -824,6 +826,12 @@ export default function PrepareView() {
       .catch(console.error)
       .finally(() => setListLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (["detail", "new-interview", "new-feedback"].includes(view)) {
+      setMobileHistoryOpen(false);
+    }
+  }, [view]);
 
   const handleSelectSession = async (id) => {
     setSelectedId(id);
@@ -983,38 +991,80 @@ Start by introducing the topic and asking the first question.`;
 
   return (
     <div className="flex h-full overflow-hidden flex-col md:flex-row">
-      {/* ── Mobile history panel ── */}
-      <section className="md:hidden border-b border-gray-200 dark:border-[#222] bg-white dark:bg-[#121212] p-3 space-y-3">
-        <button
-          type="button"
-          onClick={handleNew}
-          className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
-        >
-          <Plus size={14} /> New Session
-        </button>
+      {/* ── Mobile section sidebar (left drawer) ── */}
+      <div
+        className={[
+          "md:hidden fixed inset-0 bg-black/30 z-30 transition-opacity",
+          mobileHistoryOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+        ].join(" ")}
+        onClick={() => setMobileHistoryOpen(false)}
+      />
+      <aside
+        className={[
+          "md:hidden fixed top-11 bottom-0 left-0 z-40 w-[84%] max-w-xs",
+          "bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222]",
+          "transition-transform duration-200 flex flex-col",
+          mobileHistoryOpen ? "translate-x-0" : "-translate-x-full",
+        ].join(" ")}
+      >
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
+          <div className="flex items-center gap-2">
+            <BookOpen size={14} className="text-[#ea580c]" />
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              Prepare
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileHistoryOpen(false)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
 
-        <div className="max-h-44 overflow-y-auto space-y-1">
+        <div className="p-3 border-b border-gray-100 dark:border-[#222]">
+          <button
+            type="button"
+            onClick={() => {
+              setMobileHistoryOpen(false);
+              handleNew();
+            }}
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
+          >
+            <Plus size={14} /> New Session
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2">
           {listLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 size={18} className="animate-spin text-[#ea580c]" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 size={20} className="animate-spin text-[#ea580c]" />
             </div>
           ) : sessions.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
-              No sessions yet.
-            </p>
+            <div className="text-center py-10 px-3">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                No sessions yet.
+              </p>
+            </div>
           ) : (
-            sessions.map((iv) => (
-              <PrepareCard
-                key={iv._id}
-                interview={iv}
-                active={selectedId === iv._id}
-                onClick={() => handleSelectSession(iv._id)}
-                onDelete={handleDeleteSession}
-              />
-            ))
+            <div className="space-y-0.5">
+              {sessions.map((iv) => (
+                <PrepareCard
+                  key={iv._id}
+                  interview={iv}
+                  active={selectedId === iv._id}
+                  onClick={() => {
+                    setMobileHistoryOpen(false);
+                    handleSelectSession(iv._id);
+                  }}
+                  onDelete={handleDeleteSession}
+                />
+              ))}
+            </div>
           )}
         </div>
-      </section>
+      </aside>
 
       {/* ── Left history panel ── */}
       <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
@@ -1073,6 +1123,28 @@ Start by introducing the topic and asking the first question.`;
       <div
         className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
       >
+        <div className="md:hidden flex items-center gap-2 mb-3 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileHistoryOpen((v) => !v)}
+            className="h-9 px-3 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+          >
+            {mobileHistoryOpen ? (
+              <ChevronLeft size={14} />
+            ) : (
+              <ChevronRight size={14} />
+            )}
+            Sidebar
+          </button>
+          <button
+            type="button"
+            onClick={handleNew}
+            className="h-9 px-3 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors flex items-center gap-1.5"
+          >
+            <Plus size={13} /> New
+          </button>
+        </div>
+
         {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
         {view === "detail" &&

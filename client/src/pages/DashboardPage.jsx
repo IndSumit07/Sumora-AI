@@ -64,6 +64,10 @@ const DashboardPage = () => {
     }
   }, [isDark]);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
   const currentPage =
     NAV.find(({ to, exact }) =>
       exact ? location.pathname === to : location.pathname.startsWith(to),
