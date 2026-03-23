@@ -42,6 +42,42 @@ function safeJsonParse(str) {
   }
 }
 
+function extractJsonCandidate(raw) {
+  if (!raw || typeof raw !== "string") return null;
+
+  const cleaned = raw
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const start = cleaned.indexOf("{");
+  if (start < 0) return null;
+
+  let candidate = cleaned.slice(start);
+  const lastClose = candidate.lastIndexOf("}");
+  if (lastClose >= 0) {
+    candidate = candidate.slice(0, lastClose + 1);
+  } else {
+    // Some model responses are truncated and miss only the final brace.
+    candidate = `${candidate}}`;
+  }
+
+  // Remove trailing commas that frequently appear before } or ]
+  candidate = candidate.replace(/,\s*([}\]])/g, "$1");
+
+  return candidate;
+}
+
+function parseModelJson(raw) {
+  const candidate = extractJsonCandidate(raw);
+  if (!candidate) return null;
+  try {
+    return safeJsonParse(candidate);
+  } catch {
+    return null;
+  }
+}
+
 // ── Interview system prompt template ──────────────────────────────────────────
 const SYSTEM_TEMPLATE = `You are a professional technical interviewer conducting a real job interview.
 Interview the candidate based on their resume and the job description below.
@@ -387,14 +423,9 @@ Reply with ONLY valid JSON — no markdown fences, no extra text.
       ? response.content
       : JSON.stringify(response);
 
-  // Strip markdown code fences then extract first JSON object
-  const cleaned = raw
-    .replace(/```(?:json)?\s*/gi, "")
-    .replace(/```/g, "")
-    .trim();
-  const match = cleaned.match(/\{[\s\S]*\}/);
+  const parsed = parseModelJson(raw);
 
-  if (!match) {
+  if (!parsed) {
     console.warn("Model returned non-JSON analysis. Raw response:", raw);
     return {
       why: "The analysis system was unable to parse the model's reason.",
@@ -405,7 +436,6 @@ Reply with ONLY valid JSON — no markdown fences, no extra text.
     };
   }
 
-  const parsed = safeJsonParse(match[0]);
   return {
     why: parsed.why || "",
     structure: Array.isArray(parsed.structure) ? parsed.structure : [],
@@ -461,14 +491,9 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
       ? response.content
       : JSON.stringify(response);
 
-  // Strip markdown code fences if the model wrapped the JSON
-  const cleaned = raw
-    .replace(/```(?:json)?\s*/gi, "")
-    .replace(/```/g, "")
-    .trim();
-  const match = cleaned.match(/\{[\s\S]*\}/);
+  const parsed = parseModelJson(raw);
 
-  if (!match) {
+  if (!parsed) {
     console.warn("Model returned non-JSON feedback. Raw response:", raw);
     return {
       technicalScore: 0,
@@ -478,8 +503,6 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
       improvements: ["Check the raw answer logs if you need details"],
     };
   }
-
-  const parsed = safeJsonParse(match[0]);
 
   return {
     technicalScore: Math.min(

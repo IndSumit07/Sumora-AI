@@ -294,7 +294,7 @@ export async function answerInterviewController(req, res) {
  */
 export async function endInterviewController(req, res) {
   try {
-    const { interviewId, skipFeedback = false } = req.body;
+    const { interviewId, skipFeedback = false, conversationTurns } = req.body;
 
     if (!interviewId)
       return res.status(400).json({ message: "interviewId is required." });
@@ -314,6 +314,16 @@ export async function endInterviewController(req, res) {
 
     let feedback = null;
     let overallScore = 0;
+
+    // In interactive voice mode, client sends complete transcript at end.
+    // We normalize and persist it once to avoid per-turn write latency.
+    if (Array.isArray(conversationTurns) && conversationTurns.length > 0) {
+      const normalizedConversation =
+        normalizeConversationTurns(conversationTurns);
+      if (normalizedConversation.length > 0) {
+        interview.conversation = normalizedConversation;
+      }
+    }
 
     if (!skipFeedback) {
       // Generate structured feedback from the stored conversation
@@ -469,6 +479,53 @@ function stripHtml(str) {
     .replace(/&nbsp;/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function normalizeConversationTurns(turns = []) {
+  if (!Array.isArray(turns)) return [];
+
+  const merged = [];
+  for (const raw of turns) {
+    const role = (raw?.role || "").toString().trim().toLowerCase();
+    const text = (raw?.text || "").toString().trim();
+    if (!text) continue;
+    if (!["user", "agent", "assistant", "model"].includes(role)) continue;
+
+    const normalizedRole =
+      role === "assistant" || role === "model" ? "agent" : role;
+    const last = merged[merged.length - 1];
+    if (last && last.role === normalizedRole) {
+      last.text = `${last.text} ${text}`.trim();
+    } else {
+      merged.push({ role: normalizedRole, text });
+    }
+  }
+
+  const conversation = [];
+  let currentQuestion = "";
+
+  for (const msg of merged) {
+    if (msg.role === "agent") {
+      if (currentQuestion) {
+        conversation.push({ question: currentQuestion, answer: "" });
+      }
+      currentQuestion = msg.text;
+      continue;
+    }
+
+    if (currentQuestion) {
+      conversation.push({ question: currentQuestion, answer: msg.text });
+      currentQuestion = "";
+    } else {
+      conversation.push({ question: "Interviewer prompt", answer: msg.text });
+    }
+  }
+
+  if (currentQuestion) {
+    conversation.push({ question: currentQuestion, answer: "" });
+  }
+
+  return conversation;
 }
 
 // ── 9. Fetch job details from a LinkedIn URL ──────────────────────────────────
@@ -680,7 +737,7 @@ export async function voiceAgentResponseController(req, res) {
     if (!userMessage?.trim())
       return res.status(400).json({ message: "userMessage is required." });
 
-    const { interviewId, mode } = context;
+    const { interviewId } = context;
 
     if (!interviewId)
       return res
@@ -719,25 +776,11 @@ export async function voiceAgentResponseController(req, res) {
       return res.status(200).json({ response: firstQuestion });
     }
 
-    // Save the user's message to conversation
-    if (interview.conversation.length === 0) {
-      // First turn - no previous question yet
-      interview.conversation.push({ question: "", answer: userMessage.trim() });
-    } else {
-      // Update the last turn's answer
-      const lastIdx = interview.conversation.length - 1;
-      interview.conversation[lastIdx].answer = userMessage.trim();
-    }
-
     // Get AI response
     const nextQuestion = await sendAnswer(
       interview._id.toString(),
       userMessage.trim(),
     );
-
-    // Add new question turn
-    interview.conversation.push({ question: nextQuestion, answer: "" });
-    await interview.save();
 
     return res.status(200).json({ response: nextQuestion });
   } catch (error) {

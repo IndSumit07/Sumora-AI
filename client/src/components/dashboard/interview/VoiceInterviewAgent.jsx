@@ -109,6 +109,7 @@ export default function VoiceInterviewAgent({
   const [currentUserText, setCurrentUserText] = useState("");
   const [currentAgentText, setCurrentAgentText] = useState("");
   const transcriptEndRef = useRef(null);
+  const transcriptRef = useRef([]);
   const spacePressIdRef = useRef(0);
 
   const handleTranscript = useCallback(
@@ -131,6 +132,7 @@ export default function VoiceInterviewAgent({
             text: last.text.trim() + " " + text.trim(),
             timestamp,
           };
+          transcriptRef.current = updatedList;
           onTranscriptUpdate?.(updatedList[updatedList.length - 1]);
           return updatedList;
         }
@@ -140,8 +142,10 @@ export default function VoiceInterviewAgent({
           timestamp,
           pressId: currentTurnId,
         };
+        const updatedList = [...prev, newMsg];
+        transcriptRef.current = updatedList;
         onTranscriptUpdate?.(newMsg);
-        return [...prev, newMsg];
+        return updatedList;
       });
       setCurrentUserText("");
     },
@@ -163,12 +167,15 @@ export default function VoiceInterviewAgent({
             text: last.text.trim() + " " + text.trim(),
             timestamp,
           };
+          transcriptRef.current = updatedList;
           onTranscriptUpdate?.(updatedList[updatedList.length - 1]);
           return updatedList;
         }
         const newMsg = { role: "agent", text, timestamp };
+        const updatedList = [...prev, newMsg];
+        transcriptRef.current = updatedList;
         onTranscriptUpdate?.(newMsg);
-        return [...prev, newMsg];
+        return updatedList;
       });
       setCurrentAgentText("");
     },
@@ -278,26 +285,15 @@ export default function VoiceInterviewAgent({
     setIsEnding(true);
     disconnect();
 
-    if (context?.interviewMode === "interactive") {
-      try {
-        const data = await endInterview(interviewId, { skipFeedback: true });
-        toast.success(
-          "Interview completed. Use Analytic mode next time to generate detailed reports.",
-          { duration: 5000 },
-        );
-        onEnd?.(data.feedback, data.score);
-      } catch (error) {
-        console.error("Failed to complete interview:", error);
-        toast.error("Failed to complete interview.");
-        onEnd?.(null, 0);
-      } finally {
-        setIsEnding(false);
-      }
-      return;
-    }
-
     try {
-      const data = await endInterview(interviewId);
+      const conversationTurns = transcriptRef.current
+        .filter((m) => m?.text?.trim())
+        .map((m) => ({ role: m.role, text: m.text.trim() }));
+
+      const data = await endInterview(interviewId, {
+        conversationTurns,
+      });
+      toast.success("Interview completed. Analysis generated.");
       onEnd?.(data.feedback, data.score);
     } catch (error) {
       console.error("Failed to end interview:", error);
