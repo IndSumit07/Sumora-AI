@@ -18,12 +18,12 @@
   "starter": {
     "id": "plan_100",
     "name": "Starter Pack",
-    "price": 19,
+    "price": 49,
     "originalPrice": 99,
-    "tokens": 100,
+    "tokens": 200,
     "info": "Perfect for quick interview prep",
     "features": [
-      { "text": "100 AI Tokens" },
+      { "text": "200 AI Tokens" },
       { "text": "Advanced AI Feedback" },
       {
         "text": "Resume optimizer tool",
@@ -36,8 +36,8 @@
   "pro": {
     "id": "plan_1000",
     "name": "Pro Pack",
-    "price": 99,
-    "originalPrice": 299,
+    "price": 199,
+    "originalPrice": 499,
     "tokens": 1000,
     "info": "For serious job seekers",
     "features": [
