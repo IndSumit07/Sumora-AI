@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendOtpEmail, generateOtp } from "../services/brevo.service.js";
 import { OAuth2Client } from "google-auth-library";
+import { verifyTurnstileToken } from "../services/turnstile.service.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -41,7 +42,15 @@ function userPayload(user) {
  */
 export async function registerUserController(req, res) {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, turnstileToken } = req.body;
+
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    if (!turnstileResult.success) {
+      return res.status(400).json({
+        message: "Captcha verification failed. Please try again.",
+        reason: turnstileResult.error,
+      });
+    }
 
     // Remove unverified user with same email/username so they can re-register
     const existing = await User.findOne({ $or: [{ username }, { email }] });
@@ -142,7 +151,15 @@ export async function resendOtpController(req, res) {
  */
 export async function loginUserController(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
+
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    if (!turnstileResult.success) {
+      return res.status(400).json({
+        message: "Captcha verification failed. Please try again.",
+        reason: turnstileResult.error,
+      });
+    }
 
     const user = await User.findOne({ email }).select("+password");
     if (!user) {

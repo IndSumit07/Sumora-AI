@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import AuthLayout from "../components/AuthLayout";
 import { useGoogleLogin } from "@react-oauth/google";
+import { Turnstile } from "react-turnstile";
 
 const INPUT =
   "h-12 w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] px-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]";
 
 const LoginPage = () => {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const turnstileRef = useRef(null);
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
   const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
 
@@ -34,12 +38,20 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!turnstileToken) {
+      toast.error("Please complete the captcha");
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(form.email, form.password);
+      await login(form.email, form.password, turnstileToken);
       navigate("/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
     } finally {
       setLoading(false);
     }
@@ -152,9 +164,26 @@ const LoginPage = () => {
           />
         </div>
 
+        <div className="flex justify-center">
+          {siteKey ? (
+            <Turnstile
+              ref={turnstileRef}
+              sitekey={siteKey}
+              options={{ theme: "light" }}
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken("")}
+              onError={() => setTurnstileToken("")}
+            />
+          ) : (
+            <p className="text-xs text-red-500">
+              Missing captcha key. Set VITE_TURNSTILE_SITE_KEY in client env.
+            </p>
+          )}
+        </div>
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !turnstileToken || !siteKey}
           className="mt-2 h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white transition-all hover:bg-[#d24e0b] focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 flex items-center justify-center"
         >
           {loading ? (

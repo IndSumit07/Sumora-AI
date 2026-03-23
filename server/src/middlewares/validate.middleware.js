@@ -26,11 +26,9 @@ export function validateRegister(req, res, next) {
       .json({ message: "Username must be 3–30 characters" });
   }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return res
-      .status(400)
-      .json({
-        message: "Username can only contain letters, numbers, and underscores",
-      });
+    return res.status(400).json({
+      message: "Username can only contain letters, numbers, and underscores",
+    });
   }
 
   // Validate email
@@ -72,6 +70,17 @@ export function validateLogin(req, res, next) {
   }
 
   req.body.email = email;
+  next();
+}
+
+export function validateTurnstile(req, res, next) {
+  const { turnstileToken } = req.body;
+
+  if (!turnstileToken || typeof turnstileToken !== "string") {
+    return res.status(400).json({ message: "Captcha token is required" });
+  }
+
+  req.body.turnstileToken = trim(turnstileToken);
   next();
 }
 
@@ -188,9 +197,7 @@ export function validateUpdateProfile(req, res, next) {
   let { username } = req.body;
 
   if (!username) {
-    return res
-      .status(400)
-      .json({ message: "Provide a username to update" });
+    return res.status(400).json({ message: "Provide a username to update" });
   }
 
   username = trim(username).toLowerCase();
@@ -200,12 +207,9 @@ export function validateUpdateProfile(req, res, next) {
       .json({ message: "Username must be 3–30 characters" });
   }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Username can only contain letters, numbers, and underscores",
-      });
+    return res.status(400).json({
+      message: "Username can only contain letters, numbers, and underscores",
+    });
   }
   req.body.username = username;
 

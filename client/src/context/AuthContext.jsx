@@ -31,8 +31,13 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, []);
 
-  const register = async (username, email, password) => {
-    const { data } = await api.post("/register", { username, email, password });
+  const register = async (username, email, password, turnstileToken) => {
+    const { data } = await api.post("/register", {
+      username,
+      email,
+      password,
+      turnstileToken,
+    });
     toast.success("OTP sent to your email");
     return data;
   };
@@ -50,8 +55,12 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const login = async (email, password) => {
-    const { data } = await api.post("/login", { email, password });
+  const login = async (email, password, turnstileToken) => {
+    const { data } = await api.post("/login", {
+      email,
+      password,
+      turnstileToken,
+    });
     setUser(data.user);
     toast.success("Welcome back!");
     return data;

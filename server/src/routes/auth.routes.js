@@ -33,6 +33,7 @@ import {
   validateUpdateProfile,
   validateNewEmail,
   validateEmailChangeOtp,
+  validateTurnstile,
 } from "../middlewares/validate.middleware.js";
 
 const authRouter = express.Router();
@@ -42,12 +43,19 @@ authRouter.post("/google", authLimiter, googleLoginController);
 authRouter.post(
   "/register",
   authLimiter,
+  validateTurnstile,
   validateRegister,
   registerUserController,
 );
 authRouter.post("/verify-otp", authLimiter, validateOtp, verifyOtpController);
 authRouter.post("/resend-otp", otpLimiter, validateEmail, resendOtpController);
-authRouter.post("/login", authLimiter, validateLogin, loginUserController);
+authRouter.post(
+  "/login",
+  authLimiter,
+  validateTurnstile,
+  validateLogin,
+  loginUserController,
+);
 authRouter.post("/logout", logoutUserController);
 authRouter.post(
   "/forgot-password",
