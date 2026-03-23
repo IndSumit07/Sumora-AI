@@ -21,6 +21,7 @@ import {
   getLiveInterviewController,
   getAllLiveInterviewsController,
   deleteLiveInterviewController,
+  submitInterviewFeedbackController,
   analyzeQuestionController,
   fetchJobController,
   voiceAgentResponseController,
@@ -142,6 +143,14 @@ interviewRouter.post(
   apiLimiter,
   authMiddleware,
   voiceAgentResponseController,
+);
+
+// POST /api/interview/feedback — submit user star rating/comment after completion
+interviewRouter.post(
+  "/feedback",
+  apiLimiter,
+  authMiddleware,
+  submitInterviewFeedbackController,
 );
 
 export default interviewRouter;

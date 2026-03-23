@@ -882,6 +882,7 @@ Start by introducing yourself and asking the first question.`;
 
         {view === "new-feedback" && (
           <InterviewFeedback
+            interviewId={interviewId}
             feedback={feedback}
             score={score}
             onRetry={handleRetry}

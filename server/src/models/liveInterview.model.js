@@ -8,6 +8,15 @@ const conversationTurnSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const userFeedbackSchema = new mongoose.Schema(
+  {
+    rating: { type: Number, min: 1, max: 5, required: true },
+    comment: { type: String, trim: true, maxlength: 1000, default: "" },
+    submittedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const liveInterviewSchema = new mongoose.Schema(
   {
     // "job" = session-based live interview, "prepare" = standalone topic drill
@@ -36,6 +45,7 @@ const liveInterviewSchema = new mongoose.Schema(
     topic: { type: String, default: "", trim: true, maxlength: 200 },
     conversation: [conversationTurnSchema],
     feedback: { type: String, default: "" },
+    userFeedback: { type: userFeedbackSchema, default: null },
     score: { type: Number, default: 0, min: 0, max: 100 },
     status: { type: String, enum: ["active", "completed"], default: "active" },
     difficulty: {

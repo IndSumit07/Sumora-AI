@@ -124,6 +124,19 @@ export const InterviewProvider = ({ children }) => {
   };
 
   /**
+   * submitInterviewFeedback — saves user star rating/comment after interview end.
+   * @param {{ interviewId: string, rating: number, comment?: string }} payload
+   */
+  const submitInterviewFeedback = async ({ interviewId, rating, comment }) => {
+    const { data } = await api.post("/interview/feedback", {
+      interviewId,
+      rating,
+      comment,
+    });
+    return data;
+  };
+
+  /**
    * getAllLiveInterviews — returns a summary list of live interviews for the user.
    * @param {string} [mode] — optional "job" | "prepare" filter
    * @returns {Promise<Array>}
@@ -192,6 +205,7 @@ export const InterviewProvider = ({ children }) => {
         startPrepareInterview,
         answerInterview,
         endInterview,
+        submitInterviewFeedback,
         getAllLiveInterviews,
         getLiveInterviewById,
         analyzeQuestion,

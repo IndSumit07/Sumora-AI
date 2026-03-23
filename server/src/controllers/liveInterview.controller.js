@@ -353,6 +353,75 @@ export async function endInterviewController(req, res) {
   }
 }
 
+// ── 4b. Save user feedback after interview completion ────────────────────────
+
+/**
+ * POST /api/interview/feedback
+ * Body: { interviewId, rating, comment? }
+ *
+ * Allows users to submit a star rating and optional comment after ending
+ * a job or prepare interview.
+ */
+export async function submitInterviewFeedbackController(req, res) {
+  try {
+    const { interviewId, rating, comment = "" } = req.body;
+
+    if (!interviewId)
+      return res.status(400).json({ message: "interviewId is required." });
+    if (!mongoose.Types.ObjectId.isValid(interviewId))
+      return res.status(400).json({ message: "Invalid interviewId." });
+
+    const parsedRating = Number(rating);
+    if (
+      !Number.isInteger(parsedRating) ||
+      parsedRating < 1 ||
+      parsedRating > 5
+    ) {
+      return res
+        .status(400)
+        .json({ message: "rating must be an integer between 1 and 5." });
+    }
+
+    const safeComment = (comment || "").toString().trim();
+    if (safeComment.length > 1000) {
+      return res
+        .status(400)
+        .json({ message: "comment must be at most 1000 characters." });
+    }
+
+    const interview = await LiveInterview.findOne({
+      _id: interviewId,
+      user: req.user.id,
+    });
+    if (!interview)
+      return res.status(404).json({ message: "Interview not found." });
+
+    if (interview.status !== "completed") {
+      return res
+        .status(400)
+        .json({
+          message: "You can submit feedback only after interview completion.",
+        });
+    }
+
+    interview.userFeedback = {
+      rating: parsedRating,
+      comment: safeComment,
+      submittedAt: new Date(),
+    };
+
+    await interview.save();
+
+    return res.status(200).json({
+      message: "Feedback submitted successfully.",
+      userFeedback: interview.userFeedback,
+    });
+  } catch (error) {
+    console.error("Submit interview feedback error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 // ── 5. Get one live interview ─────────────────────────────────────────────────
 
 /**

@@ -22,7 +22,12 @@ import {
   TrendingUp,
   RotateCcw,
   Sparkles,
+  Star,
+  Loader2,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useInterview } from "../../../context/InterviewContext";
 
 // ── Score ring ────────────────────────────────────────────────────────────────
 
@@ -149,11 +154,13 @@ const overallConfig = (s) => {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function InterviewFeedback({
+  interviewId,
   feedback,
   score,
   onRetry,
   onAnalyze,
 }) {
+  const { submitInterviewFeedback, getLiveInterviewById } = useInterview();
   const { label, color, badgeClass } = overallConfig(score ?? 0);
 
   const techScore = feedback?.technicalScore ?? 0;
@@ -161,6 +168,62 @@ export default function InterviewFeedback({
   const strengths = feedback?.strengths || [];
   const weaknesses = feedback?.weaknesses || [];
   const improvements = feedback?.improvements || [];
+
+  const existingUserFeedback = feedback?.userFeedback || null;
+  const [rating, setRating] = useState(existingUserFeedback?.rating || 0);
+  const [comment, setComment] = useState(existingUserFeedback?.comment || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(Boolean(existingUserFeedback));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!interviewId) return () => {};
+
+    getLiveInterviewById(interviewId)
+      .then((iv) => {
+        if (!isMounted) return;
+        const saved = iv?.userFeedback;
+        if (!saved) return;
+
+        setRating(saved.rating || 0);
+        setComment(saved.comment || "");
+        setIsSubmitted(true);
+      })
+      .catch(() => {
+        // Ignore read errors here; user can still submit feedback manually.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [interviewId, getLiveInterviewById]);
+
+  const handleSubmitUserFeedback = async () => {
+    if (!interviewId) {
+      toast.error("Interview ID is missing.");
+      return;
+    }
+    if (!rating) {
+      toast.error("Please select a star rating.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await submitInterviewFeedback({
+        interviewId,
+        rating,
+        comment: comment.trim(),
+      });
+      setIsSubmitted(true);
+      toast.success("Thanks! Your feedback has been saved.");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to save feedback.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -238,6 +301,88 @@ export default function InterviewFeedback({
         items={improvements}
         emptyText="No specific improvement suggestions."
       />
+
+      {/* ── User feedback form ── */}
+      <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-[#222]">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Rate This Interview Experience
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Give a star rating and optional comment to help improve future
+            sessions.
+          </p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {isSubmitted && (
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              Your feedback is saved and will always appear with this report.
+            </p>
+          )}
+
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const active = star <= rating;
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => !isSubmitted && setRating(star)}
+                  disabled={isSubmitted}
+                  className="p-1 rounded-md disabled:cursor-default"
+                  title={`${star} star${star > 1 ? "s" : ""}`}
+                >
+                  <Star
+                    size={22}
+                    className={
+                      active
+                        ? "text-amber-400 fill-amber-400"
+                        : "text-gray-300 dark:text-gray-600"
+                    }
+                  />
+                </button>
+              );
+            })}
+            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+              {rating ? `${rating}/5` : "No rating selected"}
+            </span>
+          </div>
+
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            disabled={isSubmitted || isSubmitting}
+            maxLength={1000}
+            rows={4}
+            placeholder="Optional: Share what was useful or what could be better..."
+            className="w-full rounded-xl border border-gray-200 dark:border-[#333] px-4 py-3 text-sm text-gray-900 dark:text-gray-200 bg-transparent dark:bg-[#1e1e1e] outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] resize-none disabled:opacity-70"
+          />
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {comment.length}/1000 characters
+            </p>
+            <button
+              type="button"
+              onClick={handleSubmitUserFeedback}
+              disabled={isSubmitted || isSubmitting || !rating}
+              className="h-10 px-4 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Saving...
+                </>
+              ) : isSubmitted ? (
+                "Feedback Saved"
+              ) : (
+                "Submit Feedback"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* ── Action buttons ── */}
       <div className="flex flex-col sm:flex-row gap-3">

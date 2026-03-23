@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   TrendingUp,
+  Star,
   MessageSquare,
   Calendar,
   Sparkles,
@@ -475,6 +476,7 @@ export default function InterviewHistoryDetail({ interview }) {
   const strengths = feedback?.strengths || [];
   const weaknesses = feedback?.weaknesses || [];
   const improvements = feedback?.improvements || [];
+  const userFeedback = interview.userFeedback || null;
   const isCompleted = interview.status === "completed";
   const hasConversation = (interview.conversation?.length ?? 0) > 0;
 
@@ -610,6 +612,46 @@ export default function InterviewHistoryDetail({ interview }) {
             items={improvements}
             emptyText="No specific improvement suggestions."
           />
+
+          {userFeedback && (
+            <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-[#222]">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Your Submitted Feedback
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Saved on{" "}
+                  {new Date(userFeedback.submittedAt).toLocaleDateString(
+                    "en-US",
+                    { month: "short", day: "numeric", year: "numeric" },
+                  )}
+                </p>
+              </div>
+
+              <div className="p-5 space-y-3">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={18}
+                      className={
+                        star <= (userFeedback.rating || 0)
+                          ? "text-amber-400 fill-amber-400"
+                          : "text-gray-300 dark:text-gray-600"
+                      }
+                    />
+                  ))}
+                  <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    {userFeedback.rating}/5
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                  {userFeedback.comment?.trim() || "No comment added."}
+                </p>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
