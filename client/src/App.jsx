@@ -14,6 +14,7 @@ import InterviewView from "./components/dashboard/interview/InterviewView";
 import AnalyzeView from "./components/dashboard/analyze/AnalyzeView";
 import PrepareView from "./components/dashboard/prepare/PrepareView";
 import BillingView from "./components/dashboard/billing/BillingView";
+import SeoManager from "./components/SeoManager";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -38,6 +39,7 @@ const PublicRoute = ({ children }) => {
 const App = () => {
   return (
     <>
+      <SeoManager />
       <ServerWakeOverlay />
       <Routes>
         {/* Public */}
