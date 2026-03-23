@@ -4,11 +4,41 @@ import User from "../models/user.model.js";
 import Transaction from "../models/transaction.model.js";
 import PRICING_PLANS from "../config/pricing.json" with { type: "json" };
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_LIVE_API_KEY || process.env.RAZORPAY_KEY_ID, // Use env config
-  key_secret:
-    process.env.RAZORPAY_LIVE_API_SECRET || process.env.RAZORPAY_KEY_SECRET,
-});
+function getLiveRazorpayConfig() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    return { ok: false, message: "Live payment keys are not configured." };
+  }
+
+  if (!keyId.startsWith("rzp_live_")) {
+    return { ok: false, message: "Only Razorpay live keys are allowed." };
+  }
+
+  return {
+    ok: true,
+    keyId,
+    keySecret,
+  };
+}
+
+function getRazorpayClient() {
+  const config = getLiveRazorpayConfig();
+  if (!config.ok) {
+    return config;
+  }
+
+  return {
+    ok: true,
+    keyId: config.keyId,
+    keySecret: config.keySecret,
+    client: new Razorpay({
+      key_id: config.keyId,
+      key_secret: config.keySecret,
+    }),
+  };
+}
 
 // Store plans directly in mapping for strict validation
 const TOKEN_PLANS = {
@@ -29,6 +59,14 @@ const TOKEN_PLANS = {
  */
 export const createOrder = async (req, res) => {
   try {
+    const paymentGateway = getRazorpayClient();
+    if (!paymentGateway.ok) {
+      return res.status(503).json({
+        success: false,
+        message: paymentGateway.message,
+      });
+    }
+
     const { planId } = req.body;
     const userId = req.user.id;
 
@@ -53,7 +91,7 @@ export const createOrder = async (req, res) => {
       },
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await paymentGateway.client.orders.create(options);
 
     if (!order) {
       return res.status(500).json({
@@ -79,7 +117,7 @@ export const createOrder = async (req, res) => {
         orderId: order.id,
         amount: order.amount,
         currency: order.currency,
-        keyId: process.env.RAZORPAY_LIVE_API_KEY || process.env.RAZORPAY_KEY_ID, // Send publishable key to frontend
+        keyId: paymentGateway.keyId,
       },
     });
   } catch (error) {
@@ -96,6 +134,14 @@ export const createOrder = async (req, res) => {
  */
 export const verifyPayment = async (req, res) => {
   try {
+    const paymentGateway = getRazorpayClient();
+    if (!paymentGateway.ok) {
+      return res.status(503).json({
+        success: false,
+        message: paymentGateway.message,
+      });
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
     const userId = req.user.id;
@@ -124,12 +170,7 @@ export const verifyPayment = async (req, res) => {
     }
 
     // Checking signature
-    const hmac = crypto.createHmac(
-      "sha256",
-      process.env.RAZORPAY_LIVE_API_SECRET ||
-        process.env.RAZORPAY_KEY_SECRET ||
-        "test_secret",
-    );
+    const hmac = crypto.createHmac("sha256", paymentGateway.keySecret);
     hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
     const generatedSignature = hmac.digest("hex");
 
@@ -170,6 +211,14 @@ export const verifyPayment = async (req, res) => {
  */
 export const requestRefund = async (req, res) => {
   try {
+    const paymentGateway = getRazorpayClient();
+    if (!paymentGateway.ok) {
+      return res.status(503).json({
+        success: false,
+        message: paymentGateway.message,
+      });
+    }
+
     const { transactionId } = req.body; // Mongoose Transaction ObjectId
     const userId = req.user.id;
 
@@ -210,7 +259,7 @@ export const requestRefund = async (req, res) => {
 
     // Initiate Razorpay Refund
     try {
-      const refund = await razorpay.payments.refund(
+      const refund = await paymentGateway.client.payments.refund(
         transaction.razorpay_payment_id,
         {
           amount: transaction.amount * 100,
