@@ -20,7 +20,7 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
   }, [isDark]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-[#372314] dark:bg-[#1b0e05]">
+    <div className="min-h-screen flex items-stretch sm:items-center justify-center p-0 sm:p-8 bg-[#372314] dark:bg-[#1b0e05]">
       {/* Floating theme toggle */}
       <button
         onClick={() => setIsDark((d) => !d)}
@@ -30,7 +30,7 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
         {isDark ? <Sun size={17} /> : <Moon size={17} />}
       </button>
 
-      <div className="flex w-full max-w-[1000px] bg-white dark:bg-[#0f0f0f] rounded-[2rem] overflow-hidden shadow-2xl min-h-[600px]">
+      <div className="flex w-full max-w-none sm:max-w-[1000px] bg-white dark:bg-[#0f0f0f] rounded-none sm:rounded-[2rem] overflow-hidden shadow-none sm:shadow-2xl min-h-screen sm:min-h-[600px]">
         {/* Left panel — always dark */}
         <div className="hidden lg:flex w-1/2 bg-[#090909] m-3 rounded-[1.5rem] flex-col justify-between p-12 relative overflow-hidden">
           <div className="relative z-10">
@@ -47,7 +47,7 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
         </div>
 
         {/* Right panel */}
-        <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12">
+        <div className="flex-1 flex flex-col justify-center px-0 sm:px-8 lg:px-16 py-8 sm:py-12">
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-6">
             <img src="/logo.png" alt="Sumora" className="h-14 w-auto" />
