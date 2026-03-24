@@ -113,7 +113,6 @@ export default function VoiceInterviewAgent({
   const transcriptEndRef = useRef(null);
   const transcriptRef = useRef([]);
   const spacePressIdRef = useRef(0);
-  const hasConnectedRef = useRef(false);
 
   const normalizeText = useCallback(
     (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
@@ -282,9 +281,6 @@ export default function VoiceInterviewAgent({
 
   // Auto-connect on mount
   useEffect(() => {
-    if (hasConnectedRef.current) return;
-    hasConnectedRef.current = true;
-
     connect({
       systemPrompt,
       context: { ...context, interviewId },
