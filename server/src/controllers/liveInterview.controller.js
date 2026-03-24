@@ -13,8 +13,8 @@
  *   POST /api/interview/tts                 → Sarvam AI text-to-speech proxy
  */
 
-import { createRequire } from "module";
 import mongoose from "mongoose";
+import { PDFParse } from "pdf-parse";
 import LiveInterview from "../models/liveInterview.model.js";
 import User from "../models/user.model.js";
 import {
@@ -27,35 +27,61 @@ import {
   analyzeQuestion,
 } from "../services/interviewService.js";
 
-const _require = createRequire(import.meta.url);
-
 const COSTS = {
   LIVE_INTERVIEW: 20,
   PREPARE_INTERVIEW: 20,
 };
 
+const INTERVIEW_DURATION_MS = 30 * 60 * 1000;
+
 // ── Helper: parse PDF buffer via pdf-parse ────────────────────────────────────
 
 async function parsePdf(buffer) {
   try {
-    const mod = _require("pdf-parse");
-    const fn =
-      typeof mod === "function"
-        ? mod
-        : typeof mod?.default === "function"
-          ? mod.default
-          : typeof mod?.PDFParse === "function"
-            ? mod.PDFParse
-            : typeof mod?.pdf === "function"
-              ? mod.pdf
-              : null;
-    if (!fn) throw new Error("pdf-parse module not callable");
-    const result = await fn(buffer);
+    const parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
     return (result.text || "").trim().slice(0, 8000);
   } catch (err) {
     console.warn("PDF parse failed:", err.message);
     return "";
   }
+}
+
+function parseStoredFeedback(feedbackValue) {
+  if (!feedbackValue) return null;
+  if (typeof feedbackValue === "object") return feedbackValue;
+  try {
+    return JSON.parse(feedbackValue);
+  } catch {
+    return null;
+  }
+}
+
+function isInterviewExpired(interview) {
+  if (!interview?.createdAt) return false;
+  const startedAt = new Date(interview.createdAt).getTime();
+  if (!Number.isFinite(startedAt)) return false;
+  return Date.now() - startedAt >= INTERVIEW_DURATION_MS;
+}
+
+async function completeInterview(interview, { skipFeedback = false } = {}) {
+  let feedback = null;
+  let overallScore = 0;
+
+  if (!skipFeedback) {
+    feedback = await generateFeedback(interview.conversation || []);
+    overallScore = Math.round(
+      feedback.technicalScore * 6 + feedback.communicationScore * 4,
+    );
+  }
+
+  interview.feedback = feedback ? JSON.stringify(feedback) : "";
+  interview.score = overallScore;
+  interview.status = "completed";
+  await interview.save();
+
+  cleanupChain(interview._id.toString());
+  return { feedback, score: overallScore };
 }
 
 // ── 1. Upload & parse resume ──────────────────────────────────────────────────
@@ -148,6 +174,11 @@ export async function startInterviewController(req, res) {
     return res.status(201).json({
       interviewId: interview._id,
       question: firstQuestion,
+      startedAt: interview.createdAt,
+      endsAt: new Date(
+        new Date(interview.createdAt).getTime() + INTERVIEW_DURATION_MS,
+      ),
+      durationSeconds: INTERVIEW_DURATION_MS / 1000,
       tokensLeft: user.tokens,
     });
   } catch (error) {
@@ -212,6 +243,11 @@ export async function startPrepareController(req, res) {
     return res.status(201).json({
       interviewId: interview._id,
       question: firstQuestion,
+      startedAt: interview.createdAt,
+      endsAt: new Date(
+        new Date(interview.createdAt).getTime() + INTERVIEW_DURATION_MS,
+      ),
+      durationSeconds: INTERVIEW_DURATION_MS / 1000,
       tokensLeft: user.tokens,
     });
   } catch (error) {
@@ -252,6 +288,27 @@ export async function answerInterviewController(req, res) {
       return res
         .status(400)
         .json({ message: "This interview has already ended." });
+
+    if (isInterviewExpired(interview)) {
+      const trimmedAnswer = userAnswer.trim();
+      const lastIdx = interview.conversation.length - 1;
+      if (
+        trimmedAnswer &&
+        lastIdx >= 0 &&
+        !interview.conversation[lastIdx]?.answer?.trim()
+      ) {
+        interview.conversation[lastIdx].answer = trimmedAnswer;
+      }
+
+      const completed = await completeInterview(interview);
+      return res.status(200).json({
+        interviewEnded: true,
+        timedOut: true,
+        message:
+          "Interview time limit reached. The interview was ended automatically.",
+        ...completed,
+      });
+    }
 
     // Recover chain from DB if the server restarted and map was cleared
     try {
@@ -307,13 +364,12 @@ export async function endInterviewController(req, res) {
     });
     if (!interview)
       return res.status(404).json({ message: "Interview not found." });
-    if (interview.status === "completed")
-      return res
-        .status(400)
-        .json({ message: "This interview was already ended." });
-
-    let feedback = null;
-    let overallScore = 0;
+    if (interview.status === "completed") {
+      return res.status(200).json({
+        feedback: parseStoredFeedback(interview.feedback),
+        score: interview.score || 0,
+      });
+    }
 
     // In interactive voice mode, client sends complete transcript at end.
     // We normalize and persist it once to avoid per-turn write latency.
@@ -325,26 +381,8 @@ export async function endInterviewController(req, res) {
       }
     }
 
-    if (!skipFeedback) {
-      // Generate structured feedback from the stored conversation
-      feedback = await generateFeedback(interview.conversation);
-
-      // Weighted composite score (tech 60%, communication 40%), scaled to 0-100
-      overallScore = Math.round(
-        feedback.technicalScore * 6 + feedback.communicationScore * 4,
-      );
-    }
-
-    // Persist
-    interview.feedback = feedback ? JSON.stringify(feedback) : "";
-    interview.score = overallScore;
-    interview.status = "completed";
-    await interview.save();
-
-    // Clean up the in-memory chain
-    cleanupChain(interviewId);
-
-    return res.status(200).json({ feedback, score: overallScore });
+    const completed = await completeInterview(interview, { skipFeedback });
+    return res.status(200).json(completed);
   } catch (error) {
     console.error("End interview error:", error);
     return res
@@ -397,11 +435,9 @@ export async function submitInterviewFeedbackController(req, res) {
       return res.status(404).json({ message: "Interview not found." });
 
     if (interview.status !== "completed") {
-      return res
-        .status(400)
-        .json({
-          message: "You can submit feedback only after interview completion.",
-        });
+      return res.status(400).json({
+        message: "You can submit feedback only after interview completion.",
+      });
     }
 
     interview.userFeedback = {

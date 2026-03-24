@@ -18,6 +18,8 @@ export function useDeepgramVoiceAgent({
   const processorRef = useRef(null);
   const contextRef = useRef(null);
   const keepAliveIntervalRef = useRef(null);
+  const isConnectingRef = useRef(false);
+  const activeConnectionIdRef = useRef(0);
 
   const playbackContextRef = useRef(null);
   const nextPlayTimeRef = useRef(0);
@@ -26,6 +28,33 @@ export function useDeepgramVoiceAgent({
   // Queue to hold Agent responses while spacebar is held
   const queuedBlobsRef = useRef([]);
   const queuedTextRef = useRef([]);
+  const lastConversationTextRef = useRef({
+    user: { text: "", ts: 0 },
+    agent: { text: "", ts: 0 },
+  });
+
+  const normalizeText = useCallback(
+    (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
+    [],
+  );
+
+  const isDuplicateConversationText = useCallback(
+    (role, content) => {
+      const key = role === "user" ? "user" : "agent";
+      const normalized = normalizeText(content);
+      if (!normalized) return true;
+
+      const now = Date.now();
+      const previous = lastConversationTextRef.current[key];
+      if (previous.text === normalized && now - previous.ts < 4000) {
+        return true;
+      }
+
+      lastConversationTextRef.current[key] = { text: normalized, ts: now };
+      return false;
+    },
+    [normalizeText],
+  );
 
   // Play audio chunks from Deepgram
   const playAudioChunk = useCallback(async (blob) => {
@@ -99,9 +128,6 @@ export function useDeepgramVoiceAgent({
             data.response ||
             "I didn't understand that. Could you please repeat?";
 
-          // Display the agent's response on the UI since we generated it locally
-          onAgentMessage?.(aiResponse);
-
           // Send function result back to Deepgram
           wsRef.current?.send(
             JSON.stringify({
@@ -159,10 +185,12 @@ export function useDeepgramVoiceAgent({
         case "ConversationText":
           // User's transcribed speech
           if (message.role === "user") {
+            if (isDuplicateConversationText("user", message.content)) break;
             onTranscript?.(message.content);
           }
           // Agent's text response
           else if (message.role === "agent" || message.role === "assistant") {
+            if (isDuplicateConversationText("agent", message.content)) break;
             if (window.speakMode !== "normal" && window.isSpacePressed) {
               queuedTextRef.current.push(message.content);
             } else {
@@ -200,7 +228,13 @@ export function useDeepgramVoiceAgent({
           break;
       }
     },
-    [onTranscript, onAgentMessage, onError, handleFunctionCall],
+    [
+      onTranscript,
+      onAgentMessage,
+      onError,
+      handleFunctionCall,
+      isDuplicateConversationText,
+    ],
   );
 
   // Start streaming microphone audio to Deepgram
@@ -338,6 +372,8 @@ export function useDeepgramVoiceAgent({
   }, []);
 
   const disconnect = useCallback(() => {
+    activeConnectionIdRef.current += 1;
+    isConnectingRef.current = false;
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -347,6 +383,15 @@ export function useDeepgramVoiceAgent({
 
   const connect = useCallback(
     async ({ systemPrompt, context = {} }) => {
+      if (isConnectingRef.current) return;
+      if (
+        wsRef.current &&
+        (wsRef.current.readyState === WebSocket.OPEN ||
+          wsRef.current.readyState === WebSocket.CONNECTING)
+      ) {
+        return;
+      }
+
       const apiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
       if (!apiKey) {
         const errorMsg =
@@ -371,8 +416,11 @@ export function useDeepgramVoiceAgent({
         : "You are a professional, calm, soft-spoken, and friendly feminine AI interviewer. Speak very slowly, gently, and clearly. ALWAYS use short, concise sentences. Use ellipses (...) and commas frequently to mimic natural, human-like pauses. Keep responses conversational and brief. Never generate long paragraphs. Ask one question at a time and wait for the candidate to answer before moving on. Provide interactive, conversational feedback to their answers.";
 
       try {
+        isConnectingRef.current = true;
         setIsLoading(true);
         contextRef.current = context;
+        const connectionId = activeConnectionIdRef.current + 1;
+        activeConnectionIdRef.current = connectionId;
 
         // Request microphone access
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -385,6 +433,10 @@ export function useDeepgramVoiceAgent({
         wsRef.current = ws;
 
         ws.onopen = () => {
+          if (connectionId !== activeConnectionIdRef.current) {
+            ws.close();
+            return;
+          }
           console.log("[Deepgram Voice Agent] Connected");
 
           // Send initial configuration
@@ -451,6 +503,7 @@ export function useDeepgramVoiceAgent({
 
           setIsConnected(true);
           setIsLoading(false);
+          isConnectingRef.current = false;
 
           // Start pinging KeepAlive every 5 seconds to prevent timeout
           keepAliveIntervalRef.current = setInterval(() => {
@@ -463,6 +516,8 @@ export function useDeepgramVoiceAgent({
         };
 
         ws.onmessage = (event) => {
+          if (connectionId !== activeConnectionIdRef.current) return;
+
           if (event.data instanceof Blob) {
             if (window.isSpacePressed) {
               queuedBlobsRef.current.push(event.data);
@@ -481,21 +536,26 @@ export function useDeepgramVoiceAgent({
         };
 
         ws.onerror = (error) => {
+          if (connectionId !== activeConnectionIdRef.current) return;
           console.error("[Deepgram Voice Agent] Error:", error);
           onError?.("Voice agent connection error");
           setIsLoading(false);
+          isConnectingRef.current = false;
         };
 
         ws.onclose = () => {
+          if (connectionId !== activeConnectionIdRef.current) return;
           console.log("[Deepgram Voice Agent] Disconnected");
           setIsConnected(false);
           setIsLoading(false);
+          isConnectingRef.current = false;
           cleanup();
         };
       } catch (err) {
         console.error("[Deepgram Voice Agent] Setup error:", err);
         onError?.(err.message || "Failed to start voice agent");
         setIsLoading(false);
+        isConnectingRef.current = false;
       }
     },
     [

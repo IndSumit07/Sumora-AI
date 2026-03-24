@@ -206,7 +206,7 @@ const SetupForm = ({ onStarted }) => {
     }
     setStartLoading(true);
     try {
-      const { interviewId, question } = await startInterview({
+      const { interviewId, question, startedAt } = await startInterview({
         role: role.trim(),
         jobDescription: jobDescription.trim(),
         resumeText,
@@ -219,6 +219,7 @@ const SetupForm = ({ onStarted }) => {
         jobDescription: jobDescription.trim(),
         resumeText,
         difficulty,
+        startedAt,
         mode: interviewMode, // Add mode to track if voice or text
       });
     } catch (err) {
@@ -575,6 +576,7 @@ export default function InterviewView() {
   const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
+  const [sessionStartedAt, setSessionStartedAt] = useState(null);
   const [interviewMode, setInterviewMode] = useState("analytic"); // "voice" | "text"
   const [voiceContext, setVoiceContext] = useState(null); // For voice agent system prompt & context
 
@@ -616,6 +618,7 @@ export default function InterviewView() {
     setHistory([]);
     setFeedback(null);
     setScore(0);
+    setSessionStartedAt(null);
   };
 
   const handleStarted = ({
@@ -626,9 +629,11 @@ export default function InterviewView() {
     resumeText,
     difficulty,
     mode,
+    startedAt,
   }) => {
     setInterviewId(id);
     setInterviewMode(mode || "analytic");
+    setSessionStartedAt(startedAt || new Date().toISOString());
 
     if (mode === "interactive") {
       // Setup voice agent context
@@ -920,6 +925,8 @@ Start by introducing yourself and asking the first question.`;
                 interviewId={interviewId}
                 systemPrompt={voiceContext.systemPrompt}
                 context={voiceContext.context}
+                startedAt={sessionStartedAt}
+                durationMs={30 * 60 * 1000}
                 onTranscriptUpdate={(msg) => {
                   // Optional: track transcript for saving
                   console.log("[Transcript]", msg);
@@ -944,6 +951,8 @@ Start by introducing yourself and asking the first question.`;
                   currentQuestion={currentQuestion}
                   questionIndex={questionIndex}
                   history={history}
+                  startedAt={sessionStartedAt}
+                  durationMs={30 * 60 * 1000}
                   onAnswer={handleAnswer}
                   onEnd={handleEnd}
                 />

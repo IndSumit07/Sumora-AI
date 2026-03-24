@@ -475,6 +475,12 @@ Interview transcript:
 ${transcript || "No answers were recorded."}
 
 Produce a structured performance evaluation.
+CRITICAL SCORING RULES:
+- Evaluate primarily based on the candidate's answer content, reasoning, relevance, and technical understanding.
+- Treat interviewer questions only as context; do not score interviewer wording or style.
+- Ignore minor grammar mistakes, filler words, and small speech-to-text errors.
+- Do not penalize the candidate for pronunciation artifacts or sentence fragments common in spoken answers.
+- If an answer is unclear, infer intent conservatively from technical signals before scoring.
 Respond with ONLY valid JSON — no markdown, no code fences, no extra text before or after.
 
 {

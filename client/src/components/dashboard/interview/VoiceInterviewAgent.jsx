@@ -1,13 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Mic,
-  MicOff,
   PhoneOff,
-  Volume2,
   Loader2,
   Radio,
   MessageSquare,
-  Zap,
+  Clock3,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useDeepgramVoiceAgent } from "../../../hooks/useDeepgramVoiceAgent";
@@ -99,11 +97,15 @@ export default function VoiceInterviewAgent({
   interviewId,
   systemPrompt,
   context,
+  startedAt,
+  durationMs = 30 * 60 * 1000,
   onTranscriptUpdate,
   onEnd,
 }) {
   const { endInterview } = useInterview();
   const [isEnding, setIsEnding] = useState(false);
+  const [remainingMs, setRemainingMs] = useState(durationMs);
+  const autoEndingRef = useRef(false);
 
   const [transcript, setTranscript] = useState([]);
   const [currentUserText, setCurrentUserText] = useState("");
@@ -111,9 +113,37 @@ export default function VoiceInterviewAgent({
   const transcriptEndRef = useRef(null);
   const transcriptRef = useRef([]);
   const spacePressIdRef = useRef(0);
+  const hasConnectedRef = useRef(false);
+
+  const normalizeText = useCallback(
+    (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
+    [],
+  );
+
+  const mergeIncrementalText = useCallback(
+    (existingText, incomingText) => {
+      const existing = (existingText || "").trim();
+      const incoming = (incomingText || "").trim();
+      if (!incoming) return existing;
+      if (!existing) return incoming;
+
+      const normalizedExisting = normalizeText(existing);
+      const normalizedIncoming = normalizeText(incoming);
+
+      if (normalizedExisting === normalizedIncoming) return existing;
+      if (normalizedIncoming.startsWith(normalizedExisting)) return incoming;
+      if (normalizedExisting.startsWith(normalizedIncoming)) return existing;
+
+      return `${existing} ${incoming}`.trim();
+    },
+    [normalizeText],
+  );
 
   const handleTranscript = useCallback(
     (text) => {
+      const incoming = (text || "").trim();
+      if (!incoming) return;
+
       const timestamp = new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -126,10 +156,14 @@ export default function VoiceInterviewAgent({
       setTranscript((prev) => {
         const last = prev[prev.length - 1];
         if (last && last.role === "user" && last.pressId === currentTurnId) {
+          const mergedText = mergeIncrementalText(last.text, incoming);
+          if (normalizeText(mergedText) === normalizeText(last.text)) {
+            return prev;
+          }
           const updatedList = [...prev];
           updatedList[updatedList.length - 1] = {
             ...last,
-            text: last.text.trim() + " " + text.trim(),
+            text: mergedText,
             timestamp,
           };
           transcriptRef.current = updatedList;
@@ -138,7 +172,7 @@ export default function VoiceInterviewAgent({
         }
         const newMsg = {
           role: "user",
-          text,
+          text: incoming,
           timestamp,
           pressId: currentTurnId,
         };
@@ -149,11 +183,14 @@ export default function VoiceInterviewAgent({
       });
       setCurrentUserText("");
     },
-    [onTranscriptUpdate],
+    [mergeIncrementalText, normalizeText, onTranscriptUpdate],
   );
 
   const handleAgentMessage = useCallback(
     (text) => {
+      const incoming = (text || "").trim();
+      if (!incoming) return;
+
       const timestamp = new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -161,17 +198,21 @@ export default function VoiceInterviewAgent({
       setTranscript((prev) => {
         const last = prev[prev.length - 1];
         if (last && last.role === "agent") {
+          const mergedText = mergeIncrementalText(last.text, incoming);
+          if (normalizeText(mergedText) === normalizeText(last.text)) {
+            return prev;
+          }
           const updatedList = [...prev];
           updatedList[updatedList.length - 1] = {
             ...last,
-            text: last.text.trim() + " " + text.trim(),
+            text: mergedText,
             timestamp,
           };
           transcriptRef.current = updatedList;
           onTranscriptUpdate?.(updatedList[updatedList.length - 1]);
           return updatedList;
         }
-        const newMsg = { role: "agent", text, timestamp };
+        const newMsg = { role: "agent", text: incoming, timestamp };
         const updatedList = [...prev, newMsg];
         transcriptRef.current = updatedList;
         onTranscriptUpdate?.(newMsg);
@@ -179,7 +220,7 @@ export default function VoiceInterviewAgent({
       });
       setCurrentAgentText("");
     },
-    [onTranscriptUpdate],
+    [mergeIncrementalText, normalizeText, onTranscriptUpdate],
   );
 
   const handleError = useCallback((error) => {
@@ -218,12 +259,32 @@ export default function VoiceInterviewAgent({
 
   const [speakMode, setSpeakMode] = useState(window.speakMode || "hold"); // "hold" or "normal"
 
+  const formatRemaining = useCallback((ms) => {
+    const safeMs = Math.max(0, ms);
+    const totalSeconds = Math.ceil(safeMs / 1000);
+    const mins = Math.floor(totalSeconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (totalSeconds % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  }, []);
+
+  const computeRemainingMs = useCallback(() => {
+    if (!startedAt) return durationMs;
+    const started = new Date(startedAt).getTime();
+    if (!Number.isFinite(started)) return durationMs;
+    return Math.max(0, durationMs - (Date.now() - started));
+  }, [durationMs, startedAt]);
+
   useEffect(() => {
     window.speakMode = speakMode;
   }, [speakMode]);
 
   // Auto-connect on mount
   useEffect(() => {
+    if (hasConnectedRef.current) return;
+    hasConnectedRef.current = true;
+
     connect({
       systemPrompt,
       context: { ...context, interviewId },
@@ -280,29 +341,52 @@ export default function VoiceInterviewAgent({
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript]);
 
-  const handleEndInterview = useCallback(async () => {
+  const handleEndInterview = useCallback(
+    async ({ autoEnded = false } = {}) => {
+      if (isEnding || autoEndingRef.current) return;
+      autoEndingRef.current = true;
+      setIsEnding(true);
+      disconnect();
+
+      try {
+        const conversationTurns = transcriptRef.current
+          .filter((m) => m?.text?.trim())
+          .map((m) => ({ role: m.role, text: m.text.trim() }));
+
+        const data = await endInterview(interviewId, {
+          conversationTurns,
+        });
+        if (autoEnded) {
+          toast("30-minute limit reached. Interview ended automatically.");
+        } else {
+          toast.success("Interview completed. Analysis generated.");
+        }
+        onEnd?.(data.feedback, data.score);
+      } catch (error) {
+        console.error("Failed to end interview:", error);
+        toast.error("Failed to generate report.");
+        onEnd?.(null, null);
+      } finally {
+        autoEndingRef.current = false;
+        setIsEnding(false);
+      }
+    },
+    [disconnect, endInterview, interviewId, onEnd, isEnding],
+  );
+
+  useEffect(() => {
+    setRemainingMs(computeRemainingMs());
+    const interval = setInterval(() => {
+      setRemainingMs(computeRemainingMs());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [computeRemainingMs]);
+
+  useEffect(() => {
+    if (remainingMs > 0) return;
     if (isEnding) return;
-    setIsEnding(true);
-    disconnect();
-
-    try {
-      const conversationTurns = transcriptRef.current
-        .filter((m) => m?.text?.trim())
-        .map((m) => ({ role: m.role, text: m.text.trim() }));
-
-      const data = await endInterview(interviewId, {
-        conversationTurns,
-      });
-      toast.success("Interview completed. Analysis generated.");
-      onEnd?.(data.feedback, data.score);
-    } catch (error) {
-      console.error("Failed to end interview:", error);
-      toast.error("Failed to generate report.");
-      onEnd?.(null, null);
-    } finally {
-      setIsEnding(false);
-    }
-  }, [disconnect, endInterview, interviewId, onEnd, isEnding, context]);
+    handleEndInterview({ autoEnded: true });
+  }, [remainingMs, isEnding, handleEndInterview]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -341,6 +425,9 @@ export default function VoiceInterviewAgent({
         </div>
 
         <div className="flex items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gray-100 dark:bg-[#1a1a1a] text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <Clock3 size={12} /> {formatRemaining(remainingMs)}
+          </span>
           {/* Speak Mode Toggle */}
           <div className="flex items-center bg-gray-100 dark:bg-[#1a1a1a] rounded-xl p-1">
             <button
@@ -367,7 +454,7 @@ export default function VoiceInterviewAgent({
 
           {/* End interview button */}
           <button
-            onClick={handleEndInterview}
+            onClick={() => handleEndInterview()}
             disabled={(!isConnected && !isLoading) || isEnding}
             className="flex items-center gap-2 h-9 px-4 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

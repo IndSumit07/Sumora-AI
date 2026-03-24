@@ -23,6 +23,7 @@ import {
   VolumeX,
   Loader2,
   MessageSquare,
+  Clock3,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
@@ -85,6 +86,8 @@ export default function InterviewChat({
   currentQuestion,
   questionIndex,
   history,
+  startedAt,
+  durationMs = 30 * 60 * 1000,
   onAnswer,
   onEnd,
 }) {
@@ -104,6 +107,25 @@ export default function InterviewChat({
   const recorderRef = useRef(null); // MediaRecorder
   const textareaRef = useRef(null);
   const baseAnswerRef = useRef(""); // finalized transcript so far
+  const autoEndingRef = useRef(false);
+  const [remainingMs, setRemainingMs] = useState(durationMs);
+
+  const formatRemaining = useCallback((ms) => {
+    const safeMs = Math.max(0, ms);
+    const totalSeconds = Math.ceil(safeMs / 1000);
+    const mins = Math.floor(totalSeconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (totalSeconds % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  }, []);
+
+  const computeRemainingMs = useCallback(() => {
+    if (!startedAt) return durationMs;
+    const started = new Date(startedAt).getTime();
+    if (!Number.isFinite(started)) return durationMs;
+    return Math.max(0, durationMs - (Date.now() - started));
+  }, [durationMs, startedAt]);
 
   // Auto-play the question when it changes
   useEffect(() => {
@@ -205,6 +227,14 @@ export default function InterviewChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    setRemainingMs(computeRemainingMs());
+    const interval = setInterval(() => {
+      setRemainingMs(computeRemainingMs());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [computeRemainingMs]);
+
   const toggleRecording = useCallback(() => {
     if (isRecording) {
       stopRec();
@@ -227,6 +257,11 @@ export default function InterviewChat({
     setSubmitLoading(true);
     try {
       const data = await answerInterview(interviewId, answer.trim());
+      if (data?.interviewEnded) {
+        toast("30-minute limit reached. Interview ended automatically.");
+        onEnd(data.feedback, data.score);
+        return;
+      }
       onAnswer(data.question, answer.trim());
       if (wasRecording) setTimeout(() => startRec(), 200);
     } catch (err) {
@@ -237,23 +272,47 @@ export default function InterviewChat({
     }
   };
 
-  const handleEndInterview = async () => {
-    stopRec();
-    stop();
+  const handleEndInterview = useCallback(
+    async ({ autoEnded = false } = {}) => {
+      if (autoEndingRef.current || endLoading) return;
+      autoEndingRef.current = true;
+      stopRec();
+      stop();
 
-    setEndLoading(true);
-    try {
-      if (answer.trim()) {
-        await answerInterview(interviewId, answer.trim());
+      setEndLoading(true);
+      try {
+        if (answer.trim()) {
+          await answerInterview(interviewId, answer.trim());
+        }
+        const data = await endInterview(interviewId);
+        if (autoEnded) {
+          toast("30-minute limit reached. Interview ended automatically.");
+        }
+        onEnd(data.feedback, data.score);
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Failed to end interview.");
+      } finally {
+        autoEndingRef.current = false;
+        setEndLoading(false);
       }
-      const data = await endInterview(interviewId);
-      onEnd(data.feedback, data.score);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to end interview.");
-    } finally {
-      setEndLoading(false);
-    }
-  };
+    },
+    [
+      answer,
+      endInterview,
+      endLoading,
+      interviewId,
+      onEnd,
+      stop,
+      stopRec,
+      answerInterview,
+    ],
+  );
+
+  useEffect(() => {
+    if (remainingMs > 0) return;
+    if (submitLoading || endLoading) return;
+    handleEndInterview({ autoEnded: true });
+  }, [remainingMs, submitLoading, endLoading, handleEndInterview]);
 
   const handleReplayQuestion = () => speak(currentQuestion);
 
@@ -275,6 +334,9 @@ export default function InterviewChat({
             </span>
 
             <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-semibold tracking-wide text-gray-200">
+                <Clock3 size={11} /> {formatRemaining(remainingMs)}
+              </span>
               {!isSynthesizing && (
                 <>
                   {isSpeaking ? (
@@ -405,7 +467,7 @@ export default function InterviewChat({
 
         <button
           type="button"
-          onClick={handleEndInterview}
+          onClick={() => handleEndInterview()}
           disabled={submitLoading || endLoading}
           className="h-12 px-5 rounded-xl bg-gray-100 dark:bg-[#222] text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:bg-gray-200 dark:hover:bg-[#2a2a2a] focus:outline-none disabled:opacity-50 flex items-center justify-center gap-2 flex-shrink-0"
         >

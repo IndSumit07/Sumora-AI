@@ -398,7 +398,7 @@ const SetupForm = ({ onStarted }) => {
     const topicString = allTopics.join(", ");
     setStartLoading(true);
     try {
-      const { interviewId, question } = await startPrepareInterview({
+      const { interviewId, question, startedAt } = await startPrepareInterview({
         subject: subjectString,
         topic: topicString,
         resumeText,
@@ -410,6 +410,7 @@ const SetupForm = ({ onStarted }) => {
         subject: subjectString,
         topic: topicString,
         difficulty,
+        startedAt,
         mode: interviewMode,
         resumeText,
       });
@@ -814,6 +815,7 @@ export default function PrepareView() {
   const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
+  const [sessionStartedAt, setSessionStartedAt] = useState(null);
   // Track subject/topic for breadcrumb
   const [activeSubject, setActiveSubject] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
@@ -857,6 +859,7 @@ export default function PrepareView() {
     setHistory([]);
     setFeedback(null);
     setScore(0);
+    setSessionStartedAt(null);
     setActiveSubject("");
     setActiveTopic("");
   };
@@ -869,9 +872,11 @@ export default function PrepareView() {
     difficulty,
     mode,
     resumeText,
+    startedAt,
   }) => {
     setInterviewId(id);
     setInterviewMode(mode || "analytic");
+    setSessionStartedAt(startedAt || new Date().toISOString());
     setActiveSubject(subject);
     setActiveTopic(topic);
 
@@ -1180,6 +1185,8 @@ Start by introducing the topic and asking the first question.`;
                   interviewId={interviewId}
                   systemPrompt={voiceContext.systemPrompt}
                   context={voiceContext.context}
+                  startedAt={sessionStartedAt}
+                  durationMs={30 * 60 * 1000}
                   onEnd={handleEnd}
                 />
               ) : (
@@ -1188,6 +1195,8 @@ Start by introducing the topic and asking the first question.`;
                   currentQuestion={currentQuestion}
                   questionIndex={questionIndex}
                   history={history}
+                  startedAt={sessionStartedAt}
+                  durationMs={30 * 60 * 1000}
                   onAnswer={handleAnswer}
                   onEnd={handleEnd}
                 />
