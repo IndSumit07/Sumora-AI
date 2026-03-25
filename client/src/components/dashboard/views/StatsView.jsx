@@ -94,7 +94,9 @@ const FeatureSummaryCard = ({ title, avgValue, maxValue, total, icon }) => {
   return (
     <div className="rounded-2xl border border-gray-200/80 dark:border-[#2a2a2a] bg-gradient-to-br from-white to-orange-50/40 dark:from-[#171717] dark:to-[#111111] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+          {title}
+        </p>
         <div className="h-8 w-8 rounded-lg bg-[#ea580c]/10 text-[#ea580c] flex items-center justify-center">
           <IconComponent size={15} />
         </div>
@@ -102,15 +104,21 @@ const FeatureSummaryCard = ({ title, avgValue, maxValue, total, icon }) => {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-white/80 dark:bg-[#1f1f1f] py-2">
           <p className="text-[10px] text-gray-500 dark:text-gray-400">Avg</p>
-          <p className={`text-sm font-bold ${scoreTone(avgValue)}`}>{avgValue}%</p>
+          <p className={`text-sm font-bold ${scoreTone(avgValue)}`}>
+            {avgValue}%
+          </p>
         </div>
         <div className="rounded-lg bg-white/80 dark:bg-[#1f1f1f] py-2">
           <p className="text-[10px] text-gray-500 dark:text-gray-400">Max</p>
-          <p className={`text-sm font-bold ${scoreTone(maxValue)}`}>{maxValue}%</p>
+          <p className={`text-sm font-bold ${scoreTone(maxValue)}`}>
+            {maxValue}%
+          </p>
         </div>
         <div className="rounded-lg bg-white/80 dark:bg-[#1f1f1f] py-2">
           <p className="text-[10px] text-gray-500 dark:text-gray-400">Total</p>
-          <p className="text-sm font-bold text-gray-900 dark:text-white">{total}</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">
+            {total}
+          </p>
         </div>
       </div>
     </div>
@@ -243,8 +251,10 @@ const StatsView = () => {
         prepareDone: completedPrepare.length,
         analysisDone: reports.length,
         logs: activityItems.length,
-        interviewAll: liveInterviews.filter((item) => item.mode === "job").length,
-        prepareAll: liveInterviews.filter((item) => item.mode === "prepare").length,
+        interviewAll: liveInterviews.filter((item) => item.mode === "job")
+          .length,
+        prepareAll: liveInterviews.filter((item) => item.mode === "prepare")
+          .length,
       },
       averages: {
         interview: avg(interviewScores),
@@ -340,7 +350,9 @@ const StatsView = () => {
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
                   <Gauge size={12} /> Overall average
                 </p>
-                <p className={`text-2xl font-bold ${scoreTone(model.averages.overall)}`}>
+                <p
+                  className={`text-2xl font-bold ${scoreTone(model.averages.overall)}`}
+                >
                   {model.averages.overall}%
                 </p>
               </div>
