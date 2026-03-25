@@ -464,20 +464,32 @@ export function cleanupChain(interviewId) {
 export async function generateFeedback(conversation) {
   const llm = buildLLM();
 
-  const transcript = conversation
+  const userResponses = conversation
     .filter((t) => t.answer && t.answer.trim())
-    .map((t, i) => `Q${i + 1}: ${t.question}\nA${i + 1}: ${t.answer}`)
+    .map((t, i) => `Response ${i + 1}: ${t.answer.trim()}`)
     .join("\n\n");
+
+  if (!userResponses) {
+    return {
+      technicalScore: 0,
+      communicationScore: 0,
+      strengths: ["No user response captured."],
+      weaknesses: ["Interview ended without any spoken or typed user answer."],
+      improvements: [
+        "Provide at least one voice or text answer to generate meaningful analysis.",
+      ],
+    };
+  }
 
   const promptText = `You are an expert technical interviewer evaluating a candidate's overall performance.
 
-Interview transcript:
-${transcript || "No answers were recorded."}
+User responses transcript:
+${userResponses}
 
 Produce a structured performance evaluation.
 CRITICAL SCORING RULES:
-- Evaluate primarily based on the candidate's answer content, reasoning, relevance, and technical understanding.
-- Treat interviewer questions only as context; do not score interviewer wording or style.
+- Evaluate ONLY based on the candidate's own response content, reasoning, relevance, and technical understanding.
+- Do not assume interviewer wording quality and do not invent missing context.
 - Ignore minor grammar mistakes, filler words, and small speech-to-text errors.
 - Do not penalize the candidate for pronunciation artifacts or sentence fragments common in spoken answers.
 - If an answer is unclear, infer intent conservatively from technical signals before scoring.

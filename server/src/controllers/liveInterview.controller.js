@@ -69,10 +69,29 @@ async function completeInterview(interview, { skipFeedback = false } = {}) {
   let overallScore = 0;
 
   if (!skipFeedback) {
-    feedback = await generateFeedback(interview.conversation || []);
-    overallScore = Math.round(
-      feedback.technicalScore * 6 + feedback.communicationScore * 4,
+    const hasUserAnswers = (interview.conversation || []).some((turn) =>
+      Boolean(turn?.answer?.trim()),
     );
+
+    if (!hasUserAnswers) {
+      feedback = {
+        technicalScore: 0,
+        communicationScore: 0,
+        strengths: ["No user response captured."],
+        weaknesses: [
+          "Interview ended without any spoken or typed user answer.",
+        ],
+        improvements: [
+          "Provide at least one voice or text answer to generate meaningful analysis.",
+        ],
+      };
+      overallScore = 0;
+    } else {
+      feedback = await generateFeedback(interview.conversation || []);
+      overallScore = Math.round(
+        feedback.technicalScore * 6 + feedback.communicationScore * 4,
+      );
+    }
   }
 
   interview.feedback = feedback ? JSON.stringify(feedback) : "";
@@ -371,11 +390,14 @@ export async function endInterviewController(req, res) {
       });
     }
 
-    // In interactive voice mode, client sends complete transcript at end.
-    // We normalize and persist it once to avoid per-turn write latency.
+    // In interactive mode, client may send transcript turns at end.
+    // Persist only user utterances as interview answers for scoring.
     if (Array.isArray(conversationTurns) && conversationTurns.length > 0) {
-      const normalizedConversation =
-        normalizeConversationTurns(conversationTurns);
+      const userAnswers = extractUserOnlyAnswers(conversationTurns);
+      const normalizedConversation = applyUserAnswersToConversation(
+        interview.conversation || [],
+        userAnswers,
+      );
       if (normalizedConversation.length > 0) {
         interview.conversation = normalizedConversation;
       }
@@ -586,51 +608,51 @@ function stripHtml(str) {
     .trim();
 }
 
-function normalizeConversationTurns(turns = []) {
+function extractUserOnlyAnswers(turns = []) {
   if (!Array.isArray(turns)) return [];
 
-  const merged = [];
-  for (const raw of turns) {
-    const role = (raw?.role || "").toString().trim().toLowerCase();
-    const text = (raw?.text || "").toString().trim();
-    if (!text) continue;
-    if (!["user", "agent", "assistant", "model"].includes(role)) continue;
+  return turns
+    .filter(
+      (entry) => (entry?.role || "").toString().trim().toLowerCase() === "user",
+    )
+    .map((entry) => (entry?.text || "").toString().trim())
+    .filter(Boolean);
+}
 
-    const normalizedRole =
-      role === "assistant" || role === "model" ? "agent" : role;
-    const last = merged[merged.length - 1];
-    if (last && last.role === normalizedRole) {
-      last.text = `${last.text} ${text}`.trim();
-    } else {
-      merged.push({ role: normalizedRole, text });
-    }
+function applyUserAnswersToConversation(
+  baseConversation = [],
+  userAnswers = [],
+) {
+  const normalizedBase = Array.isArray(baseConversation)
+    ? baseConversation.map((turn) => ({
+        question: (turn?.question || "").toString(),
+        answer: "",
+      }))
+    : [];
+
+  if (!userAnswers.length) return normalizedBase;
+
+  let answerIndex = 0;
+
+  for (
+    let conversationIndex = 0;
+    conversationIndex < normalizedBase.length &&
+    answerIndex < userAnswers.length;
+    conversationIndex += 1
+  ) {
+    normalizedBase[conversationIndex].answer = userAnswers[answerIndex];
+    answerIndex += 1;
   }
 
-  const conversation = [];
-  let currentQuestion = "";
-
-  for (const msg of merged) {
-    if (msg.role === "agent") {
-      if (currentQuestion) {
-        conversation.push({ question: currentQuestion, answer: "" });
-      }
-      currentQuestion = msg.text;
-      continue;
-    }
-
-    if (currentQuestion) {
-      conversation.push({ question: currentQuestion, answer: msg.text });
-      currentQuestion = "";
-    } else {
-      conversation.push({ question: "Interviewer prompt", answer: msg.text });
-    }
+  while (answerIndex < userAnswers.length) {
+    normalizedBase.push({
+      question: "Interviewer prompt",
+      answer: userAnswers[answerIndex],
+    });
+    answerIndex += 1;
   }
 
-  if (currentQuestion) {
-    conversation.push({ question: currentQuestion, answer: "" });
-  }
-
-  return conversation;
+  return normalizedBase;
 }
 
 // ── 9. Fetch job details from a LinkedIn URL ──────────────────────────────────

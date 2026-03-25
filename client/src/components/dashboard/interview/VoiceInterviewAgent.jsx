@@ -346,7 +346,7 @@ export default function VoiceInterviewAgent({
 
       try {
         const conversationTurns = transcriptRef.current
-          .filter((m) => m?.text?.trim())
+          .filter((m) => m?.role === "user" && m?.text?.trim())
           .map((m) => ({ role: m.role, text: m.text.trim() }));
 
         const data = await endInterview(interviewId, {
