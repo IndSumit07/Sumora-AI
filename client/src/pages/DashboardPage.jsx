@@ -13,6 +13,7 @@ import {
   Bell,
   CreditCard,
   Zap,
+  Activity,
 } from "lucide-react";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
@@ -25,6 +26,7 @@ const NAV = [
   { to: "/dashboard/prepare", icon: BookOpen, label: "Prepare" },
   { to: "/dashboard/interview", icon: Mic, label: "Interview" },
   { to: "/dashboard/analyze", icon: BarChart2, label: "Analyze" },
+  { to: "/dashboard/stats", icon: Activity, label: "Stats" },
   { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },
 ];
 

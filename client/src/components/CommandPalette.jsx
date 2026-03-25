@@ -7,6 +7,7 @@ import {
   BookOpen,
   Search,
   CreditCard,
+  Activity,
 } from "lucide-react";
 
 const ITEMS = [
@@ -33,6 +34,12 @@ const ITEMS = [
     icon: BookOpen,
     label: "Prepare",
     description: "Study & preparation",
+  },
+  {
+    to: "/dashboard/stats",
+    icon: Activity,
+    label: "Stats",
+    description: "Performance and activity analytics",
   },
   {
     to: "/dashboard/billing",

@@ -14,6 +14,7 @@ import InterviewView from "./components/dashboard/interview/InterviewView";
 import AnalyzeView from "./components/dashboard/analyze/AnalyzeView";
 import PrepareView from "./components/dashboard/prepare/PrepareView";
 import BillingView from "./components/dashboard/billing/BillingView";
+import StatsView from "./components/dashboard/views/StatsView";
 import SeoManager from "./components/SeoManager";
 
 const ProtectedRoute = ({ children }) => {
@@ -77,6 +78,7 @@ const App = () => {
           <Route path="interview" element={<InterviewView />} />
           <Route path="analyze" element={<AnalyzeView />} />
           <Route path="prepare" element={<PrepareView />} />
+          <Route path="stats" element={<StatsView />} />
           <Route path="billing" element={<BillingView />} />
         </Route>
 
