@@ -492,9 +492,19 @@ export function cleanupChain(interviewId) {
 export async function generateFeedback(conversation) {
   const llm = buildLLM();
 
-  const userResponses = conversation
-    .filter((t) => t.answer && t.answer.trim())
+  const answeredTurns = (conversation || []).filter(
+    (t) => t.answer && t.answer.trim(),
+  );
+
+  const userResponses = answeredTurns
     .map((t, i) => `Response ${i + 1}: ${t.answer.trim()}`)
+    .join("\n\n");
+
+  const questionAnswerPairs = answeredTurns
+    .map(
+      (t, i) =>
+        `Pair ${i + 1}:\nQuestion: ${t.question || "(missing question)"}\nAnswer: ${t.answer.trim()}`,
+    )
     .join("\n\n");
 
   if (!userResponses) {
@@ -506,6 +516,7 @@ export async function generateFeedback(conversation) {
       improvements: [
         "Provide at least one voice or text answer to generate meaningful analysis.",
       ],
+      questionBreakdown: [],
     };
   }
 
@@ -514,9 +525,13 @@ export async function generateFeedback(conversation) {
 User responses transcript:
 ${userResponses}
 
+Question-answer pairs:
+${questionAnswerPairs}
+
 Produce a structured performance evaluation.
 CRITICAL SCORING RULES:
 - Evaluate ONLY based on the candidate's own response content, reasoning, relevance, and technical understanding.
+- You may use the question text only to judge answer relevance. Never score question quality.
 - Do not assume interviewer wording quality and do not invent missing context.
 - Ignore minor grammar mistakes, filler words, and small speech-to-text errors.
 - Do not penalize the candidate for pronunciation artifacts or sentence fragments common in spoken answers.
@@ -528,7 +543,20 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
   "communicationScore": <integer 0-10>,
   "strengths": ["<specific strength>"],
   "weaknesses": ["<specific weakness>"],
-  "improvements": ["<actionable improvement suggestion>"]
+  "improvements": ["<actionable improvement suggestion>"],
+  "questionBreakdown": [
+    {
+      "question": "<question text>",
+      "answer": "<user answer text>",
+      "relevanceScore": <integer 0-10>,
+      "technicalDepthScore": <integer 0-10>,
+      "communicationScore": <integer 0-10>,
+      "strengths": ["<what was done well in this answer>"],
+      "gaps": ["<what is missing or weak in this answer>"],
+      "idealAnswer": "<concise model answer for this exact question>",
+      "tip": "<one actionable tip for improving this answer>"
+    }
+  ]
 }`;
 
   const response = await llm.invoke([new HumanMessage(promptText)]);
@@ -547,8 +575,37 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
       strengths: ["Attempted the interview"],
       weaknesses: ["The AI failed to generate structured feedback"],
       improvements: ["Check the raw answer logs if you need details"],
+      questionBreakdown: [],
     };
   }
+
+  const questionBreakdown = Array.isArray(parsed.questionBreakdown)
+    ? parsed.questionBreakdown
+        .map((item, idx) => {
+          const base = answeredTurns[idx] || {};
+          return {
+            question: String(item?.question || base.question || ""),
+            answer: String(item?.answer || base.answer || ""),
+            relevanceScore: Math.min(
+              10,
+              Math.max(0, Number(item?.relevanceScore) || 0),
+            ),
+            technicalDepthScore: Math.min(
+              10,
+              Math.max(0, Number(item?.technicalDepthScore) || 0),
+            ),
+            communicationScore: Math.min(
+              10,
+              Math.max(0, Number(item?.communicationScore) || 0),
+            ),
+            strengths: Array.isArray(item?.strengths) ? item.strengths : [],
+            gaps: Array.isArray(item?.gaps) ? item.gaps : [],
+            idealAnswer: String(item?.idealAnswer || ""),
+            tip: String(item?.tip || ""),
+          };
+        })
+        .filter((item) => item.answer.trim())
+    : [];
 
   return {
     technicalScore: Math.min(
@@ -562,5 +619,6 @@ Respond with ONLY valid JSON — no markdown, no code fences, no extra text befo
     strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
     weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses : [],
     improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+    questionBreakdown,
   };
 }

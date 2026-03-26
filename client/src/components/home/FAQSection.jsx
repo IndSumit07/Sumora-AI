@@ -15,7 +15,7 @@ export default function FAQSection() {
     },
     {
       q: "What makes the Pro tier better?",
-      a: "The Pro tier unlocks our advanced voice-to-voice interview model, unlimited daily limits, and gives you detailed analytic breakdowns rather than just high-level summaries.",
+      a: "The Pro tier unlocks our advanced voice-to-voice interview model, unlimited daily limits, and gives you richer per-question feedback breakdowns rather than only high-level summaries.",
     },
     {
       q: "Is my data secure?",

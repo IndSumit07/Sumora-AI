@@ -85,6 +85,7 @@ async function completeInterview(interview, { skipFeedback = false } = {}) {
         improvements: [
           "Provide at least one voice or text answer to generate meaningful analysis.",
         ],
+        questionBreakdown: [],
       };
       overallScore = 0;
     } else {
@@ -667,14 +668,77 @@ function applyUserAnswersToConversation(
   }
 
   while (answerIndex < userAnswers.length) {
-    normalizedBase.push({
-      question: "Interviewer prompt",
-      answer: userAnswers[answerIndex],
-    });
+    if (normalizedBase.length > 0) {
+      const lastTurnIndex = normalizedBase.length - 1;
+      const existing = normalizedBase[lastTurnIndex].answer || "";
+      normalizedBase[lastTurnIndex].answer = [
+        existing,
+        userAnswers[answerIndex],
+      ]
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+    } else {
+      normalizedBase.push({
+        question: "",
+        answer: userAnswers[answerIndex],
+      });
+    }
     answerIndex += 1;
   }
 
   return normalizedBase;
+}
+
+function isPlaceholderQuestion(question = "") {
+  const normalized = question.toString().trim().toLowerCase();
+  return !normalized || normalized === "interviewer prompt";
+}
+
+function resolveQuestionForIndex(conversation = [], index = 0) {
+  const list = Array.isArray(conversation) ? conversation : [];
+  const current = (list[index]?.question || "").toString().trim();
+  if (!isPlaceholderQuestion(current)) return current;
+
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const candidate = (list[i]?.question || "").toString().trim();
+    if (!isPlaceholderQuestion(candidate)) return candidate;
+  }
+
+  for (let i = index + 1; i < list.length; i += 1) {
+    const candidate = (list[i]?.question || "").toString().trim();
+    if (!isPlaceholderQuestion(candidate)) return candidate;
+  }
+
+  return current || "Question unavailable";
+}
+
+function normalizeQuestionBreakdownItem(item = {}, fallbackTurn = {}) {
+  const candidateQuestion = (item?.question || "").toString().trim();
+  const fallbackQuestion = (fallbackTurn?.question || "").toString().trim();
+
+  return {
+    question: isPlaceholderQuestion(candidateQuestion)
+      ? fallbackQuestion
+      : candidateQuestion,
+    answer: (item?.answer || fallbackTurn?.answer || "").toString(),
+    relevanceScore: Math.min(
+      10,
+      Math.max(0, Number(item?.relevanceScore) || 0),
+    ),
+    technicalDepthScore: Math.min(
+      10,
+      Math.max(0, Number(item?.technicalDepthScore) || 0),
+    ),
+    communicationScore: Math.min(
+      10,
+      Math.max(0, Number(item?.communicationScore) || 0),
+    ),
+    strengths: Array.isArray(item?.strengths) ? item.strengths : [],
+    gaps: Array.isArray(item?.gaps) ? item.gaps : [],
+    idealAnswer: (item?.idealAnswer || "").toString(),
+    tip: (item?.tip || "").toString(),
+  };
 }
 
 // ── 9. Fetch job details from a LinkedIn URL ──────────────────────────────────
@@ -847,6 +911,15 @@ export async function analyzeQuestionController(req, res) {
     if (!turn)
       return res.status(400).json({ message: "Question index out of range." });
 
+    const resolvedQuestion = resolveQuestionForIndex(
+      interview.conversation || [],
+      questionIndex,
+    );
+    const resolvedTurn = {
+      ...turn,
+      question: resolvedQuestion,
+    };
+
     const context = {
       mode: interview.mode,
       role: interview.role,
@@ -855,13 +928,53 @@ export async function analyzeQuestionController(req, res) {
       topic: interview.topic,
     };
 
+    const parsedFeedback = parseStoredFeedback(interview.feedback);
+    const storedBreakdown = Array.isArray(parsedFeedback?.questionBreakdown)
+      ? parsedFeedback.questionBreakdown
+      : [];
+    const storedDetail = storedBreakdown[questionIndex];
+
+    if (storedDetail) {
+      const detail = normalizeQuestionBreakdownItem(storedDetail, resolvedTurn);
+      const teaching = {
+        why:
+          detail.relevanceScore >= 7
+            ? "Your answer stayed mostly aligned with what the interviewer asked."
+            : "Your answer only partially addressed what the interviewer asked.",
+        structure:
+          detail.strengths?.length > 0
+            ? detail.strengths
+            : [
+                "Answer the core question directly before adding extra context.",
+              ],
+        sampleAnswer: detail.idealAnswer || "",
+        tip:
+          detail.tip ||
+          "Use a clearer structure and include one concrete example.",
+      };
+
+      return res.status(200).json({
+        source: "stored",
+        question: detail.question,
+        detail,
+        teaching,
+      });
+    }
+
     const teaching = await analyzeQuestion(
-      turn.question,
-      turn.answer || "",
+      resolvedQuestion,
+      resolvedTurn.answer || "",
       context,
     );
 
-    return res.status(200).json({ teaching });
+    return res
+      .status(200)
+      .json({
+        source: "generated",
+        question: resolvedQuestion,
+        detail: null,
+        teaching,
+      });
   } catch (error) {
     console.error("Analyze question error:", error);
     return res
@@ -917,19 +1030,46 @@ export async function voiceAgentResponseController(req, res) {
 
     // Handle initial greeting
     if (userMessage === "[START]") {
-      // Get the first question without saving an answer
-      const firstQuestion = await sendAnswer(
+      const firstQuestion = interview.conversation?.[0]?.question?.trim();
+      if (firstQuestion) {
+        return res.status(200).json({ response: firstQuestion });
+      }
+
+      const fallbackQuestion = await sendAnswer(
         interview._id.toString(),
         "Hello, I'm ready to begin.",
       );
-      return res.status(200).json({ response: firstQuestion });
+      interview.conversation.push({ question: fallbackQuestion, answer: "" });
+      await interview.save();
+
+      return res.status(200).json({ response: fallbackQuestion });
+    }
+
+    const trimmedMessage = userMessage.trim();
+    const lastIdx = interview.conversation.length - 1;
+
+    if (lastIdx >= 0 && !interview.conversation[lastIdx]?.answer?.trim()) {
+      interview.conversation[lastIdx].answer = trimmedMessage;
+    } else {
+      const fallbackQuestion =
+        lastIdx >= 0
+          ? (interview.conversation[lastIdx]?.question || "").toString().trim()
+          : "";
+
+      interview.conversation.push({
+        question: fallbackQuestion,
+        answer: trimmedMessage,
+      });
     }
 
     // Get AI response
     const nextQuestion = await sendAnswer(
       interview._id.toString(),
-      userMessage.trim(),
+      trimmedMessage,
     );
+
+    interview.conversation.push({ question: nextQuestion, answer: "" });
+    await interview.save();
 
     return res.status(200).json({ response: nextQuestion });
   } catch (error) {

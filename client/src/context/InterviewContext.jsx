@@ -165,14 +165,14 @@ export const InterviewProvider = ({ children }) => {
    * analyzeQuestion — asks the AI to teach the ideal answer for one question.
    * @param {string} interviewId
    * @param {number} questionIndex — 0-based index in conversation array
-   * @returns {Promise<{ why, structure, sampleAnswer, tip }>}
+   * @returns {Promise<{ source: string, detail: object|null, teaching: { why, structure, sampleAnswer, tip } }>}
    */
   const analyzeQuestion = async (interviewId, questionIndex) => {
     const { data } = await api.post("/interview/analyze-question", {
       interviewId,
       questionIndex,
     });
-    return data.teaching;
+    return data;
   };
 
   const deleteLiveInterview = async (id) => {

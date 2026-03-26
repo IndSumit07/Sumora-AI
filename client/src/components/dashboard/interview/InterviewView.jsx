@@ -14,7 +14,6 @@ import {
   Link,
   CheckCircle2,
   Radio,
-  MessageSquare,
   Building2,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -26,7 +25,6 @@ import {
 } from "../../../shared/companyInterviewProfiles";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
-import InterviewChat from "./InterviewChat";
 import InterviewFeedback from "./InterviewFeedback";
 import InterviewHistoryDetail from "./InterviewHistoryDetail";
 import VoiceInterviewAgent from "./VoiceInterviewAgent";
@@ -187,7 +185,6 @@ const SetupForm = ({ onStarted }) => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
-  const [interviewMode, setInterviewMode] = useState("interactive"); // "voice" | "text"
   const fileRef = useRef(null);
   const selectedCompanyProfile = getCompanyProfileByKey(selectedCompanyKey);
   const customCompanyReady =
@@ -304,7 +301,7 @@ const SetupForm = ({ onStarted }) => {
           : selectedCompanyProfile.name.split(" @")[1] ||
             selectedCompanyProfile.name,
         startedAt,
-        mode: interviewMode,
+        mode: "interactive",
       });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start interview.");
@@ -608,83 +605,46 @@ const SetupForm = ({ onStarted }) => {
           />
         </div>
 
-        {/* Interview Mode */}
+        {/* Speak Mode Settings */}
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Interview Mode
+            Speak Mode
           </label>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setInterviewMode("interactive")}
+              onClick={() => {
+                window.speakMode = "normal";
+                // To trigger a re-render if needed, you could add state,
+                // or rely on VoiceInterviewAgent to pick this up.
+                document.dispatchEvent(new Event("speakModeChanged"));
+              }}
               className={[
-                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
-                interviewMode === "interactive"
+                "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                speakMode === "normal"
                   ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
                   : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
               ].join(" ")}
             >
-              <Radio size={14} />
-              <span>Interactive</span>
+              Speak Normally
             </button>
             <button
               type="button"
-              onClick={() => setInterviewMode("analytic")}
+              onClick={() => {
+                window.speakMode = "hold";
+                document.dispatchEvent(new Event("speakModeChanged"));
+              }}
               className={[
-                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
-                interviewMode === "analytic"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                speakMode === "hold"
+                  ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
                   : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
               ].join(" ")}
             >
-              <MessageSquare size={14} />
-              <span>Analytic</span>
+              Hold Space to Speak
             </button>
           </div>
         </div>
-
-        {/* Speak Mode Settings (Only visible for interactive mode) */}
-        {interviewMode === "interactive" && (
-          <div>
-            <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-              Speak Mode
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  window.speakMode = "normal";
-                  // To trigger a re-render if needed, you could add state,
-                  // or rely on VoiceInterviewAgent to pick this up.
-                  document.dispatchEvent(new Event("speakModeChanged"));
-                }}
-                className={[
-                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                  speakMode === "normal"
-                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-                ].join(" ")}
-              >
-                Speak Normally
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.speakMode = "hold";
-                  document.dispatchEvent(new Event("speakModeChanged"));
-                }}
-                className={[
-                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                  speakMode === "hold"
-                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-                ].join(" ")}
-              >
-                Hold Space to Speak
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Difficulty */}
         <div>
@@ -806,13 +766,9 @@ export default function InterviewView() {
 
   // Active interview session state
   const [interviewId, setInterviewId] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState("");
-  const [questionIndex, setQuestionIndex] = useState(1);
-  const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
   const [sessionStartedAt, setSessionStartedAt] = useState(null);
-  const [interviewMode, setInterviewMode] = useState("analytic"); // "voice" | "text"
   const [voiceContext, setVoiceContext] = useState(null); // For voice agent system prompt & context
 
   const interviewActive = view === "new-interview" && Boolean(interviewId);
@@ -872,9 +828,6 @@ export default function InterviewView() {
     setView("new-setup");
     // reset new interview state
     setInterviewId(null);
-    setCurrentQuestion("");
-    setQuestionIndex(1);
-    setHistory([]);
     setFeedback(null);
     setScore(0);
     setSessionStartedAt(null);
@@ -887,28 +840,24 @@ export default function InterviewView() {
 
   const handleStarted = ({
     interviewId: id,
-    firstQuestion,
     role,
     jobDescription,
     resumeText,
     difficulty,
     companyProfile,
     companyName,
-    mode,
     startedAt,
   }) => {
     setInterviewId(id);
-    setInterviewMode(mode || "analytic");
     setSessionStartedAt(startedAt || new Date().toISOString());
 
-    if (mode === "interactive") {
-      const resolvedCompanyName =
-        companyName ||
-        companyProfile?.name ||
-        (companyProfile?.key ? companyProfile.key : "General");
+    const resolvedCompanyName =
+      companyName ||
+      companyProfile?.name ||
+      (companyProfile?.key ? companyProfile.key : "General");
 
-      // Setup voice agent context
-      const systemPrompt = `You are an expert interviewer conducting a job interview for the role of ${role}.
+    // Setup voice agent context
+    const systemPrompt = `You are an expert interviewer conducting a job interview for the role of ${role}.
 
 Job Description:
 ${jobDescription}
@@ -927,25 +876,19 @@ Your job is to:
 
 Start by introducing yourself and asking the first question.`;
 
-      setVoiceContext({
-        systemPrompt,
-        context: {
-          interviewId: id,
-          role,
-          jobDescription,
-          resumeText,
-          companyProfile,
-          companyName,
-          mode: "job",
-          interviewMode: "interactive",
-        },
-      });
-    } else {
-      // Text mode
-      setCurrentQuestion(firstQuestion);
-      setQuestionIndex(1);
-      setHistory([]);
-    }
+    setVoiceContext({
+      systemPrompt,
+      context: {
+        interviewId: id,
+        role,
+        jobDescription,
+        resumeText,
+        companyProfile,
+        companyName,
+        mode: "job",
+        interviewMode: "interactive",
+      },
+    });
 
     setView("new-interview");
     // add optimistic entry to list
@@ -962,15 +905,6 @@ Start by introducing yourself and asking the first question.`;
       },
       ...prev,
     ]);
-  };
-
-  const handleAnswer = (nextQuestion, submittedAnswer) => {
-    setHistory((prev) => [
-      ...prev,
-      { question: currentQuestion, answer: submittedAnswer },
-    ]);
-    setCurrentQuestion(nextQuestion);
-    setQuestionIndex((i) => i + 1);
   };
 
   const handleEnd = (fb, sc) => {
@@ -1198,7 +1132,19 @@ Start by introducing yourself and asking the first question.`;
 
           {view === "new-interview" && (
             <div className="flex-1 min-h-0">
-              {interviewMode === "interactive" && voiceContext ? (
+              <div className="flex items-center gap-2 mb-6 text-xs">
+                <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+                  Interview
+                </span>
+                <ChevronRight size={12} className="text-gray-400" />
+                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Briefcase size={11} />
+                  {interviews.find((iv) => iv._id === interviewId)?.role ||
+                    "Mock Interview"}
+                </span>
+              </div>
+
+              {voiceContext ? (
                 <VoiceInterviewAgent
                   interviewId={interviewId}
                   systemPrompt={voiceContext.systemPrompt}
@@ -1212,29 +1158,9 @@ Start by introducing yourself and asking the first question.`;
                   onEnd={handleEnd}
                 />
               ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-6 text-xs">
-                    <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
-                      Interview
-                    </span>
-                    <ChevronRight size={12} className="text-gray-400" />
-                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <Briefcase size={11} />
-                      {interviews.find((iv) => iv._id === interviewId)?.role ||
-                        "Mock Interview"}
-                    </span>
-                  </div>
-                  <InterviewChat
-                    interviewId={interviewId}
-                    currentQuestion={currentQuestion}
-                    questionIndex={questionIndex}
-                    history={history}
-                    startedAt={sessionStartedAt}
-                    durationMs={30 * 60 * 1000}
-                    onAnswer={handleAnswer}
-                    onEnd={handleEnd}
-                  />
-                </>
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 size={24} className="animate-spin text-[#ea580c]" />
+                </div>
               )}
             </div>
           )}

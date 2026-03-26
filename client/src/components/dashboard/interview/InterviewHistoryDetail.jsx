@@ -212,8 +212,13 @@ function WalkthroughView({ interview, onClose }) {
   const conversation = interview.conversation || [];
   const total = conversation.length;
 
+  const isPlaceholderQuestion = (value = "") => {
+    const normalized = value.toString().trim().toLowerCase();
+    return !normalized || normalized === "interviewer prompt";
+  };
+
   const [walkIdx, setWalkIdx] = useState(0);
-  const [teaching, setTeaching] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
   const cacheRef = useRef({});
@@ -226,21 +231,29 @@ function WalkthroughView({ interview, onClose }) {
     setAnswerOpen(false);
 
     if (cacheRef.current[walkIdx]) {
-      setTeaching(cacheRef.current[walkIdx]);
+      setAnalysis(cacheRef.current[walkIdx]);
       return;
     }
 
-    setTeaching(null);
+    setAnalysis(null);
     setLoading(true);
     analyzeQuestion(interview._id, walkIdx)
-      .then((t) => {
-        cacheRef.current[walkIdx] = t;
-        setTeaching(t);
+      .then((result) => {
+        cacheRef.current[walkIdx] = result;
+        setAnalysis(result);
       })
-      .catch(() => setTeaching(null))
+      .catch(() => setAnalysis(null))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walkIdx]);
+
+  const teaching = analysis?.teaching || null;
+  const detail = analysis?.detail || null;
+  const resolvedQuestion =
+    analysis?.question || detail?.question || turn?.question || "";
+  const displayQuestion = isPlaceholderQuestion(resolvedQuestion)
+    ? "Question unavailable"
+    : resolvedQuestion;
 
   return (
     <div className="max-w-3xl space-y-4">
@@ -294,7 +307,7 @@ function WalkthroughView({ interview, onClose }) {
             Question {walkIdx + 1}
           </span>
           <p className="text-white text-[15px] font-medium leading-relaxed">
-            {turn?.question}
+            {displayQuestion}
           </p>
         </div>
       </div>
@@ -343,6 +356,86 @@ function WalkthroughView({ interview, onClose }) {
           </div>
         ) : teaching ? (
           <div className="p-6 space-y-6">
+            {detail && (
+              <div className="space-y-4 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#1a1a1a] p-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ea580c]">
+                    Interactive Model Breakdown
+                  </p>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#ea580c]/10 text-[#ea580c]">
+                    {analysis?.source === "stored"
+                      ? "Saved at interview end"
+                      : "Generated on demand"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#141414] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Relevance
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {detail.relevanceScore}/10
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#141414] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Technical
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {detail.technicalDepthScore}/10
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#141414] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Clarity
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {detail.communicationScore}/10
+                    </p>
+                  </div>
+                </div>
+
+                {detail.strengths?.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-green-500 mb-1.5">
+                      What You Did Well
+                    </p>
+                    <ul className="space-y-1.5">
+                      {detail.strengths.map((pt, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                        >
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-400 flex-shrink-0" />
+                          {pt}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {detail.gaps?.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500 mb-1.5">
+                      Missing Pieces
+                    </p>
+                    <ul className="space-y-1.5">
+                      {detail.gaps.map((pt, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                        >
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                          {pt}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Why section */}
             <div className="flex gap-3">
               <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mt-0.5">
@@ -384,7 +477,7 @@ function WalkthroughView({ interview, onClose }) {
             )}
 
             {/* Sample answer */}
-            {teaching.sampleAnswer && (
+            {(detail?.idealAnswer || teaching.sampleAnswer) && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-green-50 dark:bg-green-500/10 flex items-center justify-center mt-0.5">
                   <MessageCircle size={14} className="text-green-500" />
@@ -395,7 +488,7 @@ function WalkthroughView({ interview, onClose }) {
                   </p>
                   <div className="bg-green-50 dark:bg-green-500/5 border border-green-100 dark:border-green-500/15 rounded-xl p-4">
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">
-                      "{teaching.sampleAnswer}"
+                      "{detail?.idealAnswer || teaching.sampleAnswer}"
                     </p>
                   </div>
                 </div>
@@ -403,7 +496,7 @@ function WalkthroughView({ interview, onClose }) {
             )}
 
             {/* Pro tip */}
-            {teaching.tip && (
+            {(detail?.tip || teaching.tip) && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 h-7 w-7 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center mt-0.5">
                   <Zap size={14} className="text-purple-500" />
@@ -413,7 +506,7 @@ function WalkthroughView({ interview, onClose }) {
                     Pro Tip
                   </p>
                   <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {teaching.tip}
+                    {detail?.tip || teaching.tip}
                   </p>
                 </div>
               </div>

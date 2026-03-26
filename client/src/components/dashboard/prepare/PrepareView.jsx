@@ -21,13 +21,11 @@ import {
   Shield,
   Trash2,
   Radio,
-  MessageSquare,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
-import InterviewChat from "../interview/InterviewChat";
 import InterviewFeedback from "../interview/InterviewFeedback";
 import InterviewHistoryDetail from "../interview/InterviewHistoryDetail";
 import VoiceInterviewAgent from "../interview/VoiceInterviewAgent";
@@ -308,7 +306,6 @@ const SetupForm = ({ onStarted }) => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
-  const [interviewMode, setInterviewMode] = useState("interactive"); // "interactive" | "analytic"
   const fileInputRef = useRef(null);
   const topicInputRef = useRef(null);
 
@@ -413,7 +410,7 @@ const SetupForm = ({ onStarted }) => {
         topic: topicString,
         difficulty,
         startedAt,
-        mode: interviewMode,
+        mode: "interactive",
         resumeText,
       });
     } catch (err) {
@@ -625,81 +622,44 @@ const SetupForm = ({ onStarted }) => {
           />
         </div>
 
-        {/* Interview Mode */}
+        {/* Speak Mode Settings */}
         <div>
           <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Interview Mode
+            Speak Mode
           </label>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setInterviewMode("interactive")}
+              onClick={() => {
+                window.speakMode = "normal";
+                document.dispatchEvent(new Event("speakModeChanged"));
+              }}
               className={[
-                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
-                interviewMode === "interactive"
+                "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                speakMode === "normal"
                   ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
                   : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
               ].join(" ")}
             >
-              <Radio size={14} />
-              <span>Interactive</span>
+              Speak Normally
             </button>
             <button
               type="button"
-              onClick={() => setInterviewMode("analytic")}
+              onClick={() => {
+                window.speakMode = "hold";
+                document.dispatchEvent(new Event("speakModeChanged"));
+              }}
               className={[
-                "flex-1 h-11 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-1",
-                interviewMode === "analytic"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
+                speakMode === "hold"
+                  ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
                   : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
               ].join(" ")}
             >
-              <MessageSquare size={14} />
-              <span>Analytic</span>
+              Hold Space to Speak
             </button>
           </div>
         </div>
-
-        {/* Speak Mode Settings (Only visible for interactive mode) */}
-        {interviewMode === "interactive" && (
-          <div>
-            <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-              Speak Mode
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  window.speakMode = "normal";
-                  document.dispatchEvent(new Event("speakModeChanged"));
-                }}
-                className={[
-                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                  speakMode === "normal"
-                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-                ].join(" ")}
-              >
-                Speak Normally
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.speakMode = "hold";
-                  document.dispatchEvent(new Event("speakModeChanged"));
-                }}
-                className={[
-                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                  speakMode === "hold"
-                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-                ].join(" ")}
-              >
-                Hold Space to Speak
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Difficulty */}
         <div>
@@ -816,16 +776,12 @@ export default function PrepareView() {
 
   // Active session state
   const [interviewId, setInterviewId] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState("");
-  const [questionIndex, setQuestionIndex] = useState(1);
-  const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
   const [sessionStartedAt, setSessionStartedAt] = useState(null);
   // Track subject/topic for breadcrumb
   const [activeSubject, setActiveSubject] = useState("");
   const [activeTopic, setActiveTopic] = useState("");
-  const [interviewMode, setInterviewMode] = useState("analytic"); // "interactive" | "analytic"
   const [voiceContext, setVoiceContext] = useState(null); // For voice agent
 
   const sessionActive = view === "new-interview" && Boolean(interviewId);
@@ -884,14 +840,12 @@ export default function PrepareView() {
     setSelectedSession(null);
     setView("new-setup");
     setInterviewId(null);
-    setCurrentQuestion("");
-    setQuestionIndex(1);
-    setHistory([]);
     setFeedback(null);
     setScore(0);
     setSessionStartedAt(null);
     setActiveSubject("");
     setActiveTopic("");
+    setVoiceContext(null);
   };
 
   const handleNew = () => {
@@ -900,23 +854,19 @@ export default function PrepareView() {
 
   const handleStarted = ({
     interviewId: id,
-    firstQuestion,
     subject,
     topic,
     difficulty,
-    mode,
     resumeText,
     startedAt,
   }) => {
     setInterviewId(id);
-    setInterviewMode(mode || "analytic");
     setSessionStartedAt(startedAt || new Date().toISOString());
     setActiveSubject(subject);
     setActiveTopic(topic);
 
-    if (mode === "interactive") {
-      // Setup voice agent context tailored for Preparation
-      const systemPrompt = `You are an expert technical interviewer helping a candidate prepare for interviews in ${subject}.
+    // Setup voice agent context tailored for Preparation
+    const systemPrompt = `You are an expert technical interviewer helping a candidate prepare for interviews in ${subject}.
 Focus areas: ${topic}.
 
 ${resumeText ? `Candidate's Background:\n${resumeText}\n\n` : ""}
@@ -930,23 +880,17 @@ Your job is to:
 
 Start by introducing the topic and asking the first question.`;
 
-      setVoiceContext({
-        systemPrompt,
-        context: {
-          interviewId: id,
-          subject,
-          topic,
-          resumeText,
-          mode: "prepare",
-          interviewMode: "interactive",
-        },
-      });
-    } else {
-      // Text mode
-      setCurrentQuestion(firstQuestion);
-      setQuestionIndex(1);
-      setHistory([]);
-    }
+    setVoiceContext({
+      systemPrompt,
+      context: {
+        interviewId: id,
+        subject,
+        topic,
+        resumeText,
+        mode: "prepare",
+        interviewMode: "interactive",
+      },
+    });
 
     setView("new-interview");
     // optimistic list entry
@@ -954,7 +898,7 @@ Start by introducing the topic and asking the first question.`;
       {
         _id: id,
         mode: "prepare",
-        interviewMode: mode || "analytic",
+        interviewMode: "interactive",
         subject,
         topic,
         difficulty,
@@ -964,15 +908,6 @@ Start by introducing the topic and asking the first question.`;
       },
       ...prev,
     ]);
-  };
-
-  const handleAnswer = (nextQuestion, submittedAnswer) => {
-    setHistory((prev) => [
-      ...prev,
-      { question: currentQuestion, answer: submittedAnswer },
-    ]);
-    setCurrentQuestion(nextQuestion);
-    setQuestionIndex((i) => i + 1);
   };
 
   const handleEnd = (fb, sc) => {
@@ -1215,7 +1150,7 @@ Start by introducing the topic and asking the first question.`;
               </div>
 
               <div className="flex-1 min-h-0">
-                {interviewMode === "interactive" && voiceContext ? (
+                {voiceContext ? (
                   <VoiceInterviewAgent
                     interviewId={interviewId}
                     systemPrompt={voiceContext.systemPrompt}
@@ -1225,16 +1160,12 @@ Start by introducing the topic and asking the first question.`;
                     onEnd={handleEnd}
                   />
                 ) : (
-                  <InterviewChat
-                    interviewId={interviewId}
-                    currentQuestion={currentQuestion}
-                    questionIndex={questionIndex}
-                    history={history}
-                    startedAt={sessionStartedAt}
-                    durationMs={30 * 60 * 1000}
-                    onAnswer={handleAnswer}
-                    onEnd={handleEnd}
-                  />
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2
+                      size={24}
+                      className="animate-spin text-[#ea580c]"
+                    />
+                  </div>
                 )}
               </div>
             </div>
