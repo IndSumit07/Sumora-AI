@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Plus,
   BarChart2,
@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
+import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
+import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
 
 // ── Score ring ────────────────────────────────────────────────────────────────
 
@@ -386,7 +388,11 @@ const ReportCard = ({ report, active, onClick, onDelete }) => {
 const isLinkedInJobUrl = (val) =>
   /linkedin\.com\/(jobs?|job-apply)\//i.test(val.trim());
 
-const AnalysisForm = ({ onReportGenerated }) => {
+const AnalysisForm = ({
+  onReportGenerated,
+  onBusyChange,
+  onCancelRequestChange,
+}) => {
   const { generateReport, fetchJobFromUrl } = useInterview();
   const [role, setRole] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -399,6 +405,25 @@ const AnalysisForm = ({ onReportGenerated }) => {
   const [fetchLoading, setFetchLoading] = useState(false);
   const [fetchedCompany, setFetchedCompany] = useState("");
   const fileRef = useRef(null);
+  const abortRef = useRef(null);
+
+  useEffect(() => {
+    onBusyChange?.(loading);
+  }, [loading, onBusyChange]);
+
+  useEffect(() => {
+    if (!onCancelRequestChange) return undefined;
+
+    onCancelRequestChange(() => {
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    });
+
+    return () => {
+      onCancelRequestChange(null);
+    };
+  }, [onCancelRequestChange]);
 
   const handleFetchJob = async () => {
     if (!isLinkedInJobUrl(linkedinUrl)) {
@@ -460,16 +485,24 @@ const AnalysisForm = ({ onReportGenerated }) => {
       return;
     }
 
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     try {
       const report = await generateReport(
         { role, jobDescription, selfDescription },
         resumeMode === "upload" ? resumeFile : null,
+        controller.signal,
       );
       onReportGenerated(report);
     } catch (err) {
+      if (err?.code === "ERR_CANCELED" || err?.name === "CanceledError") {
+        toast("Analysis cancelled.");
+        return;
+      }
       toast.error(err.response?.data?.message || "Failed to generate report.");
     } finally {
+      abortRef.current = null;
       setLoading(false);
     }
   };
@@ -743,6 +776,20 @@ export default function AnalyzeView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [mobileHistoryOpen, setMobileHistoryOpen] = useState(true);
+  const [analysisRunning, setAnalysisRunning] = useState(false);
+  const cancelAnalysisRef = useRef(null);
+
+  const analysisActive = view === "form" && analysisRunning;
+
+  const closeActiveAnalysis = useCallback(async () => {
+    cancelAnalysisRef.current?.();
+  }, []);
+
+  const { isOpen, isConfirming, requestExit, confirmExit, cancelExit } =
+    useServiceExitGuard({
+      when: analysisActive,
+      onConfirmExit: closeActiveAnalysis,
+    });
 
   useEffect(() => {
     getAllReports()
@@ -757,7 +804,7 @@ export default function AnalyzeView() {
     }
   }, [view]);
 
-  const handleSelectReport = async (id) => {
+  const openReportDetail = async (id) => {
     setSelectedId(id);
     setView("detail");
     setDetailLoading(true);
@@ -769,6 +816,12 @@ export default function AnalyzeView() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleSelectReport = (id) => {
+    requestExit(() => {
+      void openReportDetail(id);
+    });
   };
 
   const handleNew = () => {
@@ -807,6 +860,10 @@ export default function AnalyzeView() {
       toast.error("Failed to delete report.");
     }
   };
+
+  const handleCancelRequestChange = useCallback((cancelFn) => {
+    cancelAnalysisRef.current = cancelFn;
+  }, []);
 
   const handleDownloadPdf = async () => {
     if (!selectedReport) return;
@@ -977,7 +1034,11 @@ export default function AnalyzeView() {
         {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
         {view === "form" && (
-          <AnalysisForm onReportGenerated={handleReportGenerated} />
+          <AnalysisForm
+            onReportGenerated={handleReportGenerated}
+            onBusyChange={setAnalysisRunning}
+            onCancelRequestChange={handleCancelRequestChange}
+          />
         )}
 
         {view === "detail" &&
@@ -1004,6 +1065,17 @@ export default function AnalyzeView() {
             </div>
           ) : null)}
       </div>
+
+      <ServiceExitConfirmModal
+        open={isOpen}
+        title="Cancel analysis?"
+        description="Your report is still generating. If you leave now, the current analysis request will be cancelled."
+        confirmLabel="Cancel Analysis"
+        cancelLabel="Keep Generating"
+        confirming={isConfirming}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
+      />
     </div>
   );
 }

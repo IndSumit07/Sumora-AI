@@ -60,7 +60,8 @@ const IntegrationsSection = () => {
               &ldquo;
             </span>{" "}
             Talent gets you in the room.{" "}
-            <span className="text-[#ea580c]">Preparation</span> gets you the job.
+            <span className="text-[#ea580c]">Preparation</span> gets you the
+            job.
           </p>
 
           <p className="mt-6 text-lg md:text-2xl font-light text-gray-500 dark:text-[#a8a19b] leading-relaxed max-w-2xl mx-auto">

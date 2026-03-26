@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
+import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
+import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
 import InterviewChat from "../interview/InterviewChat";
 import InterviewFeedback from "../interview/InterviewFeedback";
 import InterviewHistoryDetail from "../interview/InterviewHistoryDetail";
@@ -791,8 +793,12 @@ const EmptyPanel = ({ onNew }) => (
 // ── Main PrepareView ───────────────────────────────────────────────────────────
 
 export default function PrepareView() {
-  const { getAllLiveInterviews, getLiveInterviewById, deleteLiveInterview } =
-    useInterview();
+  const {
+    getAllLiveInterviews,
+    getLiveInterviewById,
+    deleteLiveInterview,
+    endInterview,
+  } = useInterview();
 
   // History list state
   const [sessions, setSessions] = useState([]);
@@ -822,12 +828,30 @@ export default function PrepareView() {
   const [interviewMode, setInterviewMode] = useState("analytic"); // "interactive" | "analytic"
   const [voiceContext, setVoiceContext] = useState(null); // For voice agent
 
+  const sessionActive = view === "new-interview" && Boolean(interviewId);
+
+  const closeActiveSession = async () => {
+    if (!sessionActive || !interviewId) return;
+
+    try {
+      await endInterview(interviewId, { skipFeedback: true });
+    } catch {
+      // Continue navigation even if server cleanup fails.
+    }
+  };
+
+  const { isOpen, isConfirming, requestExit, confirmExit, cancelExit } =
+    useServiceExitGuard({
+      when: sessionActive,
+      onConfirmExit: closeActiveSession,
+    });
+
   useEffect(() => {
     getAllLiveInterviews("prepare")
       .then(setSessions)
       .catch(console.error)
       .finally(() => setListLoading(false));
-  }, []);
+  }, [getAllLiveInterviews]);
 
   useEffect(() => {
     if (["detail", "new-interview", "new-feedback"].includes(view)) {
@@ -835,7 +859,7 @@ export default function PrepareView() {
     }
   }, [view]);
 
-  const handleSelectSession = async (id) => {
+  const openSessionDetail = async (id) => {
     setSelectedId(id);
     setView("detail");
     setDetailLoading(true);
@@ -849,7 +873,13 @@ export default function PrepareView() {
     }
   };
 
-  const handleNew = () => {
+  const handleSelectSession = (id) => {
+    requestExit(() => {
+      void openSessionDetail(id);
+    });
+  };
+
+  const resetNewSession = () => {
     setSelectedId(null);
     setSelectedSession(null);
     setView("new-setup");
@@ -862,6 +892,10 @@ export default function PrepareView() {
     setSessionStartedAt(null);
     setActiveSubject("");
     setActiveTopic("");
+  };
+
+  const handleNew = () => {
+    requestExit(resetNewSession);
   };
 
   const handleStarted = ({
@@ -995,226 +1029,239 @@ Start by introducing the topic and asking the first question.`;
   };
 
   return (
-    <div className="flex h-full overflow-hidden flex-col md:flex-row">
-      {/* ── Mobile section sidebar (left drawer) ── */}
-      <div
-        className={[
-          "md:hidden fixed inset-0 bg-black/30 z-30 transition-opacity",
-          mobileHistoryOpen ? "opacity-100" : "opacity-0 pointer-events-none",
-        ].join(" ")}
-        onClick={() => setMobileHistoryOpen(false)}
-      />
-      <aside
-        className={[
-          "md:hidden fixed top-11 bottom-0 left-0 z-40 w-[84%] max-w-xs",
-          "bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222]",
-          "transition-transform duration-200 flex flex-col",
-          mobileHistoryOpen ? "translate-x-0" : "-translate-x-full",
-        ].join(" ")}
-      >
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
-          <div className="flex items-center gap-2">
-            <BookOpen size={14} className="text-[#ea580c]" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              Prepare
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setMobileHistoryOpen(false)}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        <div className="p-3 border-b border-gray-100 dark:border-[#222]">
-          <button
-            type="button"
-            onClick={() => {
-              setMobileHistoryOpen(false);
-              handleNew();
-            }}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
-          >
-            <Plus size={14} /> New Session
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2">
-          {listLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-[#ea580c]" />
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="text-center py-10 px-3">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                No sessions yet.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-0.5">
-              {sessions.map((iv) => (
-                <PrepareCard
-                  key={iv._id}
-                  interview={iv}
-                  active={selectedId === iv._id}
-                  onClick={() => {
-                    setMobileHistoryOpen(false);
-                    handleSelectSession(iv._id);
-                  }}
-                  onDelete={handleDeleteSession}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* ── Left history panel ── */}
-      <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
-          <div className="flex items-center gap-2">
-            <BookOpen size={14} className="text-[#ea580c]" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              Prepare
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleNew}
-            title="New Session"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-          >
-            <Plus size={15} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2">
-          {listLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-[#ea580c]" />
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="text-center py-10 px-3">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                No sessions yet.
-              </p>
-              <button
-                type="button"
-                onClick={handleNew}
-                className="mt-3 text-xs font-medium text-[#ea580c] hover:underline"
-              >
-                Start your first one
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-0.5">
-              {sessions.map((iv) => (
-                <PrepareCard
-                  key={iv._id}
-                  interview={iv}
-                  active={selectedId === iv._id}
-                  onClick={() => handleSelectSession(iv._id)}
-                  onDelete={handleDeleteSession}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* ── Right content panel ── */}
-      <div
-        className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
-      >
-        <div className="md:hidden flex items-center gap-2 mb-3 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => setMobileHistoryOpen((v) => !v)}
-            className="h-9 px-3 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
-          >
-            {mobileHistoryOpen ? (
-              <ChevronLeft size={14} />
-            ) : (
-              <ChevronRight size={14} />
-            )}
-            Sidebar
-          </button>
-          <button
-            type="button"
-            onClick={handleNew}
-            className="h-9 px-3 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors flex items-center gap-1.5"
-          >
-            <Plus size={13} /> New
-          </button>
-        </div>
-
-        {view === "empty" && <EmptyPanel onNew={handleNew} />}
-
-        {view === "detail" &&
-          (detailLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 size={24} className="animate-spin text-[#ea580c]" />
-            </div>
-          ) : selectedSession ? (
-            <InterviewHistoryDetail interview={selectedSession} />
-          ) : null)}
-
-        {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
-
-        {view === "new-interview" && (
-          <div className="flex flex-col h-full overflow-hidden">
-            <div className="flex-shrink-0 flex items-center gap-2 mb-6 text-xs flex-wrap">
-              <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+    <>
+      <div className="flex h-full overflow-hidden flex-col md:flex-row">
+        {/* ── Mobile section sidebar (left drawer) ── */}
+        <div
+          className={[
+            "md:hidden fixed inset-0 bg-black/30 z-30 transition-opacity",
+            mobileHistoryOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+          ].join(" ")}
+          onClick={() => setMobileHistoryOpen(false)}
+        />
+        <aside
+          className={[
+            "md:hidden fixed top-11 bottom-0 left-0 z-40 w-[84%] max-w-xs",
+            "bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222]",
+            "transition-transform duration-200 flex flex-col",
+            mobileHistoryOpen ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
+            <div className="flex items-center gap-2">
+              <BookOpen size={14} className="text-[#ea580c]" />
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
                 Prepare
-              </span>
-              <ChevronRight size={12} className="text-gray-400" />
-              <span className="text-gray-500 dark:text-gray-400">
-                {activeSubject}
-              </span>
-              <ChevronRight size={12} className="text-gray-400" />
-              <span className="font-medium text-gray-900 dark:text-white">
-                {activeTopic}
-              </span>
+              </p>
             </div>
-
-            <div className="flex-1 min-h-0">
-              {interviewMode === "interactive" && voiceContext ? (
-                <VoiceInterviewAgent
-                  interviewId={interviewId}
-                  systemPrompt={voiceContext.systemPrompt}
-                  context={voiceContext.context}
-                  startedAt={sessionStartedAt}
-                  durationMs={30 * 60 * 1000}
-                  onEnd={handleEnd}
-                />
-              ) : (
-                <InterviewChat
-                  interviewId={interviewId}
-                  currentQuestion={currentQuestion}
-                  questionIndex={questionIndex}
-                  history={history}
-                  startedAt={sessionStartedAt}
-                  durationMs={30 * 60 * 1000}
-                  onAnswer={handleAnswer}
-                  onEnd={handleEnd}
-                />
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => setMobileHistoryOpen(false)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+            >
+              <X size={14} />
+            </button>
           </div>
-        )}
 
-        {view === "new-feedback" && (
-          <InterviewFeedback
-            interviewId={interviewId}
-            feedback={feedback}
-            score={score}
-            onRetry={handleRetry}
-            onAnalyze={handleAnalyze}
-          />
-        )}
+          <div className="p-3 border-b border-gray-100 dark:border-[#222]">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileHistoryOpen(false);
+                handleNew();
+              }}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
+            >
+              <Plus size={14} /> New Session
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2">
+            {listLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 size={20} className="animate-spin text-[#ea580c]" />
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-10 px-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  No sessions yet.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {sessions.map((iv) => (
+                  <PrepareCard
+                    key={iv._id}
+                    interview={iv}
+                    active={selectedId === iv._id}
+                    onClick={() => {
+                      setMobileHistoryOpen(false);
+                      handleSelectSession(iv._id);
+                    }}
+                    onDelete={handleDeleteSession}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Left history panel ── */}
+        <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
+            <div className="flex items-center gap-2">
+              <BookOpen size={14} className="text-[#ea580c]" />
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                Prepare
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleNew}
+              title="New Session"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2">
+            {listLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 size={20} className="animate-spin text-[#ea580c]" />
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-10 px-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  No sessions yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleNew}
+                  className="mt-3 text-xs font-medium text-[#ea580c] hover:underline"
+                >
+                  Start your first one
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {sessions.map((iv) => (
+                  <PrepareCard
+                    key={iv._id}
+                    interview={iv}
+                    active={selectedId === iv._id}
+                    onClick={() => handleSelectSession(iv._id)}
+                    onDelete={handleDeleteSession}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Right content panel ── */}
+        <div
+          className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
+        >
+          <div className="md:hidden flex items-center gap-2 mb-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileHistoryOpen((v) => !v)}
+              className="h-9 px-3 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+            >
+              {mobileHistoryOpen ? (
+                <ChevronLeft size={14} />
+              ) : (
+                <ChevronRight size={14} />
+              )}
+              Sidebar
+            </button>
+            <button
+              type="button"
+              onClick={handleNew}
+              className="h-9 px-3 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={13} /> New
+            </button>
+          </div>
+
+          {view === "empty" && <EmptyPanel onNew={handleNew} />}
+
+          {view === "detail" &&
+            (detailLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 size={24} className="animate-spin text-[#ea580c]" />
+              </div>
+            ) : selectedSession ? (
+              <InterviewHistoryDetail interview={selectedSession} />
+            ) : null)}
+
+          {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
+
+          {view === "new-interview" && (
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="flex-shrink-0 flex items-center gap-2 mb-6 text-xs flex-wrap">
+                <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+                  Prepare
+                </span>
+                <ChevronRight size={12} className="text-gray-400" />
+                <span className="text-gray-500 dark:text-gray-400">
+                  {activeSubject}
+                </span>
+                <ChevronRight size={12} className="text-gray-400" />
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {activeTopic}
+                </span>
+              </div>
+
+              <div className="flex-1 min-h-0">
+                {interviewMode === "interactive" && voiceContext ? (
+                  <VoiceInterviewAgent
+                    interviewId={interviewId}
+                    systemPrompt={voiceContext.systemPrompt}
+                    context={voiceContext.context}
+                    startedAt={sessionStartedAt}
+                    durationMs={30 * 60 * 1000}
+                    onEnd={handleEnd}
+                  />
+                ) : (
+                  <InterviewChat
+                    interviewId={interviewId}
+                    currentQuestion={currentQuestion}
+                    questionIndex={questionIndex}
+                    history={history}
+                    startedAt={sessionStartedAt}
+                    durationMs={30 * 60 * 1000}
+                    onAnswer={handleAnswer}
+                    onEnd={handleEnd}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {view === "new-feedback" && (
+            <InterviewFeedback
+              interviewId={interviewId}
+              feedback={feedback}
+              score={score}
+              onRetry={handleRetry}
+              onAnalyze={handleAnalyze}
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      <ServiceExitConfirmModal
+        open={isOpen}
+        title="End preparation session?"
+        description="Your prepare session is still active. Leaving now will stop this session."
+        confirmLabel="End Session"
+        cancelLabel="Keep Practicing"
+        confirming={isConfirming}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
+      />
+    </>
   );
 }

@@ -15,13 +15,17 @@ export const InterviewProvider = ({ children }) => {
    * @param {{ role?: string, jobDescription: string, selfDescription?: string }} payload
    * @param {File|null} resumeFile — optional PDF
    */
-  const generateReport = async (payload, resumeFile = null) => {
+  const generateReport = async (
+    payload,
+    resumeFile = null,
+    signal = undefined,
+  ) => {
     const fd = new FormData();
     fd.append("role", payload.role || "");
     fd.append("jobDescription", payload.jobDescription || "");
     fd.append("selfDescription", payload.selfDescription || "");
     if (resumeFile) fd.append("resume", resumeFile);
-    const { data } = await api.post("/interview", fd);
+    const { data } = await api.post("/interview", fd, { signal });
     toast.success("Report generated!");
     return data.report;
   };

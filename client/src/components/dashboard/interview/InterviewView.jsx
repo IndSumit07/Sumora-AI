@@ -24,6 +24,8 @@ import {
   getCompanyProfileByKey,
   buildVoiceCompanyStylePrompt,
 } from "../../../shared/companyInterviewProfiles";
+import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
+import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
 import InterviewChat from "./InterviewChat";
 import InterviewFeedback from "./InterviewFeedback";
 import InterviewHistoryDetail from "./InterviewHistoryDetail";
@@ -781,8 +783,12 @@ const EmptyPanel = ({ onNew }) => (
 // ── Main InterviewView ────────────────────────────────────────────────────────
 
 export default function InterviewView() {
-  const { getAllLiveInterviews, getLiveInterviewById, deleteLiveInterview } =
-    useInterview();
+  const {
+    getAllLiveInterviews,
+    getLiveInterviewById,
+    deleteLiveInterview,
+    endInterview,
+  } = useInterview();
 
   // History list state
   const [interviews, setInterviews] = useState([]);
@@ -809,12 +815,30 @@ export default function InterviewView() {
   const [interviewMode, setInterviewMode] = useState("analytic"); // "voice" | "text"
   const [voiceContext, setVoiceContext] = useState(null); // For voice agent system prompt & context
 
+  const interviewActive = view === "new-interview" && Boolean(interviewId);
+
+  const closeActiveInterview = async () => {
+    if (!interviewActive || !interviewId) return;
+
+    try {
+      await endInterview(interviewId, { skipFeedback: true });
+    } catch {
+      // Continue navigation even if server cleanup fails.
+    }
+  };
+
+  const { isOpen, isConfirming, requestExit, confirmExit, cancelExit } =
+    useServiceExitGuard({
+      when: interviewActive,
+      onConfirmExit: closeActiveInterview,
+    });
+
   useEffect(() => {
     getAllLiveInterviews("job")
       .then(setInterviews)
       .catch(console.error)
       .finally(() => setListLoading(false));
-  }, []);
+  }, [getAllLiveInterviews]);
 
   useEffect(() => {
     if (["detail", "new-interview", "new-feedback"].includes(view)) {
@@ -822,7 +846,7 @@ export default function InterviewView() {
     }
   }, [view]);
 
-  const handleSelectInterview = async (id) => {
+  const openInterviewDetail = async (id) => {
     setSelectedId(id);
     setView("detail");
     setDetailLoading(true);
@@ -836,7 +860,13 @@ export default function InterviewView() {
     }
   };
 
-  const handleNew = () => {
+  const handleSelectInterview = (id) => {
+    requestExit(() => {
+      void openInterviewDetail(id);
+    });
+  };
+
+  const resetNewInterview = () => {
     setSelectedId(null);
     setSelectedInterview(null);
     setView("new-setup");
@@ -849,6 +879,10 @@ export default function InterviewView() {
     setScore(0);
     setSessionStartedAt(null);
     setVoiceContext(null);
+  };
+
+  const handleNew = () => {
+    requestExit(resetNewInterview);
   };
 
   const handleStarted = ({
@@ -993,227 +1027,240 @@ Start by introducing yourself and asking the first question.`;
   };
 
   return (
-    <div className="flex h-full overflow-hidden flex-col md:flex-row">
-      {/* ── Mobile section sidebar (left drawer) ── */}
-      <div
-        className={[
-          "md:hidden fixed inset-0 bg-black/30 z-30 transition-opacity",
-          mobileHistoryOpen ? "opacity-100" : "opacity-0 pointer-events-none",
-        ].join(" ")}
-        onClick={() => setMobileHistoryOpen(false)}
-      />
-      <aside
-        className={[
-          "md:hidden fixed top-11 bottom-0 left-0 z-40 w-[84%] max-w-xs",
-          "bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222]",
-          "transition-transform duration-200 flex flex-col",
-          mobileHistoryOpen ? "translate-x-0" : "-translate-x-full",
-        ].join(" ")}
-      >
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
-          <div className="flex items-center gap-2">
-            <Mic size={14} className="text-[#ea580c]" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              Interviews
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setMobileHistoryOpen(false)}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        <div className="p-3 border-b border-gray-100 dark:border-[#222]">
-          <button
-            type="button"
-            onClick={() => {
-              setMobileHistoryOpen(false);
-              handleNew();
-            }}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
-          >
-            <Plus size={14} /> New Interview
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2">
-          {listLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-[#ea580c]" />
-            </div>
-          ) : interviews.length === 0 ? (
-            <div className="text-center py-10 px-3">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                No interviews yet.
+    <>
+      <div className="flex h-full overflow-hidden flex-col md:flex-row">
+        {/* ── Mobile section sidebar (left drawer) ── */}
+        <div
+          className={[
+            "md:hidden fixed inset-0 bg-black/30 z-30 transition-opacity",
+            mobileHistoryOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+          ].join(" ")}
+          onClick={() => setMobileHistoryOpen(false)}
+        />
+        <aside
+          className={[
+            "md:hidden fixed top-11 bottom-0 left-0 z-40 w-[84%] max-w-xs",
+            "bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222]",
+            "transition-transform duration-200 flex flex-col",
+            mobileHistoryOpen ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
+            <div className="flex items-center gap-2">
+              <Mic size={14} className="text-[#ea580c]" />
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                Interviews
               </p>
             </div>
-          ) : (
-            <div className="space-y-0.5">
-              {interviews.map((iv) => (
-                <InterviewCard
-                  key={iv._id}
-                  interview={iv}
-                  active={selectedId === iv._id}
-                  onClick={() => {
-                    setMobileHistoryOpen(false);
-                    handleSelectInterview(iv._id);
-                  }}
-                  onDelete={handleDeleteInterview}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* ── Left history panel ── */}
-      <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
-          <div className="flex items-center gap-2">
-            <Mic size={14} className="text-[#ea580c]" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              Interviews
-            </p>
+            <button
+              type="button"
+              onClick={() => setMobileHistoryOpen(false)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+            >
+              <X size={14} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleNew}
-            title="New Interview"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
-          >
-            <Plus size={15} />
-          </button>
-        </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
-          {listLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-[#ea580c]" />
-            </div>
-          ) : interviews.length === 0 ? (
-            <div className="text-center py-10 px-3">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                No interviews yet.
-              </p>
-              <button
-                type="button"
-                onClick={handleNew}
-                className="mt-3 text-xs font-medium text-[#ea580c] hover:underline"
-              >
-                Start your first one
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-0.5">
-              {interviews.map((iv) => (
-                <InterviewCard
-                  key={iv._id}
-                  interview={iv}
-                  active={selectedId === iv._id}
-                  onClick={() => handleSelectInterview(iv._id)}
-                  onDelete={handleDeleteInterview}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </aside>
+          <div className="p-3 border-b border-gray-100 dark:border-[#222]">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileHistoryOpen(false);
+                handleNew();
+              }}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors"
+            >
+              <Plus size={14} /> New Interview
+            </button>
+          </div>
 
-      {/* ── Right content panel ── */}
-      <div
-        className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
-      >
-        <div className="md:hidden flex items-center gap-2 mb-3 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => setMobileHistoryOpen((v) => !v)}
-            className="h-9 px-3 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
-          >
-            {mobileHistoryOpen ? (
-              <ChevronLeft size={14} />
+          <div className="flex-1 overflow-y-auto p-2">
+            {listLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 size={20} className="animate-spin text-[#ea580c]" />
+              </div>
+            ) : interviews.length === 0 ? (
+              <div className="text-center py-10 px-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  No interviews yet.
+                </p>
+              </div>
             ) : (
-              <ChevronRight size={14} />
+              <div className="space-y-0.5">
+                {interviews.map((iv) => (
+                  <InterviewCard
+                    key={iv._id}
+                    interview={iv}
+                    active={selectedId === iv._id}
+                    onClick={() => {
+                      setMobileHistoryOpen(false);
+                      handleSelectInterview(iv._id);
+                    }}
+                    onDelete={handleDeleteInterview}
+                  />
+                ))}
+              </div>
             )}
-            Sidebar
-          </button>
-          <button
-            type="button"
-            onClick={handleNew}
-            className="h-9 px-3 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors flex items-center gap-1.5"
-          >
-            <Plus size={13} /> New
-          </button>
-        </div>
+          </div>
+        </aside>
 
-        {view === "empty" && <EmptyPanel onNew={handleNew} />}
-
-        {view === "detail" &&
-          (detailLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 size={24} className="animate-spin text-[#ea580c]" />
+        {/* ── Left history panel ── */}
+        <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
+            <div className="flex items-center gap-2">
+              <Mic size={14} className="text-[#ea580c]" />
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                Interviews
+              </p>
             </div>
-          ) : selectedInterview ? (
-            <InterviewHistoryDetail interview={selectedInterview} />
-          ) : null)}
+            <button
+              type="button"
+              onClick={handleNew}
+              title="New Interview"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
 
-        {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
-
-        {view === "new-interview" && (
-          <div className="flex-1 min-h-0">
-            {interviewMode === "interactive" && voiceContext ? (
-              <VoiceInterviewAgent
-                interviewId={interviewId}
-                systemPrompt={voiceContext.systemPrompt}
-                context={voiceContext.context}
-                startedAt={sessionStartedAt}
-                durationMs={30 * 60 * 1000}
-                onTranscriptUpdate={(msg) => {
-                  // Optional: track transcript for saving
-                  console.log("[Transcript]", msg);
-                }}
-                onEnd={handleEnd}
-              />
+          <div className="flex-1 overflow-y-auto p-2">
+            {listLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 size={20} className="animate-spin text-[#ea580c]" />
+              </div>
+            ) : interviews.length === 0 ? (
+              <div className="text-center py-10 px-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  No interviews yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleNew}
+                  className="mt-3 text-xs font-medium text-[#ea580c] hover:underline"
+                >
+                  Start your first one
+                </button>
+              </div>
             ) : (
-              <>
-                <div className="flex items-center gap-2 mb-6 text-xs">
-                  <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
-                    Interview
-                  </span>
-                  <ChevronRight size={12} className="text-gray-400" />
-                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                    <Briefcase size={11} />
-                    {interviews.find((iv) => iv._id === interviewId)?.role ||
-                      "Mock Interview"}
-                  </span>
-                </div>
-                <InterviewChat
+              <div className="space-y-0.5">
+                {interviews.map((iv) => (
+                  <InterviewCard
+                    key={iv._id}
+                    interview={iv}
+                    active={selectedId === iv._id}
+                    onClick={() => handleSelectInterview(iv._id)}
+                    onDelete={handleDeleteInterview}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Right content panel ── */}
+        <div
+          className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
+        >
+          <div className="md:hidden flex items-center gap-2 mb-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileHistoryOpen((v) => !v)}
+              className="h-9 px-3 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+            >
+              {mobileHistoryOpen ? (
+                <ChevronLeft size={14} />
+              ) : (
+                <ChevronRight size={14} />
+              )}
+              Sidebar
+            </button>
+            <button
+              type="button"
+              onClick={handleNew}
+              className="h-9 px-3 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={13} /> New
+            </button>
+          </div>
+
+          {view === "empty" && <EmptyPanel onNew={handleNew} />}
+
+          {view === "detail" &&
+            (detailLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 size={24} className="animate-spin text-[#ea580c]" />
+              </div>
+            ) : selectedInterview ? (
+              <InterviewHistoryDetail interview={selectedInterview} />
+            ) : null)}
+
+          {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
+
+          {view === "new-interview" && (
+            <div className="flex-1 min-h-0">
+              {interviewMode === "interactive" && voiceContext ? (
+                <VoiceInterviewAgent
                   interviewId={interviewId}
-                  currentQuestion={currentQuestion}
-                  questionIndex={questionIndex}
-                  history={history}
+                  systemPrompt={voiceContext.systemPrompt}
+                  context={voiceContext.context}
                   startedAt={sessionStartedAt}
                   durationMs={30 * 60 * 1000}
-                  onAnswer={handleAnswer}
+                  onTranscriptUpdate={(msg) => {
+                    // Optional: track transcript for saving
+                    console.log("[Transcript]", msg);
+                  }}
                   onEnd={handleEnd}
                 />
-              </>
-            )}
-          </div>
-        )}
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-6 text-xs">
+                    <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+                      Interview
+                    </span>
+                    <ChevronRight size={12} className="text-gray-400" />
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <Briefcase size={11} />
+                      {interviews.find((iv) => iv._id === interviewId)?.role ||
+                        "Mock Interview"}
+                    </span>
+                  </div>
+                  <InterviewChat
+                    interviewId={interviewId}
+                    currentQuestion={currentQuestion}
+                    questionIndex={questionIndex}
+                    history={history}
+                    startedAt={sessionStartedAt}
+                    durationMs={30 * 60 * 1000}
+                    onAnswer={handleAnswer}
+                    onEnd={handleEnd}
+                  />
+                </>
+              )}
+            </div>
+          )}
 
-        {view === "new-feedback" && (
-          <InterviewFeedback
-            interviewId={interviewId}
-            feedback={feedback}
-            score={score}
-            onRetry={handleRetry}
-            onAnalyze={handleAnalyze}
-          />
-        )}
+          {view === "new-feedback" && (
+            <InterviewFeedback
+              interviewId={interviewId}
+              feedback={feedback}
+              score={score}
+              onRetry={handleRetry}
+              onAnalyze={handleAnalyze}
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      <ServiceExitConfirmModal
+        open={isOpen}
+        title="End interview?"
+        description="Your interview is still active. Leaving now will stop this interview session."
+        confirmLabel="End Interview"
+        cancelLabel="Continue Interview"
+        confirming={isConfirming}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
+      />
+    </>
   );
 }
