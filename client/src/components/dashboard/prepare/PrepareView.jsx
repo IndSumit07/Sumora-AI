@@ -767,7 +767,7 @@ export default function PrepareView() {
 
   // Right-panel view state
   // "empty" | "detail" | "new-setup" | "new-interview" | "new-feedback"
-  const [view, setView] = useState("empty");
+  const [view, setView] = useState("new-setup");
 
   // Selected session detail
   const [selectedSession, setSelectedSession] = useState(null);
