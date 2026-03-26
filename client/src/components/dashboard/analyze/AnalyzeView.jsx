@@ -771,7 +771,7 @@ export default function AnalyzeView() {
   const [selectedId, setSelectedId] = useState(null);
 
   // "empty" | "form" | "detail"
-  const [view, setView] = useState("empty");
+  const [view, setView] = useState("form");
   const [selectedReport, setSelectedReport] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
