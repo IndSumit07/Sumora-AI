@@ -8,7 +8,6 @@ import {
   Gauge,
   Loader2,
   Mic,
-  RefreshCw,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
@@ -330,22 +329,6 @@ const StatsView = () => {
               </p>
             </div>
             <div className="flex items-start gap-3">
-              <button
-                onClick={() => fetchStats(true)}
-                disabled={refreshing || loading || isRefreshLocked}
-                className="h-10 px-4 rounded-xl bg-[#ea580c] text-white text-sm font-semibold hover:bg-[#d24e0b] disabled:opacity-60 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
-              >
-                <RefreshCw
-                  size={14}
-                  className={refreshing ? "animate-spin" : ""}
-                />
-                {refreshing
-                  ? "Refreshing..."
-                  : isRefreshLocked
-                    ? `Locked ${formatCountdown(secondsToRefresh)}`
-                    : "Refresh"}
-              </button>
-
               <div className="rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white/80 dark:bg-[#161616]/80 px-4 py-3 min-w-[150px]">
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
                   <Gauge size={12} /> Overall average
