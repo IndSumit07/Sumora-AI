@@ -53,6 +53,17 @@ export const COMPANY_INTERVIEW_PROFILES = [
       "Design and build scalable, highly available, and highly performant distributed systems used by millions of customers globally. You will take full ownership of the technical design, development, and operational excellence of core services. Exhibiting our Leadership Principles, you will dive deep into complex technical challenges, invent and simplify, and demonstrate an unrelenting customer obsession while delivering high-quality, maintainable code.",
   },
   {
+    key: "jpmorgan",
+    name: "Software Developer @ JPMorgan",
+    logoUrl: buildLogoUrl("jpmorganchase.com"),
+    website: "https://careers.jpmorgan.com",
+    styleSummary:
+      "Financial-systems reliability, risk-aware design, and secure engineering.",
+    defaultRole: "Software Engineer",
+    defaultJobDescription:
+      "Build secure, resilient software platforms powering global payments, markets, and digital banking products. You will design and maintain high-availability services, optimize system performance under strict compliance constraints, and deliver production-grade code with strong testing and observability. The role emphasizes risk-aware engineering, incident readiness, and clear communication with cross-functional business and control partners.",
+  },
+  {
     key: "meta",
     name: "Software Developer @ Meta",
     logoUrl: buildLogoUrl("meta.com"),

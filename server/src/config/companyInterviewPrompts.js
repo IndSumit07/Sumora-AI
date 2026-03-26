@@ -53,6 +53,17 @@ const COMPANY_PROMPT_MAP = {
 - Ask follow-ups that test bias for action and long-term thinking.
 - Prefer concrete examples and measurable outcomes.`,
   },
+  jpmorgan: {
+    key: "jpmorgan",
+    name: "JPMorgan",
+    title: "JPMorgan Interview Style",
+    logoUrl: buildLogoUrl("jpmorganchase.com"),
+    prompt: `Interview style inspired by JPMorgan:
+- Emphasize secure, resilient engineering for large-scale financial systems.
+- Ask about reliability, risk-aware design decisions, and operational controls.
+- Probe data integrity, incident response, and performance under strict SLAs.
+- Reward practical trade-off reasoning and clear stakeholder communication.`,
+  },
   meta: {
     key: "meta",
     name: "Meta",

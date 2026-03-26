@@ -17,6 +17,17 @@ test("getCompanyPromptByName resolves fuzzy company name", () => {
   assert.equal(profile.key, "microsoft");
 });
 
+test("getCompanyPromptByKey resolves jpmorgan preset", () => {
+  const profile = getCompanyPromptByKey("jpmorgan");
+  assert.equal(profile.key, "jpmorgan");
+  assert.equal(profile.name, "JPMorgan");
+});
+
+test("getCompanyPromptByName resolves jpmorgan fuzzy name", () => {
+  const profile = getCompanyPromptByName("JPMorgan Chase");
+  assert.equal(profile.key, "jpmorgan");
+});
+
 test("resolveCompanyInterviewPrompt supports custom profile", () => {
   const resolved = resolveCompanyInterviewPrompt({
     type: "custom",
