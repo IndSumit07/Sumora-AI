@@ -10,7 +10,7 @@ import {
   Menu,
   Home,
   Search,
-  Bell,
+  MessageSquare,
   CreditCard,
   Zap,
   Activity,
@@ -18,6 +18,7 @@ import {
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
 import CommandPalette from "../components/CommandPalette";
+import SiteFeedbackModal from "../components/SiteFeedbackModal";
 
 const getInitials = (name) => (name || "SU").slice(0, 2).toUpperCase();
 
@@ -44,6 +45,7 @@ const DashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     const handler = (e) => {
@@ -110,10 +112,14 @@ const DashboardPage = () => {
           >
             <Search size={15} />
           </button>
-          <div className="relative">
-            <Bell size={15} className="text-gray-400" />
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
-          </div>
+          <button
+            onClick={() => setShowFeedback(true)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
+            aria-label="Open feedback form"
+            title="Feedback"
+          >
+            <MessageSquare size={15} />
+          </button>
 
           <Link
             to="/dashboard/billing"
@@ -244,13 +250,15 @@ const DashboardPage = () => {
               </kbd>
             </button>
 
-            {/* Bell */}
-            <div className="relative">
-              <button className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1e1e1e] transition-colors">
-                <Bell size={17} />
-              </button>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ea580c] pointer-events-none" />
-            </div>
+            {/* Feedback */}
+            <button
+              onClick={() => setShowFeedback(true)}
+              title="Feedback"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1e1e1e] transition-colors"
+              aria-label="Open feedback form"
+            >
+              <MessageSquare size={17} />
+            </button>
 
             {/* Theme toggle */}
             <button
@@ -276,6 +284,11 @@ const DashboardPage = () => {
 
       <AccountModal open={showAccount} onClose={() => setShowAccount(false)} />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <SiteFeedbackModal
+        open={showFeedback}
+        onClose={() => setShowFeedback(false)}
+        user={user}
+      />
     </div>
   );
 };

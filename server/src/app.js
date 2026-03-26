@@ -7,6 +7,7 @@ import helmet from "helmet";
 import authRouter from "./routes/auth.routes.js";
 import interviewRouter from "./routes/interview.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
+import feedbackRouter from "./routes/feedback.routes.js";
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.disable("x-powered-by");
 app.use("/api/auth", authRouter);
 app.use("/api/interview", interviewRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/feedback", feedbackRouter);
 
 /* ── Health check (used by client to detect cold-start) ── */
 app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
