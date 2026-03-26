@@ -26,6 +26,7 @@ import {
   generateFeedback,
   analyzeQuestion,
 } from "../services/interviewService.js";
+import { resolveCompanyInterviewPrompt } from "../config/companyInterviewPrompts.js";
 
 const COSTS = {
   LIVE_INTERVIEW: 20,
@@ -134,7 +135,7 @@ export async function uploadResumeController(req, res) {
 
 /**
  * POST /api/interview/start
- * Body: { role, jobDescription, resumeText? }
+ * Body: { role, jobDescription, resumeText }
  *
  * Creates a LiveInterview document, launches the LangChain chain, and returns
  * the first AI question. No session required.
@@ -146,12 +147,18 @@ export async function startInterviewController(req, res) {
       role,
       jobDescription,
       difficulty = "medium",
+      companyProfile = { type: "preset", key: "general" },
     } = req.body;
 
     if (!role?.trim())
       return res.status(400).json({ message: "role is required." });
     if (!jobDescription?.trim())
       return res.status(400).json({ message: "jobDescription is required." });
+    if (!resumeText?.trim())
+      return res.status(400).json({ message: "resumeText is required." });
+
+    const resolvedCompanyProfile =
+      resolveCompanyInterviewPrompt(companyProfile);
 
     const user = await User.findById(req.user.id);
     if (!user || user.tokens < COSTS.LIVE_INTERVIEW) {
@@ -167,6 +174,11 @@ export async function startInterviewController(req, res) {
       resumeText: resumeText.trim().slice(0, 8000),
       role: role.trim().slice(0, 150),
       jobDescription: jobDescription.trim().slice(0, 5000),
+      companyKey: resolvedCompanyProfile.companyKey,
+      companyName: resolvedCompanyProfile.companyName,
+      companyWebsite: resolvedCompanyProfile.companyWebsite,
+      companyPromptTitle: resolvedCompanyProfile.promptTitle,
+      companyPromptDescription: resolvedCompanyProfile.promptText,
       difficulty: ["easy", "medium", "hard"].includes(difficulty)
         ? difficulty
         : "medium",
@@ -180,6 +192,14 @@ export async function startInterviewController(req, res) {
       interview.role,
       interview.jobDescription,
       interview.difficulty,
+      {
+        type: interview.companyKey === "custom" ? "custom" : "preset",
+        key: interview.companyKey,
+        name: interview.companyName,
+        website: interview.companyWebsite,
+        title: interview.companyPromptTitle,
+        description: interview.companyPromptDescription,
+      },
     );
 
     // Persist the first question to the conversation array
@@ -542,6 +562,8 @@ export async function getAllLiveInterviewsController(req, res) {
       score: 1,
       status: 1,
       difficulty: 1,
+      companyKey: 1,
+      companyName: 1,
       createdAt: 1,
     }).sort({ createdAt: -1 });
 

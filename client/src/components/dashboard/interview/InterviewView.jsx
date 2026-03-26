@@ -15,9 +15,15 @@ import {
   CheckCircle2,
   Radio,
   MessageSquare,
+  Building2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
+import {
+  COMPANY_INTERVIEW_PROFILES,
+  getCompanyProfileByKey,
+  buildVoiceCompanyStylePrompt,
+} from "../../../shared/companyInterviewProfiles";
 import InterviewChat from "./InterviewChat";
 import InterviewFeedback from "./InterviewFeedback";
 import InterviewHistoryDetail from "./InterviewHistoryDetail";
@@ -78,6 +84,12 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-1 pr-5">
         {interview.role || "Mock Interview"}
       </p>
+      {interview.companyName && interview.companyName !== "General" && (
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mb-1.5 pr-5 flex items-center gap-1">
+          <Building2 size={10} />
+          {interview.companyName}
+        </p>
+      )}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
           <Calendar size={10} />
@@ -109,18 +121,65 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
   );
 };
 
-const isLinkedInJobUrl = (val) =>
-  /linkedin\.com\/(jobs?|job-apply)\//i.test(val.trim());
+const CompanyOptionCard = ({ profile, active, onSelect }) => {
+  const initials = profile.name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(profile.key)}
+      className={[
+        "rounded-xl border p-3 text-left transition-all",
+        active
+          ? "border-[#ea580c] bg-[#ea580c]/10"
+          : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-[#ea580c]/40",
+      ].join(" ")}
+    >
+      <div className="flex items-center gap-2.5 mb-2">
+        <div className="relative h-8 w-8 rounded-lg bg-gray-100 dark:bg-[#242424] flex items-center justify-center overflow-hidden">
+          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+            {initials}
+          </span>
+          {profile.logoUrl ? (
+            <img
+              src={profile.logoUrl}
+              alt={`${profile.name} logo`}
+              className="absolute inset-0 h-full w-full object-contain bg-white"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : null}
+        </div>
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+          {profile.name}
+        </p>
+      </div>
+      <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">
+        {profile.styleSummary}
+      </p>
+    </button>
+  );
+};
 
 // ── Setup form ────────────────────────────────────────────────────────────────
 
 const SetupForm = ({ onStarted }) => {
-  const { uploadResume, startInterview, fetchJobFromUrl } = useInterview();
+  const { uploadResume, startInterview } = useInterview();
+  const [step, setStep] = useState(1); // 1: Company Select, 2: Start Interview
   const [role, setRole] = useState("");
   const [jobDescription, setJobDescription] = useState("");
-  const [linkedinUrl, setLinkedinUrl] = useState("");
-  const [fetchLoading, setFetchLoading] = useState(false);
-  const [fetchedCompany, setFetchedCompany] = useState("");
+  const [selectedCompanyKey, setSelectedCompanyKey] = useState("general");
+  const [useCustomCompany, setUseCustomCompany] = useState(false);
+  const [customCompanyName, setCustomCompanyName] = useState("");
+  const [customCompanyWebsite, setCustomCompanyWebsite] = useState("");
+  const [customCompanyTitle, setCustomCompanyTitle] = useState("");
+  const [customCompanyDescription, setCustomCompanyDescription] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -128,6 +187,11 @@ const SetupForm = ({ onStarted }) => {
   const [difficulty, setDifficulty] = useState("medium");
   const [interviewMode, setInterviewMode] = useState("interactive"); // "voice" | "text"
   const fileRef = useRef(null);
+  const selectedCompanyProfile = getCompanyProfileByKey(selectedCompanyKey);
+  const customCompanyReady =
+    !useCustomCompany ||
+    (customCompanyName.trim().length > 1 &&
+      customCompanyDescription.trim().length > 20);
 
   // Sync external store to force re-render when window.speakMode changes
   const speakMode = useSyncExternalStore(
@@ -138,38 +202,6 @@ const SetupForm = ({ onStarted }) => {
     },
     () => window.speakMode || "hold",
   );
-
-  const handleFetchJob = async () => {
-    if (!isLinkedInJobUrl(linkedinUrl)) {
-      toast.error("Please paste a valid LinkedIn job URL.");
-      return;
-    }
-    setFetchLoading(true);
-    try {
-      const {
-        role: r,
-        company,
-        jobDescription: jd,
-      } = await fetchJobFromUrl(linkedinUrl);
-      if (r) setRole(r);
-      if (jd) setJobDescription(jd);
-      if (company) setFetchedCompany(company);
-      if (r || jd) {
-        toast.success("Job details auto-filled from LinkedIn.");
-      } else {
-        toast.error("Could not extract details. Please fill in manually.");
-      }
-    } catch (err) {
-      const msg =
-        err.code === "ECONNABORTED"
-          ? "Request timed out. Please try again."
-          : err.response?.data?.message || "Failed to fetch job details.";
-      toast.error(msg);
-    } finally {
-      setFetchLoading(false);
-    }
-  };
-
   const handleFile = async (file) => {
     if (!file) return;
     if (file.type !== "application/pdf") {
@@ -196,31 +228,81 @@ const SetupForm = ({ onStarted }) => {
   };
 
   const handleStart = async () => {
-    if (!role.trim()) {
+    let finalRole = role;
+    let finalJobDesc = jobDescription;
+
+    if (!useCustomCompany) {
+      finalRole = selectedCompanyProfile.defaultRole || "Software Developer";
+      finalJobDesc =
+        selectedCompanyProfile.defaultJobDescription ||
+        selectedCompanyProfile.styleSummary;
+    }
+
+    if (!finalRole.trim()) {
       toast.error("Role is required.");
       return;
     }
-    if (!jobDescription.trim()) {
+    if (!finalJobDesc.trim()) {
       toast.error("Job description is required.");
       return;
     }
+    if (!resumeText.trim()) {
+      toast.error("Resume upload is required.");
+      return;
+    }
+
+    if (useCustomCompany && !customCompanyName.trim()) {
+      toast.error("Custom company name is required.");
+      return;
+    }
+    if (useCustomCompany && customCompanyDescription.trim().length < 20) {
+      toast.error(
+        "Custom interview description should be at least 20 characters.",
+      );
+      return;
+    }
+
+    const companyProfile = useCustomCompany
+      ? {
+          type: "custom",
+          name: customCompanyName.trim(),
+          website: customCompanyWebsite.trim(),
+          title:
+            customCompanyTitle.trim() ||
+            `${customCompanyName.trim()} Interview Style`,
+          description: customCompanyDescription.trim(),
+        }
+      : {
+          type: "preset",
+          key: selectedCompanyProfile.key,
+          name:
+            selectedCompanyProfile.name.split(" @")[1] ||
+            selectedCompanyProfile.name,
+        };
+
     setStartLoading(true);
     try {
       const { interviewId, question, startedAt } = await startInterview({
-        role: role.trim(),
-        jobDescription: jobDescription.trim(),
+        role: finalRole,
+        jobDescription: finalJobDesc,
         resumeText,
         difficulty,
+        companyProfile,
       });
       onStarted({
         interviewId,
         firstQuestion: question,
-        role: role.trim(),
-        jobDescription: jobDescription.trim(),
+        role: finalRole,
+        jobDescription: finalJobDesc,
         resumeText,
         difficulty,
+        companyProfile,
+        companyName: useCustomCompany
+          ? customCompanyName.trim()
+          : selectedCompanyProfile.name.split(" @")[1] ||
+            selectedCompanyProfile.name,
         startedAt,
-        mode: interviewMode, // Add mode to track if voice or text
+        mode: interviewMode,
       });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start interview.");
@@ -229,110 +311,255 @@ const SetupForm = ({ onStarted }) => {
     }
   };
 
+  if (step === 1) {
+    return (
+      <div className="max-w-4xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-8 w-8 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
+            <Building2 size={16} className="text-[#ea580c]" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Mock Interview Companies
+            </h1>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Select a company to start your tailored mock interview
+              immediately.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {COMPANY_INTERVIEW_PROFILES.map((profile) => {
+            const companyNameOnly =
+              profile.name.split(" @ ")[1] || profile.name;
+            const initials = companyNameOnly.substring(0, 2).toUpperCase();
+
+            return (
+              <button
+                key={profile.key}
+                type="button"
+                onClick={() => {
+                  setSelectedCompanyKey(profile.key);
+                  setUseCustomCompany(false);
+                  setStep(2);
+                }}
+                className="group rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 text-left transition-all hover:border-[#ea580c]/50 hover:shadow-md dark:hover:shadow-[#ea580c]/5"
+              >
+                <div className="flex items-start gap-4 mb-3">
+                  <div className="relative h-12 w-12 rounded-xl bg-gray-100 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
+                    <span className="text-[14px] font-bold text-gray-500 dark:text-gray-400">
+                      {initials}
+                    </span>
+                    {profile.logoUrl && (
+                      <img
+                        src={profile.logoUrl}
+                        alt={`${companyNameOnly} logo`}
+                        className="absolute inset-0 h-full w-full object-contain bg-white p-1.5"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5 group-hover:text-[#ea580c] transition-colors">
+                      {profile.name}
+                    </h3>
+                    <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                      {profile.defaultRole || "Software Developer"}
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3">
+                  <p className="text-[11px] leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-2">
+                    {profile.defaultJobDescription || profile.styleSummary}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => {
+              setUseCustomCompany(true);
+              setRole("");
+              setJobDescription("");
+              setStep(2);
+            }}
+            className="rounded-2xl border border-dashed border-gray-300 dark:border-[#333] bg-gray-50/50 dark:bg-[#161616]/50 p-5 text-left transition-all hover:border-[#ea580c]/40 hover:text-[#ea580c] flex flex-col items-center justify-center min-h-[160px] gap-3 text-gray-500 dark:text-gray-400 group"
+          >
+            <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-[#2a2a2a] group-hover:bg-[#ea580c]/10 flex items-center justify-center transition-colors">
+              <Plus size={20} className="group-hover:text-[#ea580c]" />
+            </div>
+            <span className="text-sm font-semibold">Add Custom Company</span>
+            <span className="text-[11px] text-center max-w-[200px]">
+              Define your own role, company name, and specific interview
+              requirements.
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => setStep(1)}
+          className="h-8 w-8 rounded-xl bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] flex items-center justify-center transition-colors"
+        >
+          <ChevronLeft size={16} className="text-gray-600 dark:text-gray-300" />
+        </button>
         <div className="h-8 w-8 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
           <Mic size={16} className="text-[#ea580c]" />
         </div>
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            New Mock Interview
+            {useCustomCompany
+              ? "Custom Mock Interview"
+              : selectedCompanyProfile.name}
           </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Fill in the role details and the AI will conduct a real interview.
+            {useCustomCompany
+              ? "Fill in the details to start."
+              : "Review details and upload your resume to begin."}
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {/* LinkedIn URL import */}
-        <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#161616] p-4">
-          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
-            Import from LinkedIn{" "}
-            <span className="normal-case font-normal">(optional)</span>
-          </p>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Link
-                size={13}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
-              />
+        {useCustomCompany ? (
+          <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+              Custom Company Details
+            </h2>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <input
+                  type="text"
+                  value={customCompanyName}
+                  onChange={(e) => setCustomCompanyName(e.target.value)}
+                  placeholder="Company Name (e.g. ByteBridge AI)"
+                  maxLength={120}
+                  className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
+                />
+                <input
+                  type="url"
+                  value={customCompanyWebsite}
+                  onChange={(e) => setCustomCompanyWebsite(e.target.value)}
+                  placeholder="Company Careers Link (optional)"
+                  maxLength={300}
+                  className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
+                />
+              </div>
               <input
-                type="url"
-                value={linkedinUrl}
-                onChange={(e) => setLinkedinUrl(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && !fetchLoading && handleFetchJob()
-                }
-                placeholder="Paste LinkedIn job URL…"
-                className="h-9 w-full rounded-lg border border-gray-200 dark:border-[#333] pl-8 pr-3 text-xs bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all"
+                type="text"
+                value={customCompanyTitle}
+                onChange={(e) => setCustomCompanyTitle(e.target.value)}
+                placeholder="Interview Style Title (optional)"
+                maxLength={150}
+                className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
+              />
+              <textarea
+                value={customCompanyDescription}
+                onChange={(e) => setCustomCompanyDescription(e.target.value)}
+                placeholder="Describe how this company usually interviews. Mention style, depth, question types, and what interviewers prioritize."
+                rows={4}
+                maxLength={1500}
+                className="w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 py-2.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none resize-none"
+              />
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                Minimum 20 characters to ensure reliable prompt quality.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-gray-100 dark:border-[#2a2a2a]">
+              <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5 mt-2">
+                Role / Position
+              </label>
+              <input
+                type="text"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="e.g., Senior Frontend Engineer"
+                maxLength={150}
+                className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
               />
             </div>
-            <button
-              type="button"
-              onClick={handleFetchJob}
-              disabled={fetchLoading || !linkedinUrl.trim()}
-              className="h-9 px-3 rounded-lg border border-gray-200 dark:border-[#333] text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-[#1a1a1a] hover:border-[#ea580c]/50 hover:text-[#ea580c] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 whitespace-nowrap"
-            >
-              {fetchLoading ? (
-                <>
-                  <Loader2 size={11} className="animate-spin" /> Fetching…
-                </>
-              ) : (
-                "Auto-fill"
-              )}
-            </button>
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+                Job Description
+              </label>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Paste the job requirements here..."
+                rows={4}
+                maxLength={5000}
+                className="w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 py-2.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none resize-none"
+              />
+            </div>
           </div>
-          {fetchedCompany && (
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-green-600 dark:text-green-400">
-              <CheckCircle2 size={11} />
-              Auto-filled from{" "}
-              <span className="font-semibold">{fetchedCompany}</span> · Edit
-              fields below as needed.
-            </p>
-          )}
-        </div>
-
-        {/* Role */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Role / Position
-          </label>
-          <input
-            type="text"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            placeholder="e.g., Senior Frontend Engineer, Product Manager…"
-            maxLength={150}
-            className="h-12 w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] px-4 text-sm bg-white dark:bg-[#161616] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all"
-          />
-        </div>
-
-        {/* Job description */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-              Job Description
-            </label>
-            <span className="text-[11px] text-gray-400">
-              {jobDescription.length}/5000
-            </span>
+        ) : (
+          <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative h-12 w-12 rounded-xl bg-gray-100 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
+                <span className="text-[14px] font-bold text-gray-500 dark:text-gray-400">
+                  {(
+                    selectedCompanyProfile.name.split(" @")[1] ||
+                    selectedCompanyProfile.name
+                  )
+                    .substring(0, 2)
+                    .toUpperCase()}
+                </span>
+                {selectedCompanyProfile.logoUrl && (
+                  <img
+                    src={selectedCompanyProfile.logoUrl}
+                    alt={`${selectedCompanyProfile.name} logo`}
+                    className="absolute inset-0 h-full w-full object-contain bg-white p-1.5"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
+                  Company
+                </p>
+                <p className="text-base font-bold text-gray-900 dark:text-white">
+                  {selectedCompanyProfile.name.split(" @")[1] ||
+                    selectedCompanyProfile.name}
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-gray-100 dark:border-[#2a2a2a]">
+              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1 mt-2">
+                Target Role
+              </p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {selectedCompanyProfile.defaultRole || "Software Developer"}
+              </p>
+            </div>
+            <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3.5 border border-gray-100 dark:border-[#2a2a2a]">
+              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+                Job Description & Focus
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {selectedCompanyProfile.defaultJobDescription ||
+                  selectedCompanyProfile.styleSummary}
+              </p>
+            </div>
           </div>
-          <textarea
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the job description here, or use the LinkedIn import above…"
-            rows={6}
-            maxLength={5000}
-            className="w-full rounded-xl border border-gray-200 dark:border-[#2a2a2a] px-4 py-3 text-sm bg-white dark:bg-[#161616] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all resize-none"
-          />
-        </div>
+        )}
 
-        {/* Resume (optional) */}
+        {/* Resume (required) */}
         <div>
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Resume <span className="normal-case font-normal">(optional)</span>
+            Resume <span className="normal-case font-normal">(required)</span>
           </p>
           {resumeFile ? (
             <div className="flex items-center gap-3 h-11 px-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
@@ -506,8 +733,10 @@ const SetupForm = ({ onStarted }) => {
           disabled={
             startLoading ||
             uploadLoading ||
-            !role.trim() ||
-            !jobDescription.trim()
+            !resumeText.trim() ||
+            (useCustomCompany
+              ? !role.trim() || !jobDescription.trim() || !customCompanyReady
+              : false)
           }
           className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
@@ -562,7 +791,7 @@ export default function InterviewView() {
 
   // Right-panel view state
   // "empty" | "detail" | "new-setup" | "new-interview" | "new-feedback"
-  const [view, setView] = useState("empty");
+  const [view, setView] = useState("new-setup");
 
   // Selected interview detail
   const [selectedInterview, setSelectedInterview] = useState(null);
@@ -619,6 +848,7 @@ export default function InterviewView() {
     setFeedback(null);
     setScore(0);
     setSessionStartedAt(null);
+    setVoiceContext(null);
   };
 
   const handleStarted = ({
@@ -628,6 +858,8 @@ export default function InterviewView() {
     jobDescription,
     resumeText,
     difficulty,
+    companyProfile,
+    companyName,
     mode,
     startedAt,
   }) => {
@@ -636,6 +868,11 @@ export default function InterviewView() {
     setSessionStartedAt(startedAt || new Date().toISOString());
 
     if (mode === "interactive") {
+      const resolvedCompanyName =
+        companyName ||
+        companyProfile?.name ||
+        (companyProfile?.key ? companyProfile.key : "General");
+
       // Setup voice agent context
       const systemPrompt = `You are an expert interviewer conducting a job interview for the role of ${role}.
 
@@ -643,6 +880,8 @@ Job Description:
 ${jobDescription}
 
 ${resumeText ? `Candidate's Resume:\n${resumeText}\n\n` : ""}
+${buildVoiceCompanyStylePrompt(companyProfile)}
+
 
 Your job is to:
 1. Ask insightful questions about the candidate's experience, skills, and fit for the role
@@ -650,6 +889,7 @@ Your job is to:
 3. Ask both technical and behavioral questions
 4. Be conversational and engaging
 5. After 5-7 questions, wrap up the interview
+6. In your very first response, briefly mention that this is an interview for the ${role} position at ${resolvedCompanyName}, then ask the first question
 
 Start by introducing yourself and asking the first question.`;
 
@@ -660,6 +900,8 @@ Start by introducing yourself and asking the first question.`;
           role,
           jobDescription,
           resumeText,
+          companyProfile,
+          companyName,
           mode: "job",
           interviewMode: "interactive",
         },
@@ -678,6 +920,7 @@ Start by introducing yourself and asking the first question.`;
         _id: id,
         mode: "job",
         role,
+        companyName,
         difficulty,
         score: 0,
         status: "active",

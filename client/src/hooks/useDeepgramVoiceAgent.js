@@ -405,7 +405,11 @@ export function useDeepgramVoiceAgent({
       let greetingMsg =
         "Hello... and welcome to your session. I am your AI interviewer. Let's take our time... and get to know you. Could you please introduce yourself?";
       if (context?.mode === "job" && context?.role) {
-        greetingMsg = `Hello... and welcome to your job interview for the ${context.role} position. I am your AI interviewer. Let's take our time... and get to know you. Could you please... introduce yourself?`;
+        const companyLabel =
+          (context?.companyName || "").toString().trim() ||
+          (context?.companyProfile?.name || "").toString().trim();
+        const companyContext = companyLabel ? ` at ${companyLabel}` : "";
+        greetingMsg = `Hello... and welcome to your job interview for the ${context.role} position${companyContext}. I am your AI interviewer. Let's take our time... and get to know you. Could you please... introduce yourself?`;
       } else if (context?.mode === "prepare" && context?.subject) {
         greetingMsg = `Hello... and welcome to your preparation session covering ${context.subject}. Let's test your skills... and provide interactive feedback. Could you start by telling me... your comfort level with ${context.topic}?`;
       }

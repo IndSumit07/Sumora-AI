@@ -22,6 +22,7 @@ import {
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { resolveCompanyInterviewPrompt } from "../config/companyInterviewPrompts.js";
 
 // ── In-memory registries ──────────────────────────────────────────────────────
 // Map<interviewId, InMemoryChatMessageHistory>
@@ -88,7 +89,7 @@ Rules you must follow at all times:
 - Gradually increase the difficulty of questions throughout the interview.
 - Focus on skills and experiences mentioned in the resume or required by the job description.
 - Be concise, professional, and neutral in tone.
-- CRITICAL: Output ONLY the question text. Never acknowledge the answer. Never say "Got it", "I see", "Understood", "Interesting", or ANY other acknowledgment phrase. Start your response directly with the question word (e.g. "What", "How", "Can you", "Describe", "Walk me through", etc.).
+- CRITICAL: On the FIRST response only, start with one brief sentence mentioning the selected company interview style/context, then ask EXACTLY one question. For all later turns, output ONLY the question text. Never acknowledge the answer. Never say "Got it", "I see", "Understood", "Interesting", or ANY other acknowledgment phrase. Start subsequent responses directly with the question word (e.g. "What", "How", "Can you", "Describe", "Walk me through", etc.).
 
 Resume:
 {resume}
@@ -96,7 +97,10 @@ Resume:
 Target Role: {role}
 
 Job Description:
-{jobDescription}`;
+{jobDescription}
+
+Company Interview Style:
+{companyStyle}`;
 
 // ── Prepare-mode system prompt ─────────────────────────────────────────────
 const PREPARE_SYSTEM_TEMPLATE = `You are an expert technical interviewer conducting a laser-focused preparation session.
@@ -218,13 +222,24 @@ function buildChain(interviewId, systemPrompt) {
   return chainWithHistory;
 }
 
-function makeSystemPrompt(resume, role, jobDescription, difficulty = "medium") {
+function makeSystemPrompt(
+  resume,
+  role,
+  jobDescription,
+  difficulty = "medium",
+  companyProfile = {},
+) {
+  const resolvedCompanyPrompt = resolveCompanyInterviewPrompt(companyProfile);
   const base = SYSTEM_TEMPLATE.replace(
     "{resume}",
     resume || "No resume provided.",
   )
     .replace("{role}", role || "Software Engineer")
-    .replace("{jobDescription}", jobDescription || "Not specified.");
+    .replace("{jobDescription}", jobDescription || "Not specified.")
+    .replace(
+      "{companyStyle}",
+      `${resolvedCompanyPrompt.promptTitle}\n${resolvedCompanyPrompt.promptText}`,
+    );
   return base + getDifficultyInstructions(difficulty);
 }
 
@@ -262,18 +277,23 @@ export async function initInterview(
   role,
   jobDescription,
   difficulty = "medium",
+  companyProfile = {},
 ) {
+  const resolvedCompanyPrompt = resolveCompanyInterviewPrompt(companyProfile);
   const systemPrompt = makeSystemPrompt(
     resume,
     role,
     jobDescription,
     difficulty,
+    companyProfile,
   );
   const chainWithHistory = buildChain(interviewId, systemPrompt);
 
   const idStr = interviewId.toString();
   const response = await chainWithHistory.invoke(
-    { input: "Please begin the interview and ask your first question." },
+    {
+      input: `Please begin the interview by briefly mentioning the ${resolvedCompanyPrompt.companyName} interview context, then ask your first question.`,
+    },
     { configurable: { sessionId: idStr } },
   );
 
@@ -354,6 +374,14 @@ export async function recoverChain(interview) {
           interview.role,
           interview.jobDescription,
           interview.difficulty || "medium",
+          {
+            type: interview.companyKey === "custom" ? "custom" : "preset",
+            key: interview.companyKey,
+            name: interview.companyName,
+            website: interview.companyWebsite,
+            title: interview.companyPromptTitle,
+            description: interview.companyPromptDescription,
+          },
         );
 
   // Reconstruct the history from the stored conversation

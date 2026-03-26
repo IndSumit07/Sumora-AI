@@ -40,6 +40,26 @@ const liveInterviewSchema = new mongoose.Schema(
     // job-mode fields
     role: { type: String, default: "", trim: true, maxlength: 150 },
     jobDescription: { type: String, default: "", trim: true, maxlength: 5000 },
+    companyKey: { type: String, default: "general", trim: true, maxlength: 80 },
+    companyName: {
+      type: String,
+      default: "General",
+      trim: true,
+      maxlength: 120,
+    },
+    companyWebsite: { type: String, default: "", trim: true, maxlength: 300 },
+    companyPromptTitle: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 150,
+    },
+    companyPromptDescription: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 2500,
+    },
     // prepare-mode fields
     subject: { type: String, default: "", trim: true, maxlength: 100 },
     topic: { type: String, default: "", trim: true, maxlength: 200 },

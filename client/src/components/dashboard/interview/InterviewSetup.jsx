@@ -3,7 +3,7 @@
  *
  * Launch screen for live AI interview.
  * Role and job description are taken directly from the session (no repeated form).
- * Only asks for an optional resume upload to improve question quality.
+ * Requires resume upload before starting the interview.
  */
 
 import { useRef, useState, useSyncExternalStore } from "react";
@@ -46,12 +46,14 @@ export default function InterviewSetup({ session, onInterviewStart }) {
   };
 
   const handleStart = async () => {
+    if (!resumeFile) {
+      toast.error("Resume upload is required.");
+      return;
+    }
+
     setLoading(true);
     try {
-      let resumeText = "";
-      if (resumeFile) {
-        resumeText = await uploadResume(resumeFile);
-      }
+      const resumeText = await uploadResume(resumeFile);
 
       const data = await startInterview({
         sessionId: session._id,
@@ -122,7 +124,7 @@ export default function InterviewSetup({ session, onInterviewStart }) {
         </ul>
       </div>
 
-      {/* ── Optional resume upload ── */}
+      {/* ── Required resume upload ── */}
       <div className="bg-white dark:bg-[#161616] rounded-2xl border border-gray-200 dark:border-[#2a2a2a] p-6 shadow-sm">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
@@ -130,11 +132,11 @@ export default function InterviewSetup({ session, onInterviewStart }) {
               Add your resume
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              Optional — helps the AI tailor questions to your background
+              Required — interview cannot start without a resume PDF
             </p>
           </div>
-          <span className="flex-shrink-0 text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-[#2a2a2a] px-2 py-0.5 rounded-full">
-            Optional
+          <span className="flex-shrink-0 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+            Required
           </span>
         </div>
 
@@ -233,7 +235,7 @@ export default function InterviewSetup({ session, onInterviewStart }) {
       <button
         type="button"
         onClick={handleStart}
-        disabled={loading}
+        disabled={loading || !resumeFile}
         className="w-full h-13 py-3.5 rounded-xl bg-[#ea580c] text-sm font-semibold text-white transition-all hover:bg-[#d24e0b] focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 flex items-center justify-center gap-2.5"
       >
         {loading ? (
