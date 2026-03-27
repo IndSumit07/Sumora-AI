@@ -1,6 +1,8 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AuthProvider } from "./context/AuthContext";
 import { InterviewProvider } from "./context/InterviewContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -35,6 +37,8 @@ createRoot(document.getElementById("root")).render(
           }}
         />
         <RouterProvider router={router} />
+        <Analytics />
+        <SpeedInsights />
       </InterviewProvider>
     </AuthProvider>
   </GoogleOAuthProvider>,
