@@ -28,7 +28,7 @@ const greeting = () => {
 
 /* ── Sub-components ──────────────────────────────────── */
 
-const FeatureCard = ({ to, icon: Icon, title, description, tag, color }) => (
+const FeatureCard = ({ to, icon: Icon, title, description, tag, color, tokenCost }) => (
   <Link
     to={to}
     className="group relative flex flex-col gap-4 p-6 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222] hover:border-[#ea580c]/40 transition-all hover:shadow-lg hover:shadow-[#ea580c]/5"
@@ -52,9 +52,21 @@ const FeatureCard = ({ to, icon: Icon, title, description, tag, color }) => (
         {description}
       </p>
     </div>
-    <span className="flex items-center gap-1 text-sm font-medium text-[#ea580c] opacity-0 group-hover:opacity-100 transition-opacity">
-      Get started <ArrowRight size={14} />
-    </span>
+    {/* Token cost */}
+    <div className="flex items-center justify-between mt-auto pt-1">
+      <div
+        className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg"
+        style={{ color, backgroundColor: `${color}14` }}
+      >
+        <Zap size={10} className="fill-current" />
+        {tokenCost !== null && tokenCost !== undefined
+          ? `${tokenCost} tokens`
+          : "Free"}
+      </div>
+      <span className="flex items-center gap-1 text-sm font-medium text-[#ea580c] opacity-0 group-hover:opacity-100 transition-opacity">
+        Open <ArrowRight size={14} />
+      </span>
+    </div>
   </Link>
 );
 
@@ -83,7 +95,7 @@ const DashboardHome = () => {
             <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
                 <p className="text-orange-200 text-sm font-medium mb-2 uppercase tracking-widest">
-                  {greeting()}, {name} 👋
+                  {greeting()}, {name}
                 </p>
                 <h1 className="text-3xl md:text-4xl font-bold mb-3">
                   Welcome to Sumora&nbsp;AI
@@ -103,37 +115,65 @@ const DashboardHome = () => {
           </div>
         </section>
 
-        {/* ── Features ───────────────────────────────────── */}
+        {/* ── Services ───────────────────────────────────── */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            Explore Features
+            Explore Services
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-            Everything you need to land your next role
+            Token-based pricing — pay only for what you use
           </p>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <FeatureCard
               to="/dashboard/interview"
               icon={Mic}
               color="#ea580c"
               title="AI Mock Interview"
               tag="Popular"
-              description="Live, role-aware interview simulations powered by LLaMA 3.1. Get real-time follow-ups and detailed feedback at the end."
-            />
-            <FeatureCard
-              to="/dashboard/analyze"
-              icon={BarChart2}
-              color="#0ea5e9"
-              title="Resume Analyzer"
-              description="Upload your resume & job description. Get a match score, gap analysis, ATS tips, and an AI-generated tailored resume."
+              tokenCost={20}
+              description="Live voice interview with company-specific style. Resume-adaptive questions & full performance report."
             />
             <FeatureCard
               to="/dashboard/prepare"
               icon={BookOpen}
               color="#7c3aed"
-              title="Topic Preparation"
-              description="Deep-dive into any subject. Our AI quizzes you interactively on your chosen topics and scores your understanding."
+              title="Interview Prep"
+              tokenCost={20}
+              description="AI-generated study plans, practice Q&A banks, and revision roadmaps tailored to your target role."
             />
+            <FeatureCard
+              to="/dashboard/analyze"
+              icon={BarChart2}
+              color="#0ea5e9"
+              title="Resume Analysis"
+              tokenCost={25}
+              description="ATS scoring, keyword gap analysis vs JD, section-by-section feedback and rewrite suggestions."
+            />
+            <FeatureCard
+              to="/dashboard/stats"
+              icon={TrendingUp}
+              color="#10b981"
+              title="Performance Stats"
+              tokenCost={null}
+              description="Visualise score trends, topic strengths, session history and interview readiness over time."
+            />
+          </div>
+
+          {/* Token legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-100 dark:border-[#222]">
+            <Zap size={13} className="text-[#ea580c] fill-[#ea580c] flex-shrink-0" />
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Token costs:</span>
+            {[
+              { label: "Mock Interview", cost: "20 tokens / session", color: "#ea580c" },
+              { label: "Prep Session", cost: "20 tokens / session", color: "#7c3aed" },
+              { label: "Resume Analysis", cost: "25 tokens / analysis", color: "#0ea5e9" },
+              { label: "Stats", cost: "Free", color: "#10b981" },
+            ].map(({ label, cost, color }) => (
+              <span key={label} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                <span className="font-medium">{label}:</span> {cost}
+              </span>
+            ))}
           </div>
         </section>
 

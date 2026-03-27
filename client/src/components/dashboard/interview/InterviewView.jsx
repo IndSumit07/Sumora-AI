@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Plus,
   Mic,
@@ -11,16 +11,23 @@ import {
   ChevronRight,
   Briefcase,
   Trash2,
-  Link,
-  CheckCircle2,
-  Radio,
   Building2,
+  Globe,
+  MapPin,
+  Wrench,
+  Star,
+  CheckCircle2,
+  ArrowRight,
+  PauseCircle,
+  LayoutGrid,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 import {
-  COMPANY_INTERVIEW_PROFILES,
-  getCompanyProfileByKey,
+  COMPANIES,
+  JOB_ROLES,
+  getRoleByKey,
+  getCompanyByKey,
   buildVoiceCompanyStylePrompt,
 } from "../../../shared/companyInterviewProfiles";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
@@ -121,78 +128,353 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
   );
 };
 
-const CompanyOptionCard = ({ profile, active, onSelect }) => {
-  const initials = profile.name
+// ── Company grid card ─────────────────────────────────────────────────────────
+
+const CompanyCard = ({ company, onSelect }) => {
+  const [logoError, setLogoError] = useState(false);
+  const initials = company.name
     .split(" ")
-    .map((part) => part[0])
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const regionColors = {
+    India: "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
+    Global: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(company)}
+      className="group rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 text-left transition-all hover:border-[#ea580c]/50 hover:shadow-lg dark:hover:shadow-[#ea580c]/5 hover:-translate-y-0.5 duration-200"
+    >
+      {/* Header: logo + name + region */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className="relative h-12 w-12 rounded-xl bg-gray-50 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
+          <span className="text-sm font-bold text-gray-400 dark:text-gray-500 select-none">
+            {initials}
+          </span>
+          {company.logoUrl && !logoError && (
+            <img
+              src={company.logoUrl}
+              alt={`${company.name} logo`}
+              className="absolute inset-0 h-full w-full object-contain bg-white p-1.5"
+              onError={() => setLogoError(true)}
+            />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-[#ea580c] transition-colors">
+            {company.name}
+          </h3>
+          <span
+            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${
+              regionColors[company.region] || regionColors.Global
+            }`}
+          >
+            {company.region === "India" ? (
+              <MapPin size={9} />
+            ) : (
+              <Globe size={9} />
+            )}
+            {company.region}
+          </span>
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 mb-3">
+        <p className="text-[11px] leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-3">
+          {company.description}
+        </p>
+      </div>
+
+      {/* Roles pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {company.availableRoles.slice(0, 3).map((roleKey) => {
+          const role = JOB_ROLES[roleKey];
+          return role ? (
+            <span
+              key={roleKey}
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#ea580c]/8 dark:bg-[#ea580c]/12 text-[#ea580c] border border-[#ea580c]/20"
+            >
+              {role.name}
+            </span>
+          ) : null;
+        })}
+        {company.availableRoles.length > 3 && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400">
+            +{company.availableRoles.length - 3} more
+          </span>
+        )}
+      </div>
+
+      {/* CTA */}
+      <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-gray-400 dark:text-gray-500 group-hover:text-[#ea580c] transition-colors">
+        Select & Choose Role
+        <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+      </div>
+    </button>
+  );
+};
+
+// ── Role selection card ───────────────────────────────────────────────────────
+
+const RoleCard = ({ roleKey, active, onSelect }) => {
+  const role = JOB_ROLES[roleKey];
+  if (!role) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(roleKey)}
+      className={[
+        "rounded-2xl border p-4 text-left transition-all duration-200",
+        active
+          ? "border-[#ea580c] bg-[#ea580c]/8 dark:bg-[#ea580c]/12 shadow-sm"
+          : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-[#ea580c]/40 hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          {active && (
+            <CheckCircle2 size={14} className="text-[#ea580c] flex-shrink-0" />
+          )}
+          <h3
+            className={`text-sm font-bold ${
+              active
+                ? "text-[#ea580c]"
+                : "text-gray-900 dark:text-white"
+            }`}
+          >
+            {role.name}
+          </h3>
+        </div>
+      </div>
+
+      <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
+        {role.jobDescription}
+      </p>
+
+      {/* Tools */}
+      <div className="flex flex-wrap gap-1">
+        {role.tools.slice(0, 4).map((tool) => (
+          <span
+            key={tool}
+            className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400 font-medium"
+          >
+            {tool}
+          </span>
+        ))}
+        {role.tools.length > 4 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#2a2a2a] text-gray-400 dark:text-gray-500">
+            +{role.tools.length - 4}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+};
+
+// ── Step 1: Companies Grid ────────────────────────────────────────────────────
+
+const CompaniesStep = ({ onSelectCompany }) => {
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = COMPANIES.filter((c) => {
+    const matchRegion = filter === "all" || c.region.toLowerCase() === filter;
+    const matchSearch =
+      !search ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.description.toLowerCase().includes(search.toLowerCase());
+    return matchRegion && matchSearch;
+  });
+
+  return (
+    <div className="max-w-5xl">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-9 w-9 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
+          <Building2 size={18} className="text-[#ea580c]" />
+        </div>
+        <div>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+            Choose a Company
+          </h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Select a company to get a tailored mock interview experience
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex gap-2">
+          {["all", "india", "global"].map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={[
+                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize",
+                filter === f
+                  ? "bg-[#ea580c] text-white"
+                  : "bg-gray-100 dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333]",
+              ].join(" ")}
+            >
+              {f === "all" ? (
+                <span className="flex items-center gap-1.5"><LayoutGrid size={11} />All ({COMPANIES.length})</span>
+              ) : f === "india" ? (
+                <span className="flex items-center gap-1.5"><MapPin size={11} />India</span>
+              ) : (
+                <span className="flex items-center gap-1.5"><Globe size={11} />Global</span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="flex-1 min-w-[200px] max-w-xs">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search companies…"
+            className="h-8 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] px-3 text-xs text-gray-800 dark:text-gray-200 placeholder:text-gray-400 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <Building2 size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-sm text-gray-400 dark:text-gray-500">No companies found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((company) => (
+            <CompanyCard
+              key={company.key}
+              company={company}
+              onSelect={onSelectCompany}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Step 2: Role Selection ────────────────────────────────────────────────────
+
+const RolesStep = ({ company, onBack, onSelectRole }) => {
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [logoError, setLogoError] = useState(false);
+  const initials = company.name
+    .split(" ")
+    .map((w) => w[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(profile.key)}
-      className={[
-        "rounded-xl border p-3 text-left transition-all",
-        active
-          ? "border-[#ea580c] bg-[#ea580c]/10"
-          : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-[#ea580c]/40",
-      ].join(" ")}
-    >
-      <div className="flex items-center gap-2.5 mb-2">
-        <div className="relative h-8 w-8 rounded-lg bg-gray-100 dark:bg-[#242424] flex items-center justify-center overflow-hidden">
-          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+    <div className="max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={onBack}
+          className="h-9 w-9 rounded-xl bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] flex items-center justify-center transition-colors flex-shrink-0"
+        >
+          <ChevronLeft size={16} className="text-gray-600 dark:text-gray-300" />
+        </button>
+        <div className="relative h-10 w-10 rounded-xl bg-gray-50 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
+          <span className="text-xs font-bold text-gray-400 dark:text-gray-500">
             {initials}
           </span>
-          {profile.logoUrl ? (
+          {company.logoUrl && !logoError && (
             <img
-              src={profile.logoUrl}
-              alt={`${profile.name} logo`}
-              className="absolute inset-0 h-full w-full object-contain bg-white"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
+              src={company.logoUrl}
+              alt={`${company.name} logo`}
+              className="absolute inset-0 h-full w-full object-contain bg-white p-1"
+              onError={() => setLogoError(true)}
             />
-          ) : null}
+          )}
         </div>
-        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-          {profile.name}
+        <div>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+            {company.name}
+          </h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Select a role to interview for
+          </p>
+        </div>
+      </div>
+
+      {/* Company description callout */}
+      <div className="rounded-xl border border-[#ea580c]/20 bg-[#ea580c]/5 dark:bg-[#ea580c]/8 p-4 mb-6">
+        <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+          {company.description}
         </p>
       </div>
-      <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">
-        {profile.styleSummary}
+
+      {/* Role grid */}
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">
+        {company.availableRoles.length} Available Role
+        {company.availableRoles.length !== 1 ? "s" : ""}
       </p>
-    </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        {company.availableRoles.map((rk) => (
+          <RoleCard
+            key={rk}
+            roleKey={rk}
+            active={selectedRole === rk}
+            onSelect={(k) => setSelectedRole(k === selectedRole ? null : k)}
+          />
+        ))}
+      </div>
+
+      {/* Continue button */}
+      <button
+        type="button"
+        disabled={!selectedRole}
+        onClick={() => selectedRole && onSelectRole(selectedRole)}
+        className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-semibold text-white hover:bg-[#d24e0b] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        {selectedRole ? (
+          <>
+            Continue as {JOB_ROLES[selectedRole]?.name}
+            <ArrowRight size={15} />
+          </>
+        ) : (
+          "Select a Role to Continue"
+        )}
+      </button>
+    </div>
   );
 };
 
-// ── Setup form ────────────────────────────────────────────────────────────────
+// ── Step 3: Setup form (resume + difficulty + speak mode) ─────────────────────
 
-const SetupForm = ({ onStarted }) => {
+const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
   const { uploadResume, startInterview } = useInterview();
-  const [step, setStep] = useState(1); // 1: Company Select, 2: Start Interview
-  const [role, setRole] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [selectedCompanyKey, setSelectedCompanyKey] = useState("general");
-  const [useCustomCompany, setUseCustomCompany] = useState(false);
-  const [customCompanyName, setCustomCompanyName] = useState("");
-  const [customCompanyWebsite, setCustomCompanyWebsite] = useState("");
-  const [customCompanyTitle, setCustomCompanyTitle] = useState("");
-  const [customCompanyDescription, setCustomCompanyDescription] = useState("");
+  const role = getRoleByKey(roleKey);
+  const [logoError, setLogoError] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
   const fileRef = useRef(null);
-  const selectedCompanyProfile = getCompanyProfileByKey(selectedCompanyKey);
-  const customCompanyReady =
-    !useCustomCompany ||
-    (customCompanyName.trim().length > 1 &&
-      customCompanyDescription.trim().length > 20);
 
-  // Sync external store to force re-render when window.speakMode changes
+  const initials = company.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const speakMode = useSyncExternalStore(
     (onStoreChange) => {
       document.addEventListener("speakModeChanged", onStoreChange);
@@ -201,6 +483,7 @@ const SetupForm = ({ onStarted }) => {
     },
     () => window.speakMode || "hold",
   );
+
   const handleFile = async (file) => {
     if (!file) return;
     if (file.type !== "application/pdf") {
@@ -216,7 +499,7 @@ const SetupForm = ({ onStarted }) => {
     try {
       const text = await uploadResume(file);
       setResumeText(text);
-      toast.success("Resume parsed.");
+      toast.success("Resume parsed successfully.");
     } catch {
       toast.error("Failed to parse resume.");
       setResumeFile(null);
@@ -227,57 +510,19 @@ const SetupForm = ({ onStarted }) => {
   };
 
   const handleStart = async () => {
-    let finalRole = role;
-    let finalJobDesc = jobDescription;
-
-    if (!useCustomCompany) {
-      finalRole = selectedCompanyProfile.defaultRole || "Software Developer";
-      finalJobDesc =
-        selectedCompanyProfile.defaultJobDescription ||
-        selectedCompanyProfile.styleSummary;
-    }
-
-    if (!finalRole.trim()) {
-      toast.error("Role is required.");
-      return;
-    }
-    if (!finalJobDesc.trim()) {
-      toast.error("Job description is required.");
-      return;
-    }
     if (!resumeText.trim()) {
       toast.error("Resume upload is required.");
       return;
     }
 
-    if (useCustomCompany && !customCompanyName.trim()) {
-      toast.error("Custom company name is required.");
-      return;
-    }
-    if (useCustomCompany && customCompanyDescription.trim().length < 20) {
-      toast.error(
-        "Custom interview description should be at least 20 characters.",
-      );
-      return;
-    }
+    const companyProfile = {
+      type: "preset",
+      key: company.key,
+      name: company.name,
+    };
 
-    const companyProfile = useCustomCompany
-      ? {
-          type: "custom",
-          name: customCompanyName.trim(),
-          website: customCompanyWebsite.trim(),
-          title:
-            customCompanyTitle.trim() ||
-            `${customCompanyName.trim()} Interview Style`,
-          description: customCompanyDescription.trim(),
-        }
-      : {
-          type: "preset",
-          key: selectedCompanyProfile.key,
-          name:
-            selectedCompanyProfile.name.split(" @")[1] ||
-            selectedCompanyProfile.name,
-        };
+    const finalRole = role?.name || "Software Engineer";
+    const finalJobDesc = role?.jobDescription || company.description;
 
     setStartLoading(true);
     try {
@@ -296,10 +541,7 @@ const SetupForm = ({ onStarted }) => {
         resumeText,
         difficulty,
         companyProfile,
-        companyName: useCustomCompany
-          ? customCompanyName.trim()
-          : selectedCompanyProfile.name.split(" @")[1] ||
-            selectedCompanyProfile.name,
+        companyName: company.name,
         startedAt,
         mode: "interactive",
       });
@@ -310,255 +552,98 @@ const SetupForm = ({ onStarted }) => {
     }
   };
 
-  if (step === 1) {
-    return (
-      <div className="max-w-4xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-8 w-8 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
-            <Building2 size={16} className="text-[#ea580c]" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Mock Interview Companies
-            </h1>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              Select a company to start your tailored mock interview
-              immediately.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {COMPANY_INTERVIEW_PROFILES.map((profile) => {
-            const companyNameOnly =
-              profile.name.split(" @ ")[1] || profile.name;
-            const initials = companyNameOnly.substring(0, 2).toUpperCase();
-
-            return (
-              <button
-                key={profile.key}
-                type="button"
-                onClick={() => {
-                  setSelectedCompanyKey(profile.key);
-                  setUseCustomCompany(false);
-                  setStep(2);
-                }}
-                className="group rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 text-left transition-all hover:border-[#ea580c]/50 hover:shadow-md dark:hover:shadow-[#ea580c]/5"
-              >
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="relative h-12 w-12 rounded-xl bg-gray-100 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
-                    <span className="text-[14px] font-bold text-gray-500 dark:text-gray-400">
-                      {initials}
-                    </span>
-                    {profile.logoUrl && (
-                      <img
-                        src={profile.logoUrl}
-                        alt={`${companyNameOnly} logo`}
-                        className="absolute inset-0 h-full w-full object-contain bg-white p-1.5"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5 group-hover:text-[#ea580c] transition-colors">
-                      {profile.name}
-                    </h3>
-                    <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-                      {profile.defaultRole || "Software Developer"}
-                    </p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3">
-                  <p className="text-[11px] leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-2">
-                    {profile.defaultJobDescription || profile.styleSummary}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={() => {
-              setUseCustomCompany(true);
-              setRole("");
-              setJobDescription("");
-              setStep(2);
-            }}
-            className="rounded-2xl border border-dashed border-gray-300 dark:border-[#333] bg-gray-50/50 dark:bg-[#161616]/50 p-5 text-left transition-all hover:border-[#ea580c]/40 hover:text-[#ea580c] flex flex-col items-center justify-center min-h-[160px] gap-3 text-gray-500 dark:text-gray-400 group"
-          >
-            <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-[#2a2a2a] group-hover:bg-[#ea580c]/10 flex items-center justify-center transition-colors">
-              <Plus size={20} className="group-hover:text-[#ea580c]" />
-            </div>
-            <span className="text-sm font-semibold">Add Custom Company</span>
-            <span className="text-[11px] text-center max-w-[200px]">
-              Define your own role, company name, and specific interview
-              requirements.
-            </span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!role) return null;
 
   return (
     <div className="max-w-2xl">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => setStep(1)}
-          className="h-8 w-8 rounded-xl bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] flex items-center justify-center transition-colors"
+          onClick={onBack}
+          className="h-9 w-9 rounded-xl bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333] flex items-center justify-center transition-colors flex-shrink-0"
         >
           <ChevronLeft size={16} className="text-gray-600 dark:text-gray-300" />
         </button>
-        <div className="h-8 w-8 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
-          <Mic size={16} className="text-[#ea580c]" />
+        <div className="relative h-10 w-10 rounded-xl bg-gray-50 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
+          <span className="text-xs font-bold text-gray-400 dark:text-gray-500">
+            {initials}
+          </span>
+          {company.logoUrl && !logoError && (
+            <img
+              src={company.logoUrl}
+              alt={`${company.name} logo`}
+              className="absolute inset-0 h-full w-full object-contain bg-white p-1"
+              onError={() => setLogoError(true)}
+            />
+          )}
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {useCustomCompany
-              ? "Custom Mock Interview"
-              : selectedCompanyProfile.name}
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+            {company.name} — {role.name}
           </h1>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            {useCustomCompany
-              ? "Fill in the details to start."
-              : "Review details and upload your resume to begin."}
+            Upload your resume and start your interview
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {useCustomCompany ? (
-          <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-              Custom Company Details
-            </h2>
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <input
-                  type="text"
-                  value={customCompanyName}
-                  onChange={(e) => setCustomCompanyName(e.target.value)}
-                  placeholder="Company Name (e.g. ByteBridge AI)"
-                  maxLength={120}
-                  className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
-                />
-                <input
-                  type="url"
-                  value={customCompanyWebsite}
-                  onChange={(e) => setCustomCompanyWebsite(e.target.value)}
-                  placeholder="Company Careers Link (optional)"
-                  maxLength={300}
-                  className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
-                />
-              </div>
-              <input
-                type="text"
-                value={customCompanyTitle}
-                onChange={(e) => setCustomCompanyTitle(e.target.value)}
-                placeholder="Interview Style Title (optional)"
-                maxLength={150}
-                className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
-              />
-              <textarea
-                value={customCompanyDescription}
-                onChange={(e) => setCustomCompanyDescription(e.target.value)}
-                placeholder="Describe how this company usually interviews. Mention style, depth, question types, and what interviewers prioritize."
-                rows={4}
-                maxLength={1500}
-                className="w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 py-2.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none resize-none"
-              />
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                Minimum 20 characters to ensure reliable prompt quality.
-              </p>
-            </div>
+        {/* Role & JD preview */}
+        <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5">
+          {/* Role details */}
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
+            Role Details
+          </p>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+            {role.name}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+            {role.jobDescription}
+          </p>
 
-            <div className="pt-2 border-t border-gray-100 dark:border-[#2a2a2a]">
-              <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5 mt-2">
-                Role / Position
-              </label>
-              <input
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g., Senior Frontend Engineer"
-                maxLength={150}
-                className="h-10 w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none"
-              />
+          {/* Skills */}
+          {role.skills && role.skills.length > 0 && (
+            <div className="mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1.5">
+                <Star size={10} /> Key Skills
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {role.skills.map((s) => (
+                  <span
+                    key={s}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800/40"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Tools */}
+          {role.tools && role.tools.length > 0 && (
             <div>
-              <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-                Job Description
-              </label>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the job requirements here..."
-                rows={4}
-                maxLength={5000}
-                className="w-full rounded-lg border border-gray-200 dark:border-[#2a2a2a] px-3 py-2.5 text-xs bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c] outline-none resize-none"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="relative h-12 w-12 rounded-xl bg-gray-100 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
-                <span className="text-[14px] font-bold text-gray-500 dark:text-gray-400">
-                  {(
-                    selectedCompanyProfile.name.split(" @")[1] ||
-                    selectedCompanyProfile.name
-                  )
-                    .substring(0, 2)
-                    .toUpperCase()}
-                </span>
-                {selectedCompanyProfile.logoUrl && (
-                  <img
-                    src={selectedCompanyProfile.logoUrl}
-                    alt={`${selectedCompanyProfile.name} logo`}
-                    className="absolute inset-0 h-full w-full object-contain bg-white p-1.5"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                )}
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
-                  Company
-                </p>
-                <p className="text-base font-bold text-gray-900 dark:text-white">
-                  {selectedCompanyProfile.name.split(" @")[1] ||
-                    selectedCompanyProfile.name}
-                </p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1.5">
+                <Wrench size={10} /> Tools & Technologies
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {role.tools.map((t) => (
+                  <span
+                    key={t}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded bg-gray-100 dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-400"
+                  >
+                    {t}
+                  </span>
+                ))}
               </div>
             </div>
-            <div className="pt-2 border-t border-gray-100 dark:border-[#2a2a2a]">
-              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1 mt-2">
-                Target Role
-              </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                {selectedCompanyProfile.defaultRole || "Software Developer"}
-              </p>
-            </div>
-            <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3.5 border border-gray-100 dark:border-[#2a2a2a]">
-              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-                Job Description & Focus
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                {selectedCompanyProfile.defaultJobDescription ||
-                  selectedCompanyProfile.styleSummary}
-              </p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Resume (required) */}
+        {/* Resume upload */}
         <div>
-          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Resume <span className="normal-case font-normal">(required)</span>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5">
+            Resume <span className="normal-case font-normal text-red-400">(required)</span>
           </p>
           {resumeFile ? (
             <div className="flex items-center gap-3 h-11 px-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
@@ -603,52 +688,48 @@ const SetupForm = ({ onStarted }) => {
             className="hidden"
             onChange={(e) => handleFile(e.target.files?.[0])}
           />
+          {resumeText && (
+            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+              <CheckCircle2 size={10} />
+              Resume parsed — AI will tailor questions to your experience
+            </p>
+          )}
         </div>
 
-        {/* Speak Mode Settings */}
+        {/* Speak Mode */}
         <div>
-          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+          <label className="block text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5">
             Speak Mode
           </label>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                window.speakMode = "normal";
-                // To trigger a re-render if needed, you could add state,
-                // or rely on VoiceInterviewAgent to pick this up.
-                document.dispatchEvent(new Event("speakModeChanged"));
-              }}
-              className={[
-                "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                speakMode === "normal"
-                  ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
-                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-              ].join(" ")}
-            >
-              Speak Normally
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                window.speakMode = "hold";
-                document.dispatchEvent(new Event("speakModeChanged"));
-              }}
-              className={[
-                "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2",
-                speakMode === "hold"
-                  ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
-                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-              ].join(" ")}
-            >
-              Hold Space to Speak
-            </button>
+            {[
+              { value: "normal", icon: Mic, label: "Speak Normally" },
+              { value: "hold", icon: PauseCircle, label: "Hold to Speak" },
+            ].map(({ value, icon: ModeIcon, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  window.speakMode = value;
+                  document.dispatchEvent(new Event("speakModeChanged"));
+                }}
+                className={[
+                  "flex-1 h-10 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5",
+                  speakMode === value
+                    ? "border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c]"
+                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                ].join(" ")}
+              >
+                <ModeIcon size={13} />
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Difficulty */}
         <div>
-          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
+          <label className="block text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5">
             Difficulty
           </label>
           <div className="flex gap-2">
@@ -656,20 +737,17 @@ const SetupForm = ({ onStarted }) => {
               {
                 value: "easy",
                 label: "Easy",
-                active:
-                  "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+                active: "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
               },
               {
                 value: "medium",
                 label: "Medium",
-                active:
-                  "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+                active: "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
               },
               {
                 value: "hard",
                 label: "Hard",
-                active:
-                  "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
+                active: "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
               },
             ].map(({ value, label, active }) => (
               <button
@@ -689,18 +767,12 @@ const SetupForm = ({ onStarted }) => {
           </div>
         </div>
 
+        {/* Start button */}
         <button
           type="button"
           onClick={handleStart}
-          disabled={
-            startLoading ||
-            uploadLoading ||
-            !resumeText.trim() ||
-            (useCustomCompany
-              ? !role.trim() || !jobDescription.trim() || !customCompanyReady
-              : false)
-          }
-          className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          disabled={startLoading || uploadLoading || !resumeText.trim()}
+          className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-semibold text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {startLoading ? (
             <>
@@ -756,8 +828,12 @@ export default function InterviewView() {
   const [selectedId, setSelectedId] = useState(null);
 
   // Right-panel view state
-  // "empty" | "detail" | "new-setup" | "new-interview" | "new-feedback"
-  const [view, setView] = useState("new-setup");
+  // "empty" | "detail" | "companies" | "roles" | "setup" | "new-interview" | "new-feedback"
+  const [view, setView] = useState("companies");
+
+  // Selection state for the 3-step flow
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedRoleKey, setSelectedRoleKey] = useState(null);
 
   // Selected interview detail
   const [selectedInterview, setSelectedInterview] = useState(null);
@@ -769,13 +845,12 @@ export default function InterviewView() {
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
   const [sessionStartedAt, setSessionStartedAt] = useState(null);
-  const [voiceContext, setVoiceContext] = useState(null); // For voice agent system prompt & context
+  const [voiceContext, setVoiceContext] = useState(null);
 
   const interviewActive = view === "new-interview" && Boolean(interviewId);
 
   const closeActiveInterview = async () => {
     if (!interviewActive || !interviewId) return;
-
     try {
       await endInterview(interviewId, { skipFeedback: true });
     } catch {
@@ -825,19 +900,54 @@ export default function InterviewView() {
   const resetNewInterview = () => {
     setSelectedId(null);
     setSelectedInterview(null);
-    setView("new-setup");
-    // reset new interview state
+    setSelectedCompany(null);
+    setSelectedRoleKey(null);
     setInterviewId(null);
     setFeedback(null);
     setScore(0);
     setSessionStartedAt(null);
     setVoiceContext(null);
+    setView("companies");
   };
 
   const handleNew = () => {
     requestExit(resetNewInterview);
   };
 
+  // ── Browser back-button interception for the 3-step flow ──────────────────
+  // When the user navigates forward into "roles" or "setup", push a dummy
+  // history entry so the browser back button fires popstate — which we catch
+  // and handle as an internal step-back instead of a route change.
+  const handlePopState = useCallback(() => {
+    setView((current) => {
+      if (current === "setup") return "roles";
+      if (current === "roles") return "companies";
+      return current; // let React Router handle it for other views
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [handlePopState]);
+
+  // Step 1 → 2: company selected
+  const handleCompanySelected = (company) => {
+    setSelectedCompany(company);
+    // Push a dummy state so the browser back button fires popstate
+    window.history.pushState({ interviewFlow: "roles" }, "");
+    setView("roles");
+  };
+
+  // Step 2 → 3: role selected
+  const handleRoleSelected = (roleKey) => {
+    setSelectedRoleKey(roleKey);
+    // Push a dummy state so the browser back button fires popstate
+    window.history.pushState({ interviewFlow: "setup" }, "");
+    setView("setup");
+  };
+
+  // Step 3: interview started
   const handleStarted = ({
     interviewId: id,
     role,
@@ -856,8 +966,7 @@ export default function InterviewView() {
       companyProfile?.name ||
       (companyProfile?.key ? companyProfile.key : "General");
 
-    // Setup voice agent context
-    const systemPrompt = `You are an expert interviewer conducting a job interview for the role of ${role}.
+    const systemPrompt = `You are an expert interviewer conducting a job interview for the role of ${role} at ${resolvedCompanyName}.
 
 Job Description:
 ${jobDescription}
@@ -868,13 +977,13 @@ ${buildVoiceCompanyStylePrompt(companyProfile)}
 
 Your job is to:
 1. Ask insightful questions about the candidate's experience, skills, and fit for the role
-2. Follow up on their answers naturally
-3. Ask both technical and behavioral questions
-4. Be conversational and engaging
-5. After 5-7 questions, wrap up the interview
+2. Follow up on their answers naturally based on what they say — ask deeper follow-up questions when needed
+3. Ask both technical and behavioral questions tailored to the role
+4. Be conversational, encouraging, and professional
+5. After 5-7 questions, wrap up the interview politely
 6. In your very first response, briefly mention that this is an interview for the ${role} position at ${resolvedCompanyName}, then ask the first question
 
-Start by introducing yourself and asking the first question.`;
+Start by introducing yourself as an interviewer at ${resolvedCompanyName} and asking your first question about the candidate's background.`;
 
     setVoiceContext({
       systemPrompt,
@@ -891,7 +1000,7 @@ Start by introducing yourself and asking the first question.`;
     });
 
     setView("new-interview");
-    // add optimistic entry to list
+    // optimistic list entry
     setInterviews((prev) => [
       {
         _id: id,
@@ -946,7 +1055,6 @@ Start by introducing yourself and asking the first question.`;
 
   const handleAnalyze = async () => {
     if (!interviewId) return;
-    // Switch to detail view and load the completed interview
     setSelectedId(interviewId);
     setView("detail");
     setDetailLoading(true);
@@ -963,7 +1071,7 @@ Start by introducing yourself and asking the first question.`;
   return (
     <>
       <div className="flex h-full overflow-hidden flex-col md:flex-row">
-        {/* ── Mobile section sidebar (left drawer) ── */}
+        {/* ── Mobile sidebar backdrop ── */}
         <div
           className={[
             "md:hidden fixed inset-0 bg-black/30 z-30 transition-opacity",
@@ -1038,7 +1146,7 @@ Start by introducing yourself and asking the first question.`;
           </div>
         </aside>
 
-        {/* ── Left history panel ── */}
+        {/* ── Left history panel (desktop) ── */}
         <aside className="hidden md:flex w-64 flex-col flex-shrink-0 bg-white dark:bg-[#121212] border-r border-gray-200 dark:border-[#222] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-[#222]">
             <div className="flex items-center gap-2">
@@ -1093,8 +1201,13 @@ Start by introducing yourself and asking the first question.`;
 
         {/* ── Right content panel ── */}
         <div
-          className={`flex-1 p-4 md:p-6 lg:p-8 ${view === "new-interview" ? "flex flex-col min-h-0 overflow-hidden" : "overflow-y-auto"}`}
+          className={`flex-1 p-4 md:p-6 lg:p-8 ${
+            view === "new-interview"
+              ? "flex flex-col min-h-0 overflow-hidden"
+              : "overflow-y-auto"
+          }`}
         >
+          {/* Mobile top bar */}
           <div className="md:hidden flex items-center gap-2 mb-3 flex-shrink-0">
             <button
               type="button"
@@ -1117,6 +1230,50 @@ Start by introducing yourself and asking the first question.`;
             </button>
           </div>
 
+          {/* Step indicator for setup flow */}
+          {["companies", "roles", "setup"].includes(view) && (
+            <div className="flex items-center gap-2 mb-6 text-xs">
+              <button
+                onClick={() => setView("companies")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-colors ${
+                  view === "companies"
+                    ? "text-[#ea580c] bg-[#ea580c]/10"
+                    : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                }`}
+              >
+                <Building2 size={11} />
+                Company
+              </button>
+              <ChevronRight size={11} className="text-gray-300 dark:text-gray-600" />
+              <button
+                onClick={() => selectedCompany && setView("roles")}
+                disabled={!selectedCompany}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed ${
+                  view === "roles"
+                    ? "text-[#ea580c] bg-[#ea580c]/10"
+                    : selectedCompany
+                    ? "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    : "text-gray-300 dark:text-gray-600"
+                }`}
+              >
+                <Briefcase size={11} />
+                Role
+              </button>
+              <ChevronRight size={11} className="text-gray-300 dark:text-gray-600" />
+              <span
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold ${
+                  view === "setup"
+                    ? "text-[#ea580c] bg-[#ea580c]/10"
+                    : "text-gray-300 dark:text-gray-600"
+                }`}
+              >
+                <Mic size={11} />
+                Setup
+              </span>
+            </div>
+          )}
+
+          {/* Views */}
           {view === "empty" && <EmptyPanel onNew={handleNew} />}
 
           {view === "detail" &&
@@ -1128,7 +1285,26 @@ Start by introducing yourself and asking the first question.`;
               <InterviewHistoryDetail interview={selectedInterview} />
             ) : null)}
 
-          {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
+          {view === "companies" && (
+            <CompaniesStep onSelectCompany={handleCompanySelected} />
+          )}
+
+          {view === "roles" && selectedCompany && (
+            <RolesStep
+              company={selectedCompany}
+              onBack={() => setView("companies")}
+              onSelectRole={handleRoleSelected}
+            />
+          )}
+
+          {view === "setup" && selectedCompany && selectedRoleKey && (
+            <SetupStep
+              company={selectedCompany}
+              roleKey={selectedRoleKey}
+              onBack={() => setView("roles")}
+              onStarted={handleStarted}
+            />
+          )}
 
           {view === "new-interview" && (
             <div className="flex-1 min-h-0">
@@ -1142,6 +1318,15 @@ Start by introducing yourself and asking the first question.`;
                   {interviews.find((iv) => iv._id === interviewId)?.role ||
                     "Mock Interview"}
                 </span>
+                {interviews.find((iv) => iv._id === interviewId)?.companyName && (
+                  <>
+                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <Building2 size={11} />
+                      {interviews.find((iv) => iv._id === interviewId)?.companyName}
+                    </span>
+                  </>
+                )}
               </div>
 
               {voiceContext ? (
@@ -1152,7 +1337,6 @@ Start by introducing yourself and asking the first question.`;
                   startedAt={sessionStartedAt}
                   durationMs={30 * 60 * 1000}
                   onTranscriptUpdate={(msg) => {
-                    // Optional: track transcript for saving
                     console.log("[Transcript]", msg);
                   }}
                   onEnd={handleEnd}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 // ─── PREVIEW MODE ─────────────────────────────────────────────────────────────
 // Set to true to always show the overlay (ignores sessionStorage + grace period).
@@ -107,7 +108,7 @@ const ServerWakeOverlay = () => {
           }}
           className="absolute left-6 top-6 flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-medium text-white/60 backdrop-blur-md transition-colors hover:bg-white/20 hover:text-white"
         >
-          ✕ Close preview
+          <X size={14} /> Close preview
         </button>
       )}
 
