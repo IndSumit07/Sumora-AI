@@ -22,7 +22,7 @@ const IntegrationsSection = () => {
               return (
                 <div
                   key={i}
-                  className="flex flex-col items-center justify-center gap-3 grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300"
+                  className="flex flex-col items-center justify-center gap-3 opacity-75 hover:opacity-100 transition-all duration-300"
                   title={nameOnly}
                 >
                   <img

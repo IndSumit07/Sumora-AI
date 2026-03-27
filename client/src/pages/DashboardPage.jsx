@@ -129,12 +129,11 @@ const DashboardPage = () => {
             {user?.tokens || 0}
           </Link>
 
-          <button
-            onClick={() => setShowAccount(true)}
-            className="w-7 h-7 rounded-full bg-[#ea580c] flex items-center justify-center text-[9px] font-bold text-white hover:bg-[#d24e0b] transition-colors"
-          >
-            {getInitials(user?.username)}
-          </button>
+          {/* Mobile user dropdown */}
+          <UserDropdown
+            compact
+            onManageAccount={() => setShowAccount(true)}
+          />
         </div>
       </div>
 
@@ -197,13 +196,13 @@ const DashboardPage = () => {
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
 
-          <button
-            onClick={() => setShowAccount(true)}
-            title="Account"
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-[#333] flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-300 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
-          >
-            {getInitials(user?.username)}
-          </button>
+          {/* Sidebar user dropdown — opens upward to the right */}
+          <div className="relative">
+            <UserDropdown
+              sidebar
+              onManageAccount={() => setShowAccount(true)}
+            />
+          </div>
         </div>
       </aside>
 
