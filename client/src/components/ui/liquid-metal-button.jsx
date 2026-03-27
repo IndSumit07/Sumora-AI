@@ -1,8 +1,32 @@
 import { liquidMetalFragmentShader, ShaderMount } from "@paper-design/shaders";
 import { Sparkles } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import ErrorBoundary from "../ErrorBoundary";
 
-export function LiquidMetalButton({
+export function LiquidMetalButton(props) {
+  return (
+    <ErrorBoundary fallback={<FallbackButton {...props} />}>
+      <LiquidMetalButtonInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function FallbackButton({ label = "Get Started", onClick, viewMode = "text" }) {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-gradient-to-tr from-[#ea580c] to-[#f97316] text-white rounded-full font-semibold shadow-md hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+      style={{
+        width: viewMode === "icon" ? "46px" : "142px",
+        height: "46px",
+      }}
+    >
+      {viewMode === "icon" ? <Sparkles size={16} /> : label}
+    </button>
+  );
+}
+
+function LiquidMetalButtonInner({
   label = "Get Started",
   onClick,
   viewMode = "text",

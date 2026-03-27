@@ -41,75 +41,75 @@ const UserDropdown = ({
 
   const initials = (user.username || "SU").slice(0, 2).toUpperCase();
 
-  /* ── Shared dropdown panel ──────────────────────────────────────── */
-  const Panel = () => (
-    <div
-      className={[
-        "absolute z-50 w-56 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10",
-        "bg-white dark:bg-[#1A1A1A] shadow-2xl backdrop-blur-xl",
-        dropUp || sidebar ? "bottom-full mb-2" : "top-full mt-2",
-        sidebar ? "left-0" : "right-0",
-      ].join(" ")}
-    >
-      {/* User info */}
-      <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#ea580c] to-[#f97316] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-              {user.username}
-            </p>
-            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-              {user.email}
-            </p>
-          </div>
+/* ── Shared dropdown panel ──────────────────────────────────────── */
+const Panel = ({ dropUp, sidebar, user, initials, onManageAccount, onLogout, setOpen }) => (
+  <div
+    className={[
+      "absolute z-50 w-56 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10",
+      "bg-white dark:bg-[#1A1A1A] shadow-2xl backdrop-blur-xl",
+      dropUp || sidebar ? "bottom-full mb-2" : "top-full mt-2",
+      sidebar ? "left-0" : "right-0",
+    ].join(" ")}
+  >
+    {/* User info */}
+    <div className="border-b border-black/10 dark:border-white/10 px-4 py-3">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#ea580c] to-[#f97316] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          {initials}
         </div>
-        {/* Token balance link */}
-        <Link
-          to="/dashboard/billing"
-          onClick={() => setOpen(false)}
-          className="flex items-center justify-between w-full px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-[#ea580c]/10 hover:bg-orange-100 dark:hover:bg-[#ea580c]/20 transition-colors"
-        >
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-            Token balance
-          </span>
-          <span className="flex items-center gap-1 text-xs font-bold text-[#ea580c]">
-            <Zap size={11} className="fill-[#ea580c]" />
-            {user?.tokens ?? 0} tokens
-          </span>
-        </Link>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+            {user.username}
+          </p>
+          <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+            {user.email}
+          </p>
+        </div>
       </div>
-
-      {/* Actions */}
-      <div className="p-1.5 flex flex-col gap-0.5">
-        <button
-          type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            setOpen(false);
-            onManageAccount();
-          }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
-        >
-          <Settings size={15} className="text-gray-500 dark:text-gray-400" />
-          Manage account
-        </button>
-        <button
-          type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            handleLogout();
-          }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-        >
-          <LogOut size={15} />
-          Log out
-        </button>
-      </div>
+      {/* Token balance link */}
+      <Link
+        to="/dashboard/billing"
+        onClick={() => setOpen(false)}
+        className="flex items-center justify-between w-full px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-[#ea580c]/10 hover:bg-orange-100 dark:hover:bg-[#ea580c]/20 transition-colors"
+      >
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+          Token balance
+        </span>
+        <span className="flex items-center gap-1 text-xs font-bold text-[#ea580c]">
+          <Zap size={11} className="fill-[#ea580c]" />
+          {user?.tokens ?? 0} tokens
+        </span>
+      </Link>
     </div>
-  );
+
+    {/* Actions */}
+    <div className="p-1.5 flex flex-col gap-0.5">
+      <button
+        type="button"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setOpen(false);
+          onManageAccount();
+        }}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+      >
+        <Settings size={15} className="text-gray-500 dark:text-gray-400" />
+        Manage account
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onLogout();
+        }}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+      >
+        <LogOut size={15} />
+        Log out
+      </button>
+    </div>
+  </div>
+);
 
   /* ── Sidebar: plain round avatar ────────────────────────────────── */
   if (sidebar) {
@@ -128,7 +128,7 @@ const UserDropdown = ({
         >
           {initials}
         </button>
-        {open && <Panel />}
+        {open && <Panel dropUp={dropUp} sidebar={sidebar} user={user} initials={initials} onManageAccount={onManageAccount} onLogout={handleLogout} setOpen={setOpen} />}
       </div>
     );
   }
@@ -152,7 +152,7 @@ const UserDropdown = ({
             <path d="M3 4.5L6 7.5L9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        {open && <Panel />}
+        {open && <Panel dropUp={dropUp} sidebar={sidebar} user={user} initials={initials} onManageAccount={onManageAccount} onLogout={handleLogout} setOpen={setOpen} />}
       </div>
     );
   }
@@ -178,7 +178,7 @@ const UserDropdown = ({
           <path d="M3 4.5L6 7.5L9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && <Panel />}
+      {open && <Panel dropUp={dropUp} sidebar={sidebar} user={user} initials={initials} onManageAccount={onManageAccount} onLogout={handleLogout} setOpen={setOpen} />}
     </div>
   );
 };

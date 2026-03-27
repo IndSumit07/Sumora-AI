@@ -88,7 +88,7 @@ const DashboardPage = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0d0d0d] text-gray-900 dark:text-white">
+    <div className="flex h-[100dvh] overflow-hidden bg-gray-50 dark:bg-[#0d0d0d] text-gray-900 dark:text-white">
       {/* ── Mobile top bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-11 flex items-center justify-between px-3 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-[#222] z-30">
         <div className="flex items-center gap-2">

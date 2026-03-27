@@ -26,7 +26,7 @@ const Sidebar = ({ onClose }) => {
   const initials = (user?.username || "SU").slice(0, 2).toUpperCase();
 
   return (
-    <div className="w-64 h-screen flex flex-col bg-[#0a0a0a] relative overflow-hidden select-none">
+    <div className="w-64 h-[100dvh] flex flex-col bg-[#0a0a0a] relative overflow-hidden select-none">
       {/* Subtle orange glow corner */}
       <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
 

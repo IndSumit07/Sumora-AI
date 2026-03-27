@@ -27,13 +27,20 @@ export function InteractiveNebulaShader({
     if (!container) return;
 
     // Renderer, scene, camera, clock
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+    let renderer, scene, camera, clock;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    const clock = new THREE.Clock();
+      scene = new THREE.Scene();
+      camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      clock = new THREE.Clock();
+    } catch (err) {
+      console.warn("WebGL not supported, skipping nebula background:", err);
+      // Fail gracefully — just don't render the shader canvas
+      return;
+    }
 
     // Vertex shader: pass UVs
     const vertexShader = `

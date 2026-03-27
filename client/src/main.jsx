@@ -12,10 +12,13 @@ import App from "./App.jsx";
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
+import RouteError from "./components/RouteError";
+
 const router = createBrowserRouter([
   {
     path: "*",
     element: <App />,
+    errorElement: <RouteError />,
   },
 ]);
 
