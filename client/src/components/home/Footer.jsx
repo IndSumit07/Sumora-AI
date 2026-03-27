@@ -1,4 +1,5 @@
 import { Github } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => (
   <footer className="relative z-10 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-[#121110] pt-24 pb-12 w-full mt-auto text-gray-900 dark:text-white">
@@ -17,7 +18,9 @@ const Footer = () => (
           </p>
           <div className="flex items-center gap-5 text-gray-500">
             <a
-              href="#"
+              href="https://discord.com"
+              target="_blank"
+              rel="noreferrer"
               className="hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <svg
@@ -62,24 +65,32 @@ const Footer = () => (
           </h4>
           <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
             <li>
-              <a
-                href="#"
+              <Link
+                to="/register"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                Features
-              </a>
+                Sign Up
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/login"
+                className="hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                Login
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/dashboard"
+                className="hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                Dashboard
+              </Link>
             </li>
             <li>
               <a
-                href="#"
-                className="hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Integrations
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
+                href="#pricing"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Pricing
@@ -87,18 +98,10 @@ const Footer = () => (
             </li>
             <li>
               <a
-                href="#"
+                href="#features"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                Changelog
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Docs
+                Features
               </a>
             </li>
           </ul>
@@ -111,15 +114,15 @@ const Footer = () => (
           <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
             <li>
               <a
-                href="#"
+                href="#faq"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                Blog
+                FAQ
               </a>
             </li>
             <li>
               <a
-                href="#"
+                href="#community"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Community
@@ -127,26 +130,10 @@ const Footer = () => (
             </li>
             <li>
               <a
-                href="#"
+                href="mailto:support@sumoraai.in"
                 className="hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Help Center
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                Tutorials
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                API Reference
               </a>
             </li>
           </ul>
