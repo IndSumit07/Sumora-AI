@@ -1134,22 +1134,23 @@ Start by introducing the topic and asking the first question.`;
           {view === "new-setup" && <SetupForm onStarted={handleStarted} />}
 
           {view === "new-interview" && (
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="flex-shrink-0 flex items-center gap-2 mb-6 text-xs flex-wrap">
-                <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden">
+              {/* Breadcrumb */}
+              <div className="flex-shrink-0 flex items-center gap-1.5 mb-4 text-xs flex-wrap min-w-0">
+                <span className="font-semibold uppercase tracking-widest text-[#ea580c] flex-shrink-0">
                   Prepare
                 </span>
-                <ChevronRight size={12} className="text-gray-400" />
-                <span className="text-gray-500 dark:text-gray-400">
+                <ChevronRight size={11} className="text-gray-400 flex-shrink-0" />
+                <span className="text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
                   {activeSubject}
                 </span>
-                <ChevronRight size={12} className="text-gray-400" />
-                <span className="font-medium text-gray-900 dark:text-white">
+                <ChevronRight size={11} className="text-gray-400 flex-shrink-0" />
+                <span className="font-medium text-gray-900 dark:text-white truncate max-w-[120px]">
                   {activeTopic}
                 </span>
               </div>
 
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-hidden">
                 {voiceContext ? (
                   <VoiceInterviewAgent
                     interviewId={interviewId}

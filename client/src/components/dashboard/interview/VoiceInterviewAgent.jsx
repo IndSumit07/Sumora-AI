@@ -387,77 +387,84 @@ export default function VoiceInterviewAgent({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between mb-2 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-[#ea580c]/10 flex items-center justify-center">
-            <Radio size={18} className="text-[#ea580c]" />
+      <div className="flex-shrink-0 mb-2 pb-4 border-b border-gray-200 dark:border-[#2a2a2a] space-y-3">
+        {/* Row 1: title + status (always visible) */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-10 rounded-xl bg-[#ea580c]/10 flex items-center justify-center flex-shrink-0">
+              <Radio size={18} className="text-[#ea580c]" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">
+                Live Voice Interview
+              </h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5 mt-0.5">
+                {isConnected ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                    Connected &bull;{" "}
+                    {speakMode === "hold"
+                      ? "Hold Space to Speak"
+                      : "Speak Normally"}
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <Loader2 size={10} className="animate-spin flex-shrink-0" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                    Disconnected
+                  </>
+                )}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-              Live Voice Interview
-            </h2>
-            <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5 mt-0.5">
-              {isConnected ? (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Connected •{" "}
-                  {speakMode === "hold"
-                    ? "Hold Space to Speak"
-                    : "Speak Normally"}
-                </>
-              ) : isLoading ? (
-                <>
-                  <Loader2 size={10} className="animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                  Disconnected
-                </>
-              )}
-            </p>
-          </div>
+
+          {/* Timer — always visible top-right */}
+          <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gray-100 dark:bg-[#1a1a1a] text-xs font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0">
+            <Clock3 size={12} />
+            {formatRemaining(remainingMs)}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gray-100 dark:bg-[#1a1a1a] text-xs font-semibold text-gray-700 dark:text-gray-300">
-            <Clock3 size={12} /> {formatRemaining(remainingMs)}
-          </span>
+        {/* Row 2: speak mode toggle + end button (wraps on mobile) */}
+        <div className="flex flex-wrap items-center gap-2">
           {/* Speak Mode Toggle */}
-          <div className="flex items-center bg-gray-100 dark:bg-[#1a1a1a] rounded-xl p-1">
+          <div className="flex items-center bg-gray-100 dark:bg-[#1a1a1a] rounded-xl p-1 flex-1 min-w-[160px]">
             <button
               onClick={() => setSpeakMode("hold")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 speakMode === "hold"
                   ? "bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
             >
-              Hold to Speak
+              Hold
             </button>
             <button
               onClick={() => setSpeakMode("normal")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 speakMode === "normal"
                   ? "bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
             >
-              Speak Normally
+              Normal
             </button>
           </div>
 
-          {/* End interview button */}
+          {/* End interview button — grows to fill remaining space on mobile */}
           <button
             onClick={() => handleEndInterview()}
             disabled={(!isConnected && !isLoading) || isEnding}
-            className="flex items-center gap-2 h-9 px-4 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 sm:w-auto w-full"
           >
             {isEnding ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={13} className="animate-spin" />
             ) : (
-              <PhoneOff size={14} />
+              <PhoneOff size={13} />
             )}
             {isEnding ? "Ending..." : "End Interview"}
           </button>

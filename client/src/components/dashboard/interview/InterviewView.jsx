@@ -1307,45 +1307,48 @@ Start by introducing yourself as an interviewer at ${resolvedCompanyName} and as
           )}
 
           {view === "new-interview" && (
-            <div className="flex-1 min-h-0">
-              <div className="flex items-center gap-2 mb-6 text-xs">
-                <span className="font-semibold uppercase tracking-widest text-[#ea580c]">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden">
+              {/* Breadcrumb */}
+              <div className="flex-shrink-0 flex items-center gap-1.5 mb-4 text-xs flex-wrap min-w-0">
+                <span className="font-semibold uppercase tracking-widest text-[#ea580c] flex-shrink-0">
                   Interview
                 </span>
-                <ChevronRight size={12} className="text-gray-400" />
-                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Briefcase size={11} />
+                <ChevronRight size={11} className="text-gray-400 flex-shrink-0" />
+                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate max-w-[130px]">
+                  <Briefcase size={11} className="flex-shrink-0" />
                   {interviews.find((iv) => iv._id === interviewId)?.role ||
                     "Mock Interview"}
                 </span>
                 {interviews.find((iv) => iv._id === interviewId)?.companyName && (
                   <>
-                    <span className="text-gray-300 dark:text-gray-600">·</span>
-                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <Building2 size={11} />
+                    <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate max-w-[120px]">
+                      <Building2 size={11} className="flex-shrink-0" />
                       {interviews.find((iv) => iv._id === interviewId)?.companyName}
                     </span>
                   </>
                 )}
               </div>
 
-              {voiceContext ? (
-                <VoiceInterviewAgent
-                  interviewId={interviewId}
-                  systemPrompt={voiceContext.systemPrompt}
-                  context={voiceContext.context}
-                  startedAt={sessionStartedAt}
-                  durationMs={30 * 60 * 1000}
-                  onTranscriptUpdate={(msg) => {
-                    console.log("[Transcript]", msg);
-                  }}
-                  onEnd={handleEnd}
-                />
-              ) : (
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 size={24} className="animate-spin text-[#ea580c]" />
-                </div>
-              )}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {voiceContext ? (
+                  <VoiceInterviewAgent
+                    interviewId={interviewId}
+                    systemPrompt={voiceContext.systemPrompt}
+                    context={voiceContext.context}
+                    startedAt={sessionStartedAt}
+                    durationMs={30 * 60 * 1000}
+                    onTranscriptUpdate={(msg) => {
+                      console.log("[Transcript]", msg);
+                    }}
+                    onEnd={handleEnd}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 size={24} className="animate-spin text-[#ea580c]" />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
