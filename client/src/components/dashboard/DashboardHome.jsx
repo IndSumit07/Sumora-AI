@@ -9,7 +9,6 @@ import {
   Target,
   TrendingUp,
   Users,
-  Star,
   ArrowRight,
   ShieldCheck,
   Award,
@@ -28,7 +27,15 @@ const greeting = () => {
 
 /* ── Sub-components ──────────────────────────────────── */
 
-const FeatureCard = ({ to, icon: Icon, title, description, tag, color, tokenCost }) => (
+const FeatureCard = ({
+  to,
+  icon: Icon,
+  title,
+  description,
+  tag,
+  color,
+  tokenCost,
+}) => (
   <Link
     to={to}
     className="group relative flex flex-col gap-4 p-6 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222] hover:border-[#ea580c]/40 transition-all hover:shadow-lg hover:shadow-[#ea580c]/5"
@@ -76,231 +83,266 @@ const StepBadge = ({ n }) => (
   </div>
 );
 
+const Surface = ({ title, subtitle, icon: Icon, children, className = "" }) => (
+  <section
+    className={[
+      "rounded-3xl border border-gray-200/70 bg-white/95 p-6 shadow-[0_12px_35px_rgba(20,20,20,0.04)] dark:border-[#232323] dark:bg-[#151515]",
+      className,
+    ].join(" ")}
+  >
+    {(title || subtitle) && (
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          {title && (
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              {title}
+            </h2>
+          )}
+          {subtitle && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {Icon && (
+          <div className="rounded-xl bg-[#ea580c]/10 p-2 text-[#ea580c]">
+            <Icon size={16} />
+          </div>
+        )}
+      </div>
+    )}
+    {children}
+  </section>
+);
+
 /* ── Main component ──────────────────────────────────── */
 
 const DashboardHome = () => {
   const { user } = useAuth();
   const name = user?.username ? user.username.split(" ")[0] : "there";
+  const tokens = user?.tokens || 0;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-5xl mx-auto px-6 py-10 space-y-14">
-        {/* ── Hero ───────────────────────────────────────── */}
-        <section>
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#ea580c] to-[#c2410c] p-8 md:p-12 text-white">
-            {/* decorative blobs */}
-            <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5" />
-            <div className="pointer-events-none absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-black/10" />
-
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
-                <p className="text-orange-200 text-sm font-medium mb-2 uppercase tracking-widest">
-                  {greeting()}, {name}
-                </p>
-                <h1 className="text-3xl md:text-4xl font-bold mb-3">
-                  Welcome to Sumora&nbsp;AI
-                </h1>
-                <p className="text-orange-100 text-sm md:text-base max-w-md leading-relaxed">
-                  Your AI-powered career co-pilot. Practice interviews, analyze
-                  your profile, and prepare smarter — all in one place.
-                </p>
+    <div className="h-full overflow-y-auto bg-[#f4f4f4] px-3 py-3 dark:bg-[#0f0f0f] md:px-5 md:py-5">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <Surface className="relative overflow-hidden bg-gradient-to-br from-[#ea580c] to-[#c2410c] text-white dark:border-[#ea580c]/20 dark:bg-gradient-to-br">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
+          <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-200">
+                {greeting()}, {name}
+              </p>
+              <h1 className="text-2xl font-bold md:text-3xl">
+                Your Sumora Dashboard
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-orange-100">
+                Stay on top of your interview journey with your current
+                workflows, token balance, and improvement steps.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 rounded-2xl bg-black/10 p-3 backdrop-blur-sm md:min-w-[280px]">
+              <div className="rounded-xl bg-white/10 px-3 py-2">
+                <p className="text-[11px] text-orange-100">Available tokens</p>
+                <p className="mt-1 text-xl font-bold">{tokens}</p>
+              </div>
+              <div className="rounded-xl bg-white/10 px-3 py-2">
+                <p className="text-[11px] text-orange-100">Services</p>
+                <p className="mt-1 text-xl font-bold">4</p>
               </div>
               <Link
                 to="/dashboard/interview"
-                className="flex-shrink-0 flex items-center gap-2 self-start md:self-auto px-6 py-3 rounded-xl bg-white text-[#ea580c] font-semibold text-sm hover:bg-orange-50 transition-colors shadow-lg"
+                className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#ea580c] transition-colors hover:bg-orange-50"
               >
-                <Zap size={16} /> Start Interview
+                <Mic size={15} /> Start Mock Interview
               </Link>
             </div>
           </div>
-        </section>
+        </Surface>
 
-        {/* ── Services ───────────────────────────────────── */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            Explore Services
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-            Token-based pricing — pay only for what you use
-          </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <FeatureCard
-              to="/dashboard/interview"
-              icon={Mic}
-              color="#ea580c"
-              title="AI Mock Interview"
-              tag="Popular"
-              tokenCost={20}
-              description="Live voice interview with company-specific style. Resume-adaptive questions & full performance report."
-            />
-            <FeatureCard
-              to="/dashboard/prepare"
-              icon={BookOpen}
-              color="#7c3aed"
-              title="Interview Prep"
-              tokenCost={20}
-              description="AI-generated study plans, practice Q&A banks, and revision roadmaps tailored to your target role."
-            />
-            <FeatureCard
-              to="/dashboard/analyze"
-              icon={BarChart2}
-              color="#0ea5e9"
-              title="Resume Analysis"
-              tokenCost={25}
-              description="ATS scoring, keyword gap analysis vs JD, section-by-section feedback and rewrite suggestions."
-            />
-            <FeatureCard
-              to="/dashboard/stats"
-              icon={TrendingUp}
-              color="#10b981"
-              title="Performance Stats"
-              tokenCost={null}
-              description="Visualise score trends, topic strengths, session history and interview readiness over time."
-            />
-          </div>
+        <div className="grid gap-5 xl:grid-cols-[1.75fr_1fr]">
+          <Surface
+            title="Explore Services"
+            subtitle="Token-based pricing, same tools you already use"
+            icon={TrendingUp}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FeatureCard
+                to="/dashboard/interview"
+                icon={Mic}
+                color="#ea580c"
+                title="AI Mock Interview"
+                tag="Popular"
+                tokenCost={20}
+                description="Live voice interview with company-specific style and full performance report."
+              />
+              <FeatureCard
+                to="/dashboard/prepare"
+                icon={BookOpen}
+                color="#7c3aed"
+                title="Interview Prep"
+                tokenCost={20}
+                description="Targeted Q&A practice and role-specific preparation workflows."
+              />
+              <FeatureCard
+                to="/dashboard/analyze"
+                icon={BarChart2}
+                color="#0ea5e9"
+                title="Resume Analysis"
+                tokenCost={25}
+                description="ATS scoring and section-based resume feedback against job requirements."
+              />
+              <FeatureCard
+                to="/dashboard/stats"
+                icon={TrendingUp}
+                color="#10b981"
+                title="Performance Stats"
+                tokenCost={null}
+                description="Track trends and readiness across your interview sessions."
+              />
+            </div>
 
-          {/* Token legend */}
-          <div className="mt-4 flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-[#141414] border border-gray-100 dark:border-[#222]">
-            <Zap size={13} className="text-[#ea580c] fill-[#ea580c] flex-shrink-0" />
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Token costs:</span>
-            {[
-              { label: "Mock Interview", cost: "20 tokens / session", color: "#ea580c" },
-              { label: "Prep Session", cost: "20 tokens / session", color: "#7c3aed" },
-              { label: "Resume Analysis", cost: "25 tokens / analysis", color: "#0ea5e9" },
-              { label: "Stats", cost: "Free", color: "#10b981" },
-            ].map(({ label, cost, color }) => (
-              <span key={label} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                <span className="font-medium">{label}:</span> {cost}
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-[#242424] dark:bg-[#111]">
+              <Zap
+                size={13}
+                className="text-[#ea580c] fill-[#ea580c] flex-shrink-0"
+              />
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Token costs:
               </span>
-            ))}
-          </div>
-        </section>
+              {[
+                {
+                  label: "Mock Interview",
+                  cost: "20/session",
+                  color: "#ea580c",
+                },
+                { label: "Prep", cost: "20/session", color: "#7c3aed" },
+                { label: "Analysis", cost: "25/analysis", color: "#0ea5e9" },
+                { label: "Stats", cost: "Free", color: "#10b981" },
+              ].map(({ label, cost, color }) => (
+                <span
+                  key={label}
+                  className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: color }}
+                  />
+                  <span className="font-medium">{label}:</span> {cost}
+                </span>
+              ))}
+            </div>
+          </Surface>
 
-        {/* ── How it works ───────────────────────────────── */}
-        <section className="grid md:grid-cols-2 gap-10 items-start">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-              How It Works
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Three simple steps to career-readiness
-            </p>
-            <ol className="space-y-5">
+          <Surface
+            title="How It Works"
+            subtitle="Your existing 3-step flow"
+            icon={Users}
+          >
+            <ol className="space-y-4">
               {[
                 {
                   n: 1,
                   title: "Set up your profile",
-                  desc: "Paste a job description or pick a subject. Upload your resume for personalised questions.",
+                  desc: "Add your resume and target role to personalize sessions.",
                 },
                 {
                   n: 2,
                   title: "Practice with AI",
-                  desc: "Chat back and forth with our LLM. It adapts followups based on your answers in real time.",
+                  desc: "Take adaptive voice or text interview sessions.",
                 },
                 {
                   n: 3,
-                  title: "Review & improve",
-                  desc: "Get a scored feedback report with specific strengths, weaknesses, and actionable next steps.",
+                  title: "Review and improve",
+                  desc: "Use feedback and scoring to focus your next steps.",
                 },
               ].map(({ n, title, desc }) => (
-                <li key={n} className="flex gap-4 items-start">
+                <li key={n} className="flex items-start gap-3">
                   <StepBadge n={n} />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       {title}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                    <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                       {desc}
                     </p>
                   </div>
                 </li>
               ))}
             </ol>
-          </div>
 
-          {/* Why Sumora */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222] space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck size={18} className="text-[#ea580c]" />
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                Why Sumora AI?
-              </h3>
-            </div>
-            {[
-              "Industry-specific questions tailored to your role",
-              "LLaMA 3.1 backbone for natural, context-aware dialogue",
-              "Gemini 2.5 Flash powers deep resume analysis",
-              "Scores & structured feedback after every session",
-              "Privacy-first — your data stays yours",
-              "Free to start, no credit card required",
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3">
-                <Check
-                  size={15}
-                  className="text-[#ea580c] flex-shrink-0 mt-0.5"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {item}
-                </span>
+            <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-[#242424] dark:bg-[#111]">
+              <div className="mb-3 flex items-center gap-2">
+                <ShieldCheck size={16} className="text-[#ea580c]" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Why Sumora AI?
+                </h3>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── About / CTO ────────────────────────────────── */}
-        <section className="grid md:grid-cols-2 gap-6">
-          {/* Mission */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222]">
-            <div className="flex items-center gap-2 mb-4">
-              <Target size={18} className="text-[#ea580c]" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                Our Mission
-              </h3>
+              <div className="space-y-2.5">
+                {[
+                  "Industry-specific questions tailored to your role",
+                  "Gemini-powered deep resume analysis",
+                  "Structured score and feedback after each session",
+                  "Privacy-first user experience",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2.5">
+                    <Check
+                      size={14}
+                      className="mt-0.5 flex-shrink-0 text-[#ea580c]"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-              Sumora AI was built to democratise interview prep. We believe
-              every candidate, regardless of background or budget, deserves
-              access to expert-level coaching and honest feedback.
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              We combine the latest open-weight models with thoughtful UX to
-              create an experience that's both powerful and approachable.
-            </p>
-          </div>
+          </Surface>
+        </div>
 
-          {/* CTO Card */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-[#141414] border border-gray-100 dark:border-[#222]">
-            <div className="flex items-center gap-2 mb-5">
-              <Award size={18} className="text-[#ea580c]" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">
-                Meet the Builder
-              </h3>
-            </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Surface
+            title="Our Mission"
+            subtitle="What already powers your product"
+            icon={Target}
+          >
+            <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              Sumora AI was built to democratise interview prep. Every candidate
+              should have access to practical coaching and clear feedback.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              We combine modern AI systems with focused UX so preparation feels
+              guided, measurable, and easy to continue daily.
+            </p>
+          </Surface>
+
+          <Surface
+            title="Meet the Builder"
+            subtitle="Current founder section"
+            icon={Award}
+          >
             <div className="flex items-start gap-4">
-              {/* Avatar placeholder */}
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ea580c] to-[#c2410c] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+              <div className="h-14 w-14 flex-shrink-0 rounded-2xl bg-gradient-to-br from-[#ea580c] to-[#c2410c] text-center text-xl font-bold leading-[56px] text-white">
                 S
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-semibold text-gray-900 dark:text-white">
                   Sumit Kumar
                 </p>
-                <p className="text-xs text-[#ea580c] font-medium mt-0.5">
+                <p className="mt-0.5 text-xs font-medium text-[#ea580c]">
                   Founder
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
-                  Full-stack engineer & AI enthusiast. Building tools that help
-                  developers and job-seekers grow faster using cutting-edge
-                  LLMs.
+                <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  Full-stack engineer and AI enthusiast focused on helping
+                  job-seekers and developers improve faster with practical AI
+                  tools.
                 </p>
-                <div className="flex gap-3 mt-4">
+                <div className="mt-4 flex items-center gap-2.5">
                   <a
                     href="https://github.com/IndSumit07"
                     target="_blank"
                     rel="noopener noreferrer"
                     title="GitHub"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#ea580c]/10 hover:text-[#ea580c]"
                   >
                     <Github size={15} />
                   </a>
@@ -309,11 +351,10 @@ const DashboardHome = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     title="LinkedIn"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#ea580c] hover:bg-[#ea580c]/10 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#ea580c]/10 hover:text-[#ea580c]"
                   >
                     <Linkedin size={15} />
                   </a>
-
                   <div className="ml-auto">
                     <LiquidMetalButton
                       label="Follow Me"
@@ -325,36 +366,35 @@ const DashboardHome = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </Surface>
+        </div>
 
-        {/* ── CTA Banner ─────────────────────────────────── */}
-        <section>
-          <div className="rounded-3xl border border-[#ea580c]/20 bg-[#ea580c]/5 dark:bg-[#ea580c]/8 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <Surface className="border-[#ea580c]/20 bg-[#ea580c]/5 dark:bg-[#ea580c]/10">
+          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                 Ready to level up?
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Start your first AI mock interview now — no setup needed.
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Start your next interview or run a resume analysis now.
               </p>
             </div>
-            <div className="flex gap-3 flex-shrink-0">
+            <div className="flex flex-wrap gap-3">
               <Link
                 to="/dashboard/interview"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#ea580c] text-white text-sm font-medium hover:bg-[#d24e0b] transition-colors"
+                className="flex items-center gap-2 rounded-xl bg-[#ea580c] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#d24e0b]"
               >
                 <Mic size={15} /> Mock Interview
               </Link>
               <Link
                 to="/dashboard/analyze"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] text-gray-700 dark:text-gray-300 text-sm font-medium hover:border-[#ea580c]/50 hover:text-[#ea580c] transition-colors"
+                className="flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#ea580c]/50 hover:text-[#ea580c] dark:border-[#333] dark:text-gray-300"
               >
                 <BarChart2 size={15} /> Analyze Resume
               </Link>
             </div>
           </div>
-        </section>
+        </Surface>
       </div>
     </div>
   );

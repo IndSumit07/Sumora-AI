@@ -130,10 +130,7 @@ const DashboardPage = () => {
           </Link>
 
           {/* Mobile user dropdown */}
-          <UserDropdown
-            compact
-            onManageAccount={() => setShowAccount(true)}
-          />
+          <UserDropdown compact onManageAccount={() => setShowAccount(true)} />
         </div>
       </div>
 
