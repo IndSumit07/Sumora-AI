@@ -1,5 +1,10 @@
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
+import {
+  createReminderEmailHtml,
+  REMINDER_EMAIL_SUBJECT,
+} from "./emails/reminderEmail.template.js";
+
 function otpEmailHtml(title, description, otp) {
   return `
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 0;">
@@ -44,6 +49,18 @@ export async function sendOtpEmail(to, otp, type) {
   const config = emailConfig[type];
   if (!config) throw new Error(`Unknown email type: ${type}`);
 
+  return sendEmail({
+    to,
+    subject: config.subject,
+    htmlContent: otpEmailHtml(config.title, config.description, otp),
+  });
+}
+
+export async function sendEmail({ to, subject, htmlContent }) {
+  if (!to || !subject || !htmlContent) {
+    throw new Error("sendEmail requires to, subject, and htmlContent");
+  }
+
   const response = await fetch(BREVO_API_URL, {
     method: "POST",
     headers: {
@@ -54,11 +71,11 @@ export async function sendOtpEmail(to, otp, type) {
     body: JSON.stringify({
       sender: {
         name: "Sumora AI",
-        email: process.env.BREVO_SENDER_EMAIL || "noreply@sumora.ai",
+        email: process.env.BREVO_SENDER_EMAIL || "noreply@sumoraai.in",
       },
       to: [{ email: to }],
-      subject: config.subject,
-      htmlContent: otpEmailHtml(config.title, config.description, otp),
+      subject,
+      htmlContent,
     }),
   });
 
@@ -68,6 +85,14 @@ export async function sendOtpEmail(to, otp, type) {
   }
 
   return true;
+}
+
+export async function sendReminderEmail(to, username = "there") {
+  return sendEmail({
+    to,
+    subject: REMINDER_EMAIL_SUBJECT,
+    htmlContent: createReminderEmailHtml({ name: username }),
+  });
 }
 
 export function generateOtp() {

@@ -1,5 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import Lenis from "lenis";
 import ServerWakeOverlay from "./components/ServerWakeOverlay";
 
 import HomePage from "./pages/HomePage";
@@ -38,6 +40,33 @@ const PublicRoute = ({ children }) => {
 };
 
 const App = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname !== "/") return undefined;
+
+    const lenis = new Lenis({
+      duration: 1.05,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+      wheelMultiplier: 0.95,
+      touchMultiplier: 1.1,
+      smoothTouch: false,
+    });
+
+    let rafId = 0;
+    const raf = (time) => {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    };
+
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, [location.pathname]);
+
   return (
     <>
       <SeoManager />
