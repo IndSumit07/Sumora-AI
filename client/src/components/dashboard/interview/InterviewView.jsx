@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
+import { useAuth } from "../../../context/AuthContext";
 import {
   COMPANIES,
   JOB_ROLES,
@@ -32,6 +33,7 @@ import {
 } from "../../../shared/companyInterviewProfiles";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
+import TokenConfirmModal from "../../TokenConfirmModal";
 import InterviewFeedback from "./InterviewFeedback";
 import InterviewHistoryDetail from "./InterviewHistoryDetail";
 import VoiceInterviewAgent from "./VoiceInterviewAgent";
@@ -457,16 +459,21 @@ const RolesStep = ({ company, onBack, onSelectRole }) => {
 
 // ── Step 3: Setup form (resume + difficulty + speak mode) ─────────────────────
 
+const LIVE_INTERVIEW_COST = 20;
+
 const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
   const { uploadResume, startInterview } = useInterview();
+  const { user, setUser } = useAuth();
   const role = getRoleByKey(roleKey);
   const [logoError, setLogoError] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
   const fileRef = useRef(null);
+  const tokensAvailable = Number.isFinite(user?.tokens) ? user.tokens : 0;
 
   const initials = company.name
     .split(" ")
@@ -512,7 +519,7 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
   const handleStart = async () => {
     if (!resumeText.trim()) {
       toast.error("Resume upload is required.");
-      return;
+      return false;
     }
 
     const companyProfile = {
@@ -526,13 +533,17 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
 
     setStartLoading(true);
     try {
-      const { interviewId, question, startedAt } = await startInterview({
+      const { interviewId, question, startedAt, tokensLeft } =
+        await startInterview({
         role: finalRole,
         jobDescription: finalJobDesc,
         resumeText,
         difficulty,
         companyProfile,
       });
+      if (Number.isFinite(tokensLeft)) {
+        setUser((prev) => (prev ? { ...prev, tokens: tokensLeft } : prev));
+      }
       onStarted({
         interviewId,
         firstQuestion: question,
@@ -545,11 +556,26 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
         startedAt,
         mode: "interactive",
       });
+      return true;
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to start interview.");
+      return false;
     } finally {
       setStartLoading(false);
     }
+  };
+
+  const handleStartClick = () => {
+    if (!resumeText.trim()) {
+      toast.error("Resume upload is required.");
+      return;
+    }
+    setTokenModalOpen(true);
+  };
+
+  const handleConfirmStart = async () => {
+    const ok = await handleStart();
+    if (ok) setTokenModalOpen(false);
   };
 
   if (!role) return null;
@@ -770,7 +796,7 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
         {/* Start button */}
         <button
           type="button"
-          onClick={handleStart}
+          onClick={handleStartClick}
           disabled={startLoading || uploadLoading || !resumeText.trim()}
           className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-semibold text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
@@ -784,6 +810,15 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
             </>
           )}
         </button>
+
+        <TokenConfirmModal
+          open={tokenModalOpen}
+          cost={LIVE_INTERVIEW_COST}
+          tokens={tokensAvailable}
+          confirming={startLoading}
+          onCancel={() => setTokenModalOpen(false)}
+          onConfirm={handleConfirmStart}
+        />
       </div>
     </div>
   );
