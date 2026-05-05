@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   Plus,
   Mic,
@@ -142,7 +148,8 @@ const CompanyCard = ({ company, onSelect }) => {
     .toUpperCase();
 
   const regionColors = {
-    India: "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
+    India:
+      "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
     Global: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
   };
 
@@ -216,7 +223,10 @@ const CompanyCard = ({ company, onSelect }) => {
       {/* CTA */}
       <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-gray-400 dark:text-gray-500 group-hover:text-[#ea580c] transition-colors">
         Select & Choose Role
-        <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+        <ArrowRight
+          size={11}
+          className="group-hover:translate-x-0.5 transition-transform"
+        />
       </div>
     </button>
   );
@@ -246,9 +256,7 @@ const RoleCard = ({ roleKey, active, onSelect }) => {
           )}
           <h3
             className={`text-sm font-bold ${
-              active
-                ? "text-[#ea580c]"
-                : "text-gray-900 dark:text-white"
+              active ? "text-[#ea580c]" : "text-gray-900 dark:text-white"
             }`}
           >
             {role.name}
@@ -328,11 +336,20 @@ const CompaniesStep = ({ onSelectCompany }) => {
               ].join(" ")}
             >
               {f === "all" ? (
-                <span className="flex items-center gap-1.5"><LayoutGrid size={11} />All ({COMPANIES.length})</span>
+                <span className="flex items-center gap-1.5">
+                  <LayoutGrid size={11} />
+                  All ({COMPANIES.length})
+                </span>
               ) : f === "india" ? (
-                <span className="flex items-center gap-1.5"><MapPin size={11} />India</span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={11} />
+                  India
+                </span>
               ) : (
-                <span className="flex items-center gap-1.5"><Globe size={11} />Global</span>
+                <span className="flex items-center gap-1.5">
+                  <Globe size={11} />
+                  Global
+                </span>
               )}
             </button>
           ))}
@@ -351,8 +368,13 @@ const CompaniesStep = ({ onSelectCompany }) => {
       {/* Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <Building2 size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-400 dark:text-gray-500">No companies found</p>
+          <Building2
+            size={32}
+            className="text-gray-300 dark:text-gray-600 mx-auto mb-3"
+          />
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            No companies found
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -535,12 +557,12 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
     try {
       const { interviewId, question, startedAt, tokensLeft } =
         await startInterview({
-        role: finalRole,
-        jobDescription: finalJobDesc,
-        resumeText,
-        difficulty,
-        companyProfile,
-      });
+          role: finalRole,
+          jobDescription: finalJobDesc,
+          resumeText,
+          difficulty,
+          companyProfile,
+        });
       if (Number.isFinite(tokensLeft)) {
         setUser((prev) => (prev ? { ...prev, tokens: tokensLeft } : prev));
       }
@@ -669,7 +691,10 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
         {/* Resume upload */}
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5">
-            Resume <span className="normal-case font-normal text-red-400">(required)</span>
+            Resume{" "}
+            <span className="normal-case font-normal text-red-400">
+              (required)
+            </span>
           </p>
           {resumeFile ? (
             <div className="flex items-center gap-3 h-11 px-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
@@ -763,17 +788,20 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
               {
                 value: "easy",
                 label: "Easy",
-                active: "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+                active:
+                  "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
               },
               {
                 value: "medium",
                 label: "Medium",
-                active: "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+                active:
+                  "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
               },
               {
                 value: "hard",
                 label: "Hard",
-                active: "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
+                active:
+                  "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
               },
             ].map(({ value, label, active }) => (
               <button
@@ -1279,7 +1307,10 @@ Start by introducing yourself as an interviewer at ${resolvedCompanyName} and as
                 <Building2 size={11} />
                 Company
               </button>
-              <ChevronRight size={11} className="text-gray-300 dark:text-gray-600" />
+              <ChevronRight
+                size={11}
+                className="text-gray-300 dark:text-gray-600"
+              />
               <button
                 onClick={() => selectedCompany && setView("roles")}
                 disabled={!selectedCompany}
@@ -1287,14 +1318,17 @@ Start by introducing yourself as an interviewer at ${resolvedCompanyName} and as
                   view === "roles"
                     ? "text-[#ea580c] bg-[#ea580c]/10"
                     : selectedCompany
-                    ? "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    : "text-gray-300 dark:text-gray-600"
+                      ? "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      : "text-gray-300 dark:text-gray-600"
                 }`}
               >
                 <Briefcase size={11} />
                 Role
               </button>
-              <ChevronRight size={11} className="text-gray-300 dark:text-gray-600" />
+              <ChevronRight
+                size={11}
+                className="text-gray-300 dark:text-gray-600"
+              />
               <span
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold ${
                   view === "setup"
@@ -1348,18 +1382,27 @@ Start by introducing yourself as an interviewer at ${resolvedCompanyName} and as
                 <span className="font-semibold uppercase tracking-widest text-[#ea580c] flex-shrink-0">
                   Interview
                 </span>
-                <ChevronRight size={11} className="text-gray-400 flex-shrink-0" />
+                <ChevronRight
+                  size={11}
+                  className="text-gray-400 flex-shrink-0"
+                />
                 <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate max-w-[130px]">
                   <Briefcase size={11} className="flex-shrink-0" />
                   {interviews.find((iv) => iv._id === interviewId)?.role ||
                     "Mock Interview"}
                 </span>
-                {interviews.find((iv) => iv._id === interviewId)?.companyName && (
+                {interviews.find((iv) => iv._id === interviewId)
+                  ?.companyName && (
                   <>
-                    <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
+                    <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">
+                      ·
+                    </span>
                     <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate max-w-[120px]">
                       <Building2 size={11} className="flex-shrink-0" />
-                      {interviews.find((iv) => iv._id === interviewId)?.companyName}
+                      {
+                        interviews.find((iv) => iv._id === interviewId)
+                          ?.companyName
+                      }
                     </span>
                   </>
                 )}
@@ -1380,7 +1423,10 @@ Start by introducing yourself as an interviewer at ${resolvedCompanyName} and as
                   />
                 ) : (
                   <div className="flex items-center justify-center py-20">
-                    <Loader2 size={24} className="animate-spin text-[#ea580c]" />
+                    <Loader2
+                      size={24}
+                      className="animate-spin text-[#ea580c]"
+                    />
                   </div>
                 )}
               </div>

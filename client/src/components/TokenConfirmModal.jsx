@@ -39,8 +39,7 @@ export default function TokenConfirmModal({
                 Use tokens to start?
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                This interview will deduct {summary} immediately when you
-                start.
+                This interview will deduct {summary} immediately when you start.
               </p>
             </div>
           </div>
