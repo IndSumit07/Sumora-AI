@@ -5,6 +5,11 @@ import {
   REMINDER_EMAIL_SUBJECT,
 } from "./emails/reminderEmail.template.js";
 
+import {
+  createPromotionalEmailHtml,
+  PROMO_EMAIL_SUBJECT,
+} from "./emails/promoEmail.template.js";
+
 function otpEmailHtml(title, description, otp) {
   return `
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 440px; margin: 0 auto; padding: 40px 0;">
@@ -92,6 +97,14 @@ export async function sendReminderEmail(to, username = "there") {
     to,
     subject: REMINDER_EMAIL_SUBJECT,
     htmlContent: createReminderEmailHtml({ name: username }),
+  });
+}
+
+export async function sendPromoEmail(to, username = "there") {
+  return sendEmail({
+    to,
+    subject: PROMO_EMAIL_SUBJECT,
+    htmlContent: createPromotionalEmailHtml({ name: username }),
   });
 }
 
