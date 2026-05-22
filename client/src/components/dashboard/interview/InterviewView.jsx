@@ -73,17 +73,26 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
   });
   const { label, cls } = statusBadge(interview);
 
+  const diffColors = {
+    easy: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+    medium: "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+    hard: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800",
+  };
+
   return (
     <div
       role="button"
       onClick={onClick}
       className={[
-        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all cursor-pointer",
+        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all duration-200 cursor-pointer",
         active
-          ? "border-[#ea580c]/50 bg-[#ea580c]/8 dark:bg-[#ea580c]/10"
+          ? "border-[#ea580c]/60 bg-gradient-to-r from-[#ea580c]/10 to-[#ea580c]/5 dark:from-[#ea580c]/15 dark:to-[#ea580c]/5 shadow-sm shadow-[#ea580c]/10"
           : "border-transparent hover:border-gray-200 dark:hover:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
       ].join(" ")}
     >
+      {active && (
+        <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-[#ea580c]" />
+      )}
       <button
         type="button"
         onClick={(e) => {
@@ -96,7 +105,7 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
         <Trash2 size={12} />
       </button>
 
-      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-1 pr-5">
+      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1 pr-5">
         {interview.role || "Mock Interview"}
       </p>
       {interview.companyName && interview.companyName !== "General" && (
@@ -106,28 +115,25 @@ const InterviewCard = ({ interview, active, onClick, onDelete }) => {
         </p>
       )}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
-          <Calendar size={10} />
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+          <Calendar size={9} />
           {date}
         </span>
         <div className="flex items-center gap-1.5">
           {interview.difficulty && interview.difficulty !== "medium" && (
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                interview.difficulty === "easy"
-                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                  : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                diffColors[interview.difficulty] || diffColors.medium
               }`}
             >
+              <span className={`w-1 h-1 rounded-full ${
+                interview.difficulty === "easy" ? "bg-emerald-500" : "bg-red-500"
+              }`} />
               {interview.difficulty}
             </span>
           )}
-          <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
-          >
-            {interview.status === "completed"
-              ? `${interview.score ?? 0} · `
-              : ""}
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>
+            {interview.status === "completed" ? `${interview.score ?? 0} · ` : ""}
             {label}
           </span>
         </div>
@@ -147,86 +153,76 @@ const CompanyCard = ({ company, onSelect }) => {
     .slice(0, 2)
     .toUpperCase();
 
-  const regionColors = {
-    India:
-      "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
-    Global: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+  const regionConfig = {
+    India: { bg: "from-orange-400 to-rose-500", badge: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400" },
+    Global: { bg: "from-blue-400 to-indigo-500", badge: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400" },
   };
+  const region = regionConfig[company.region] || regionConfig.Global;
 
   return (
     <button
       type="button"
       onClick={() => onSelect(company)}
-      className="group rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 text-left transition-all hover:border-[#ea580c]/50 hover:shadow-lg dark:hover:shadow-[#ea580c]/5 hover:-translate-y-0.5 duration-200"
+      className="group rounded-2xl border-2 border-gray-100 dark:border-[#222] bg-white dark:bg-[#161616] text-left transition-all duration-200 hover:border-[#ea580c]/50 hover:shadow-xl hover:shadow-[#ea580c]/8 hover:-translate-y-1 overflow-hidden"
     >
-      {/* Header: logo + name + region */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="relative h-12 w-12 rounded-xl bg-gray-50 dark:bg-[#242424] flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-[#333]">
-          <span className="text-sm font-bold text-gray-400 dark:text-gray-500 select-none">
-            {initials}
-          </span>
+      {/* Gradient header banner */}
+      <div className={`h-16 bg-gradient-to-br ${region.bg} relative overflow-hidden`}>
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, white 0%, transparent 60%)" }} />
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-white dark:bg-[#161616]" style={{ clipPath: "ellipse(55% 100% at 50% 100%)" }} />
+      </div>
+
+      <div className="px-5 pb-5">
+        {/* Logo overlapping banner */}
+        <div className="relative h-10 w-10 rounded-xl bg-white dark:bg-[#242424] border-2 border-white dark:border-[#222] shadow-md flex items-center justify-center overflow-hidden -mt-5 mb-3">
+          <span className="text-sm font-bold text-gray-500 dark:text-gray-400 select-none">{initials}</span>
           {company.logoUrl && !logoError && (
             <img
               src={company.logoUrl}
               alt={`${company.name} logo`}
-              className="absolute inset-0 h-full w-full object-contain bg-white p-1.5"
+              className="absolute inset-0 h-full w-full object-contain bg-white p-1"
               onError={() => setLogoError(true)}
             />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-[#ea580c] transition-colors">
+
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-[#ea580c] transition-colors leading-tight">
             {company.name}
           </h3>
-          <span
-            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${
-              regionColors[company.region] || regionColors.Global
-            }`}
-          >
-            {company.region === "India" ? (
-              <MapPin size={9} />
-            ) : (
-              <Globe size={9} />
-            )}
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${region.badge}`}>
+            {company.region === "India" ? <MapPin size={9} /> : <Globe size={9} />}
             {company.region}
           </span>
         </div>
-      </div>
 
-      {/* Description */}
-      <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 mb-3">
-        <p className="text-[11px] leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-3">
+        <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
           {company.description}
         </p>
-      </div>
 
-      {/* Roles pills */}
-      <div className="flex flex-wrap gap-1.5">
-        {company.availableRoles.slice(0, 3).map((roleKey) => {
-          const role = JOB_ROLES[roleKey];
-          return role ? (
-            <span
-              key={roleKey}
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#ea580c]/8 dark:bg-[#ea580c]/12 text-[#ea580c] border border-[#ea580c]/20"
-            >
-              {role.name}
+        {/* Role pills */}
+        <div className="flex flex-wrap gap-1.5">
+          {company.availableRoles.slice(0, 3).map((roleKey) => {
+            const role = JOB_ROLES[roleKey];
+            return role ? (
+              <span
+                key={roleKey}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#ea580c]/8 dark:bg-[#ea580c]/12 text-[#ea580c] border border-[#ea580c]/20"
+              >
+                {role.name}
+              </span>
+            ) : null;
+          })}
+          {company.availableRoles.length > 3 && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400">
+              +{company.availableRoles.length - 3}
             </span>
-          ) : null;
-        })}
-        {company.availableRoles.length > 3 && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400">
-            +{company.availableRoles.length - 3} more
-          </span>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* CTA */}
-      <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-gray-400 dark:text-gray-500 group-hover:text-[#ea580c] transition-colors">
-        Select & Choose Role
-        <ArrowRight
-          size={11}
-          className="group-hover:translate-x-0.5 transition-transform"
-        />
+        <div className="mt-3 flex items-center gap-1 text-[11px] font-bold text-gray-400 dark:text-gray-500 group-hover:text-[#ea580c] transition-colors">
+          Select & Choose Role
+          <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+        </div>
       </div>
     </button>
   );
@@ -243,37 +239,44 @@ const RoleCard = ({ roleKey, active, onSelect }) => {
       type="button"
       onClick={() => onSelect(roleKey)}
       className={[
-        "rounded-2xl border p-4 text-left transition-all duration-200",
+        "rounded-2xl border-2 p-4 text-left transition-all duration-200 relative overflow-hidden group",
         active
-          ? "border-[#ea580c] bg-[#ea580c]/8 dark:bg-[#ea580c]/12 shadow-sm"
-          : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-[#ea580c]/40 hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
+          ? "border-[#ea580c] shadow-lg shadow-[#ea580c]/15"
+          : "border-gray-100 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-[#ea580c]/40 hover:shadow-md",
       ].join(" ")}
+      style={active ? { background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)" } : {}}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
+      {/* Active glow ring */}
+      {active && (
+        <div className="absolute inset-0 rounded-2xl" style={{ boxShadow: "inset 0 0 0 2px #ea580c" }} />
+      )}
+
+      <div className="flex items-start justify-between gap-2 mb-2 relative z-10">
         <div className="flex items-center gap-2">
           {active && (
-            <CheckCircle2 size={14} className="text-[#ea580c] flex-shrink-0" />
+            <div className="w-5 h-5 rounded-full bg-[#ea580c] flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 size={12} className="text-white" />
+            </div>
           )}
-          <h3
-            className={`text-sm font-bold ${
-              active ? "text-[#ea580c]" : "text-gray-900 dark:text-white"
-            }`}
-          >
+          <h3 className={`text-sm font-bold ${ active ? "text-[#ea580c]" : "text-gray-900 dark:text-white" }`}>
             {role.name}
           </h3>
         </div>
       </div>
 
-      <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
+      <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2 mb-3 relative z-10">
         {role.jobDescription}
       </p>
 
-      {/* Tools */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 relative z-10">
         {role.tools.slice(0, 4).map((tool) => (
           <span
             key={tool}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400 font-medium"
+            className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+              active
+                ? "bg-[#ea580c]/15 text-[#ea580c]"
+                : "bg-gray-100 dark:bg-[#2a2a2a] text-gray-500 dark:text-gray-400"
+            }`}
           >
             {tool}
           </span>
@@ -780,42 +783,48 @@ const SetupStep = ({ company, roleKey, onBack, onStarted }) => {
 
         {/* Difficulty */}
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5">
-            Difficulty
+          <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
+            Difficulty Level
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {[
               {
                 value: "easy",
                 label: "Easy",
-                active:
-                  "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400",
+                emoji: "🟢",
+                desc: "Fundamentals",
+                activeClass: "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-100 dark:shadow-emerald-900/20",
+                inactiveClass: "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-emerald-300 hover:text-emerald-600 dark:hover:border-emerald-800 dark:hover:text-emerald-400",
               },
               {
                 value: "medium",
                 label: "Medium",
-                active:
-                  "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
+                emoji: "🟡",
+                desc: "Intermediate",
+                activeClass: "border-amber-500 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 text-amber-700 dark:text-amber-400 shadow-md shadow-amber-100 dark:shadow-amber-900/20",
+                inactiveClass: "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-amber-300 hover:text-amber-600 dark:hover:border-amber-800 dark:hover:text-amber-400",
               },
               {
                 value: "hard",
                 label: "Hard",
-                active:
-                  "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400",
+                emoji: "🔴",
+                desc: "Advanced",
+                activeClass: "border-red-500 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-900/20 text-red-700 dark:text-red-400 shadow-md shadow-red-100 dark:shadow-red-900/20",
+                inactiveClass: "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-600 dark:hover:border-red-800 dark:hover:text-red-400",
               },
-            ].map(({ value, label, active }) => (
+            ].map(({ value, label, emoji, desc, activeClass, inactiveClass }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setDifficulty(value)}
                 className={[
-                  "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
-                  difficulty === value
-                    ? active
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
+                  "flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2 font-semibold transition-all duration-200",
+                  difficulty === value ? activeClass : inactiveClass,
                 ].join(" ")}
               >
-                {label}
+                <span className="text-lg">{emoji}</span>
+                <span className="text-xs font-bold">{label}</span>
+                <span className="text-[10px] opacity-70 font-medium">{desc}</span>
               </button>
             ))}
           </div>

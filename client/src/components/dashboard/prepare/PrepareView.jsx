@@ -38,6 +38,9 @@ const SUBJECTS = [
     label: "Data Structures & Algorithms",
     icon: Zap,
     desc: "Arrays, trees, graphs, sorting, dynamic programming",
+    color: "#ea580c",
+    gradient: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+    darkGradient: "linear-gradient(135deg, #431407 0%, #7c2d12 100%)",
     topics: [
       "Arrays & Strings",
       "Linked Lists",
@@ -56,6 +59,9 @@ const SUBJECTS = [
     label: "Operating Systems",
     icon: Monitor,
     desc: "Processes, memory management, scheduling, deadlocks",
+    color: "#8b5cf6",
+    gradient: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+    darkGradient: "linear-gradient(135deg, #2e1065 0%, #4c1d95 100%)",
     topics: [
       "Process Scheduling",
       "Deadlocks",
@@ -73,6 +79,9 @@ const SUBJECTS = [
     label: "Databases",
     icon: Database,
     desc: "SQL, NoSQL, indexing, ACID, transactions",
+    color: "#0ea5e9",
+    gradient: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+    darkGradient: "linear-gradient(135deg, #082f49 0%, #0c4a6e 100%)",
     topics: [
       "SQL Queries",
       "ACID Properties",
@@ -90,6 +99,9 @@ const SUBJECTS = [
     label: "Computer Networks",
     icon: Globe,
     desc: "TCP/IP, DNS, HTTP, routing protocols",
+    color: "#10b981",
+    gradient: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+    darkGradient: "linear-gradient(135deg, #052e16 0%, #064e3b 100%)",
     topics: [
       "TCP/IP Model",
       "OSI Model",
@@ -107,6 +119,9 @@ const SUBJECTS = [
     label: "System Design",
     icon: Layers,
     desc: "Scalability, microservices, load balancing, caching",
+    color: "#f59e0b",
+    gradient: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+    darkGradient: "linear-gradient(135deg, #451a03 0%, #78350f 100%)",
     topics: [
       "Load Balancing",
       "Caching Strategies",
@@ -124,6 +139,9 @@ const SUBJECTS = [
     label: "OOP & Design Patterns",
     icon: GitBranch,
     desc: "SOLID principles, design patterns, abstraction",
+    color: "#ec4899",
+    gradient: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)",
+    darkGradient: "linear-gradient(135deg, #500724 0%, #831843 100%)",
     topics: [
       "SOLID Principles",
       "Design Patterns",
@@ -140,6 +158,9 @@ const SUBJECTS = [
     label: "Web Development",
     icon: Code,
     desc: "Frontend, backend, REST APIs, authentication",
+    color: "#6366f1",
+    gradient: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+    darkGradient: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
     topics: [
       "React Hooks",
       "REST APIs",
@@ -157,6 +178,9 @@ const SUBJECTS = [
     label: "Machine Learning",
     icon: Cpu,
     desc: "Algorithms, neural networks, model evaluation",
+    color: "#14b8a6",
+    gradient: "linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)",
+    darkGradient: "linear-gradient(135deg, #042f2e 0%, #134e4a 100%)",
     topics: [
       "Supervised Learning",
       "Unsupervised Learning",
@@ -174,6 +198,9 @@ const SUBJECTS = [
     label: "Cloud & DevOps",
     icon: Cloud,
     desc: "AWS, Docker, CI/CD, Kubernetes infrastructure",
+    color: "#f97316",
+    gradient: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)",
+    darkGradient: "linear-gradient(135deg, #431407 0%, #9a3412 100%)",
     topics: [
       "Docker",
       "Kubernetes",
@@ -190,6 +217,9 @@ const SUBJECTS = [
     label: "Cybersecurity",
     icon: Shield,
     desc: "Authentication, encryption, common vulnerabilities",
+    color: "#ef4444",
+    gradient: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)",
+    darkGradient: "linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%)",
     topics: [
       "SQL Injection",
       "XSS & CSRF",
@@ -224,6 +254,30 @@ const statusBadge = (iv) => {
 
 // ── History card ───────────────────────────────────────────────────────────────
 
+const DIFFICULTY_CONFIG = {
+  easy: {
+    label: "Easy",
+    bg: "bg-emerald-50 dark:bg-emerald-900/30",
+    text: "text-emerald-700 dark:text-emerald-400",
+    border: "border-emerald-200 dark:border-emerald-800",
+    dot: "bg-emerald-500",
+  },
+  medium: {
+    label: "Medium",
+    bg: "bg-amber-50 dark:bg-amber-900/30",
+    text: "text-amber-700 dark:text-amber-400",
+    border: "border-amber-200 dark:border-amber-800",
+    dot: "bg-amber-500",
+  },
+  hard: {
+    label: "Hard",
+    bg: "bg-red-50 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-400",
+    border: "border-red-200 dark:border-red-800",
+    dot: "bg-red-500",
+  },
+};
+
 const PrepareCard = ({ interview, active, onClick, onDelete }) => {
   const date = new Date(interview.createdAt).toLocaleDateString("en-US", {
     month: "short",
@@ -231,18 +285,24 @@ const PrepareCard = ({ interview, active, onClick, onDelete }) => {
     year: "numeric",
   });
   const { label, cls } = statusBadge(interview);
+  const diff = DIFFICULTY_CONFIG[interview.difficulty];
 
   return (
     <div
       role="button"
       onClick={onClick}
       className={[
-        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all cursor-pointer",
+        "relative group w-full text-left px-3 py-3 rounded-xl border transition-all duration-200 cursor-pointer",
         active
-          ? "border-[#ea580c]/50 bg-[#ea580c]/8 dark:bg-[#ea580c]/10"
+          ? "border-[#ea580c]/60 bg-gradient-to-r from-[#ea580c]/10 to-[#ea580c]/5 dark:from-[#ea580c]/15 dark:to-[#ea580c]/5 shadow-sm shadow-[#ea580c]/10"
           : "border-transparent hover:border-gray-200 dark:hover:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1e1e1e]",
       ].join(" ")}
     >
+      {/* Left accent bar when active */}
+      {active && (
+        <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-[#ea580c]" />
+      )}
+
       <button
         type="button"
         onClick={(e) => {
@@ -255,37 +315,28 @@ const PrepareCard = ({ interview, active, onClick, onDelete }) => {
         <Trash2 size={12} />
       </button>
 
-      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mb-0.5 pr-5">
+      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-0.5 pr-5">
         {interview.topic || interview.subject || "Prep Session"}
       </p>
-      <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mb-1.5">
+      <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mb-2">
         {interview.subject || ""}
       </p>
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
-          <Calendar size={10} />
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+          <Calendar size={9} />
           {date}
         </span>
         <div className="flex items-center gap-1.5">
-          {interview.difficulty && (
+          {diff && (
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                interview.difficulty === "easy"
-                  ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                  : interview.difficulty === "medium"
-                    ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
-                    : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-              }`}
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${diff.bg} ${diff.text} ${diff.border}`}
             >
-              {interview.difficulty}
+              <span className={`w-1 h-1 rounded-full ${diff.dot}`} />
+              {diff.label}
             </span>
           )}
-          <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
-          >
-            {interview.status === "completed"
-              ? `${interview.score ?? 0} · `
-              : ""}
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>
+            {interview.status === "completed" ? `${interview.score ?? 0} · ` : ""}
             {label}
           </span>
         </div>
@@ -448,7 +499,7 @@ const SetupForm = ({ onStarted }) => {
         <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
           Subjects
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {SUBJECTS.map((s) => {
             const Icon = s.icon;
             const active = !!selectedSubjects.find((sub) => sub.id === s.id);
@@ -458,29 +509,60 @@ const SetupForm = ({ onStarted }) => {
                 type="button"
                 onClick={() => handleSubjectToggle(s)}
                 className={[
-                  "flex flex-col items-start gap-2 p-3 rounded-xl border text-left transition-all duration-150",
+                  "relative flex flex-col items-start gap-2.5 p-4 rounded-2xl border-2 text-left transition-all duration-200 overflow-hidden group",
                   active
-                    ? "border-[#ea580c] bg-[#ea580c]/8 dark:bg-[#ea580c]/10 shadow-sm"
-                    : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-[#ea580c]/40 hover:bg-orange-50/40 dark:hover:bg-[#1e1e1e]",
+                    ? "border-transparent shadow-lg scale-[1.02]"
+                    : "border-gray-100 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-transparent hover:shadow-md hover:scale-[1.01]",
                 ].join(" ")}
+                style={active ? { background: s.gradient } : {}}
               >
-                <Icon
-                  size={16}
-                  className={
-                    active
-                      ? "text-[#ea580c]"
-                      : "text-gray-400 dark:text-gray-500"
-                  }
-                />
-                <p
-                  className={`text-[11px] font-semibold leading-tight ${
-                    active
-                      ? "text-[#ea580c]"
-                      : "text-gray-800 dark:text-gray-200"
-                  }`}
+                {/* Subtle bg on hover for inactive */}
+                {!active && (
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{ background: s.gradient }}
+                  />
+                )}
+
+                {/* Active glow ring */}
+                {active && (
+                  <div
+                    className="absolute inset-0 rounded-2xl"
+                    style={{ boxShadow: `0 0 0 2px ${s.color}` }}
+                  />
+                )}
+
+                <div
+                  className="relative z-10 w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{
+                    background: active ? s.color : `${s.color}20`,
+                  }}
                 >
-                  {s.label}
+                  <Icon
+                    size={16}
+                    style={{ color: active ? "#fff" : s.color }}
+                  />
+                </div>
+
+                <p
+                  className="relative z-10 text-[11px] font-bold leading-tight"
+                  style={{ color: active ? s.color : undefined }}
+                >
+                  <span className={active ? "" : "text-gray-800 dark:text-gray-200"}>
+                    {s.label}
+                  </span>
                 </p>
+
+                {active && (
+                  <div
+                    className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ background: s.color }}
+                  >
+                    <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 fill-white">
+                      <path d="M1.5 5.5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )}
               </button>
             );
           })}
@@ -663,46 +745,50 @@ const SetupForm = ({ onStarted }) => {
 
         {/* Difficulty */}
         <div>
-          <label className="block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">
-            Difficulty
+          <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+            Difficulty Level
           </label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setDifficulty("easy")}
-              className={[
-                "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
-                difficulty === "easy"
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-              ].join(" ")}
-            >
-              Easy
-            </button>
-            <button
-              type="button"
-              onClick={() => setDifficulty("medium")}
-              className={[
-                "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
-                difficulty === "medium"
-                  ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
-                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-              ].join(" ")}
-            >
-              Medium
-            </button>
-            <button
-              type="button"
-              onClick={() => setDifficulty("hard")}
-              className={[
-                "flex-1 h-9 rounded-xl text-xs font-semibold border transition-all",
-                difficulty === "hard"
-                  ? "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
-                  : "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[#333]",
-              ].join(" ")}
-            >
-              Hard
-            </button>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              {
+                value: "easy",
+                label: "Easy",
+                emoji: "🟢",
+                activeClass: "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/40 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-100 dark:shadow-emerald-900/20",
+                inactiveClass: "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-emerald-300 hover:text-emerald-600 dark:hover:border-emerald-800 dark:hover:text-emerald-400",
+                desc: "Fundamentals",
+              },
+              {
+                value: "medium",
+                label: "Medium",
+                emoji: "🟡",
+                activeClass: "border-amber-500 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/40 dark:to-amber-900/20 text-amber-700 dark:text-amber-400 shadow-md shadow-amber-100 dark:shadow-amber-900/20",
+                inactiveClass: "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-amber-300 hover:text-amber-600 dark:hover:border-amber-800 dark:hover:text-amber-400",
+                desc: "Intermediate",
+              },
+              {
+                value: "hard",
+                label: "Hard",
+                emoji: "🔴",
+                activeClass: "border-red-500 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/40 dark:to-red-900/20 text-red-700 dark:text-red-400 shadow-md shadow-red-100 dark:shadow-red-900/20",
+                inactiveClass: "border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-600 dark:hover:border-red-800 dark:hover:text-red-400",
+                desc: "Advanced",
+              },
+            ].map(({ value, label, emoji, activeClass, inactiveClass, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setDifficulty(value)}
+                className={[
+                  "flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2 font-semibold transition-all duration-200",
+                  difficulty === value ? activeClass : inactiveClass,
+                ].join(" ")}
+              >
+                <span className="text-lg">{emoji}</span>
+                <span className="text-xs font-bold">{label}</span>
+                <span className="text-[10px] opacity-70 font-medium">{desc}</span>
+              </button>
+            ))}
           </div>
         </div>
 

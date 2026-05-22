@@ -412,15 +412,57 @@ export async function endInterviewController(req, res) {
     }
 
     // In interactive mode, client may send transcript turns at end.
-    // Persist only user utterances as interview answers for scoring.
+    // Persist full conversation if it contains agent/user turns.
     if (Array.isArray(conversationTurns) && conversationTurns.length > 0) {
-      const userAnswers = extractUserOnlyAnswers(conversationTurns);
-      const normalizedConversation = applyUserAnswersToConversation(
-        interview.conversation || [],
-        userAnswers,
-      );
-      if (normalizedConversation.length > 0) {
-        interview.conversation = normalizedConversation;
+      const hasRoles = conversationTurns.some(t => t.role === 'agent' || t.role === 'user');
+      
+      if (hasRoles) {
+        const parsedConversation = [];
+        let currentQuestion = interview.conversation?.[0]?.question || "Interview started";
+        let currentAnswer = "";
+        let agentSpoke = false;
+        
+        for (const turn of conversationTurns) {
+          if (turn.role === "agent") {
+            if (agentSpoke && currentAnswer) {
+              parsedConversation.push({ question: currentQuestion, answer: currentAnswer });
+              currentQuestion = turn.text;
+              currentAnswer = "";
+            } else if (agentSpoke && !currentAnswer) {
+              currentQuestion += " " + turn.text;
+            } else if (!agentSpoke) {
+              if (currentAnswer) {
+                parsedConversation.push({ question: currentQuestion, answer: currentAnswer });
+                currentAnswer = "";
+              }
+              currentQuestion = turn.text;
+            }
+            agentSpoke = true;
+          } else if (turn.role === "user") {
+            if (currentAnswer) {
+              currentAnswer += " " + turn.text;
+            } else {
+              currentAnswer = turn.text;
+            }
+          }
+        }
+        if (currentQuestion || currentAnswer) {
+          parsedConversation.push({ question: currentQuestion, answer: currentAnswer });
+        }
+        
+        if (parsedConversation.length > 0) {
+          interview.conversation = parsedConversation;
+        }
+      } else {
+        // Fallback for older clients sending only user answers
+        const userAnswers = extractUserOnlyAnswers(conversationTurns);
+        const normalizedConversation = applyUserAnswersToConversation(
+          interview.conversation || [],
+          userAnswers,
+        );
+        if (normalizedConversation.length > 0) {
+          interview.conversation = normalizedConversation;
+        }
       }
     }
 

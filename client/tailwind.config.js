@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', "sans-serif"],
+        sans: ['"Chakra Petch"', "sans-serif"],
         serif: ['"Instrument Serif"', "serif"],
       },
     },

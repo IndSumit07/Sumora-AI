@@ -64,61 +64,62 @@ const ProgressRow = ({ label, value }) => (
   </div>
 );
 
-const StatsCard = ({ title, value, subtitle, icon }) => {
+const StatsCard = ({ title, value, subtitle, icon, color = "#ea580c" }) => {
   const IconComponent = icon;
-
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {title}
         </p>
-        <div className="h-8 w-8 rounded-lg bg-[#ea580c]/10 text-[#ea580c] flex items-center justify-center">
-          <IconComponent size={15} />
+        <div
+          className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${color}18`, color }}
+        >
+          <IconComponent size={16} />
         </div>
       </div>
-      <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
         {value}
       </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        {subtitle}
-      </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
     </div>
   );
 };
 
-const FeatureSummaryCard = ({ title, avgValue, maxValue, total, icon }) => {
+const FeatureSummaryCard = ({ title, avgValue, maxValue, total, icon, color = "#ea580c" }) => {
   const IconComponent = icon;
-
   return (
-    <div className="rounded-2xl border border-gray-200/80 dark:border-[#2a2a2a] bg-gradient-to-br from-white to-orange-50/40 dark:from-[#171717] dark:to-[#111111] p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-gray-900 dark:text-white">
-          {title}
-        </p>
-        <div className="h-8 w-8 rounded-lg bg-[#ea580c]/10 text-[#ea580c] flex items-center justify-center">
+    <div
+      className="relative rounded-2xl border-2 border-transparent p-4 overflow-hidden group hover:shadow-md transition-all duration-200"
+      style={{
+        background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${color}40, ${color}10) border-box`,
+      }}
+    >
+      <div
+        className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity"
+        style={{ background: `radial-gradient(circle at top right, ${color}, transparent 70%)` }}
+      />
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <p className="text-sm font-bold text-gray-900 dark:text-white">{title}</p>
+        <div
+          className="h-8 w-8 rounded-xl flex items-center justify-center"
+          style={{ background: `${color}18`, color }}
+        >
           <IconComponent size={15} />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-white/80 dark:bg-[#1f1f1f] py-2">
-          <p className="text-[10px] text-gray-500 dark:text-gray-400">Avg</p>
-          <p className={`text-sm font-bold ${scoreTone(avgValue)}`}>
-            {avgValue}%
-          </p>
-        </div>
-        <div className="rounded-lg bg-white/80 dark:bg-[#1f1f1f] py-2">
-          <p className="text-[10px] text-gray-500 dark:text-gray-400">Max</p>
-          <p className={`text-sm font-bold ${scoreTone(maxValue)}`}>
-            {maxValue}%
-          </p>
-        </div>
-        <div className="rounded-lg bg-white/80 dark:bg-[#1f1f1f] py-2">
-          <p className="text-[10px] text-gray-500 dark:text-gray-400">Total</p>
-          <p className="text-sm font-bold text-gray-900 dark:text-white">
-            {total}
-          </p>
-        </div>
+      <div className="grid grid-cols-3 gap-2 text-center relative z-10">
+        {[
+          { label: "Avg", val: `${avgValue}%`, tone: scoreTone(avgValue) },
+          { label: "Max", val: `${maxValue}%`, tone: scoreTone(maxValue) },
+          { label: "Total", val: total, tone: "text-gray-900 dark:text-white" },
+        ].map(({ label, val, tone }) => (
+          <div key={label} className="rounded-xl py-2" style={{ background: `${color}08` }}>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+            <p className={`text-sm font-bold ${tone}`}>{val}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -349,24 +350,28 @@ const StatsView = () => {
             value={model.totals.interviewDone}
             subtitle="Job-based live interviews"
             icon={Mic}
+            color="#ea580c"
           />
           <StatsCard
             title="Prepare Sessions"
             value={model.totals.prepareDone}
             subtitle="Topic-focused practice done"
             icon={BookOpen}
+            color="#7c3aed"
           />
           <StatsCard
             title="Analyses Generated"
             value={model.totals.analysisDone}
             subtitle="Resume and JD analysis reports"
             icon={BarChart2}
+            color="#0ea5e9"
           />
           <StatsCard
             title="Activity Logs"
             value={model.totals.logs}
             subtitle="Combined timeline entries"
             icon={ClipboardList}
+            color="#10b981"
           />
         </section>
 
@@ -410,6 +415,7 @@ const StatsView = () => {
                   maxValue={model.maxScores.interview}
                   total={model.totals.interviewAll}
                   icon={Mic}
+                  color="#ea580c"
                 />
                 <FeatureSummaryCard
                   title="Prepare"
@@ -417,6 +423,7 @@ const StatsView = () => {
                   maxValue={model.maxScores.prepare}
                   total={model.totals.prepareAll}
                   icon={BookOpen}
+                  color="#7c3aed"
                 />
                 <FeatureSummaryCard
                   title="Analysis"
@@ -424,6 +431,7 @@ const StatsView = () => {
                   maxValue={model.maxScores.analysis}
                   total={model.totals.analysisDone}
                   icon={BarChart2}
+                  color="#0ea5e9"
                 />
                 <FeatureSummaryCard
                   title="Overall"
@@ -431,6 +439,7 @@ const StatsView = () => {
                   maxValue={model.maxScores.overall}
                   total={model.totals.logs}
                   icon={TrendingUp}
+                  color="#10b981"
                 />
               </div>
             </div>
