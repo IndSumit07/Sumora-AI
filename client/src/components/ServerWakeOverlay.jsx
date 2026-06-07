@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 // ─── PREVIEW MODE ─────────────────────────────────────────────────────────────
 // Set to true to always show the overlay (ignores sessionStorage + grace period).
@@ -39,7 +40,9 @@ const ServerWakeOverlay = () => {
     const wake = async () => {
       let attempts = 0;
       // In preview mode use a URL that will never respond so overlay stays up
-      const url = PREVIEW_MODE ? "/api/__preview_offline__" : "/api/health";
+      const url = PREVIEW_MODE
+        ? `${API_BASE_URL}/api/__preview_offline__`
+        : `${API_BASE_URL}/api/health`;
 
       while (attempts < MAX_ATTEMPTS && !cancelledRef.current) {
         try {

@@ -8,7 +8,7 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "https://sumora-ai.onrender.com/api/$1"
+      "dest": "http://13.207.170.168:3000/api/$1"
     },
     {
       "src": "/(.*)",

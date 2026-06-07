@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { CreditCard, Check, Zap, Loader2, AlertCircle } from "lucide-react";
-import axios from "axios";
 import { useAuth } from "../../../context/AuthContext";
 import toast from "react-hot-toast";
 import PRICING_PLANS from "../../../shared/pricing.json";
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
-  withCredentials: true,
-});
+import api from "../../../lib/api";
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -67,7 +62,7 @@ const BillingView = () => {
 
   const fetchTokenData = useCallback(async () => {
     try {
-      const res = await api.get("/api/payment/tokens");
+      const res = await api.get("/payment/tokens");
       if (res.data.success) {
         setTokens(res.data.tokens);
         setTransactions(res.data.transactions);
@@ -96,7 +91,7 @@ const BillingView = () => {
     setLoadingPlan(planId);
     try {
       // 1. Create order
-      const orderRes = await api.post("/api/payment/create-order", { planId });
+      const orderRes = await api.post("/payment/create-order", { planId });
       const { orderId, amount, currency, keyId } = orderRes.data.data;
 
       // 2. Initialize Razorpay
@@ -110,7 +105,7 @@ const BillingView = () => {
         handler: async function (response) {
           try {
             // 3. Verify payment
-            const verifyRes = await api.post("/api/payment/verify", {
+            const verifyRes = await api.post("/payment/verify", {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -172,7 +167,7 @@ const BillingView = () => {
                 toast.dismiss(t.id);
                 const toastId = toast.loading("Processing your refund...");
                 try {
-                  const res = await api.post("/api/payment/refund", {
+                  const res = await api.post("/payment/refund", {
                     transactionId,
                   });
                   if (res.data.success) {

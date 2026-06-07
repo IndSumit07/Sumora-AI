@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { API_BASE_URL } from "../lib/api";
 
 const DEEPGRAM_AGENT_WS_URL = "wss://agent.deepgram.com/v1/agent/converse";
 
@@ -113,7 +114,7 @@ export function useDeepgramVoiceAgent({
       if (function_name === "get_ai_response") {
         try {
           // Call our backend to get AI response
-          const response = await fetch("/api/interview/voice-agent-response", {
+          const response = await fetch(`${API_BASE_URL}/api/interview/voice-agent-response`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

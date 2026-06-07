@@ -1,10 +1,10 @@
 import { createContext, useContext } from "react";
-import axios from "axios";
 import toast from "react-hot-toast";
+import api from "../lib/api";
 
 const InterviewContext = createContext(null);
 
-const api = axios.create({ baseURL: "/api", withCredentials: true });
+// All requests go through the shared api instance (baseURL = VITE_API_URL + /api)
 
 export const InterviewProvider = ({ children }) => {
   // ── Analyze / Report ──────────────────────────────────────────────────────

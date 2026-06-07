@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import toast from "react-hot-toast";
 import { Loader2, MessageSquare, X } from "lucide-react";
-
-const api = axios.create({
-  baseURL: "/api",
-  withCredentials: true,
-});
+import api from "../lib/api";
 
 export default function SiteFeedbackModal({ open, onClose, user }) {
   const [subject, setSubject] = useState("");
