@@ -18,9 +18,20 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 /* ── CORS ── */
+const ALLOWED_ORIGINS = [
+  "https://www.sumoraai.in",
+  "https://sumoraai.in",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Allow server-to-server / curl requests (no origin header)
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
     credentials: true,
   }),
 );
