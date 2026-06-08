@@ -57,6 +57,21 @@ export function useDeepgramVoiceAgent({
     [normalizeText],
   );
 
+  // Immediately stop all agent audio playback (used on user interruption)
+  const stopPlayback = useCallback(() => {
+    if (playbackContextRef.current) {
+      try {
+        playbackContextRef.current.close().catch(() => {});
+      } catch {
+        // ignore
+      }
+      playbackContextRef.current = null;
+    }
+    nextPlayTimeRef.current = 0;
+    activeSourcesRef.current = 0;
+    setIsAgentSpeaking(false);
+  }, []);
+
   // Play audio chunks from Deepgram
   const playAudioChunk = useCallback(async (blob) => {
     try {
@@ -152,13 +167,14 @@ export function useDeepgramVoiceAgent({
     [onAgentMessage],
   );
 
-  // Handle messages from Deepgram
   const handleDeepgramMessage = useCallback(
     (message) => {
       switch (message.type) {
         case "UserStartedSpeaking":
           setIsUserSpeaking(true);
-          // If the user interrupted the agent, wipe out any queued responses
+          // Immediately cut any in-progress agent audio and discard all queued
+          // audio/text so the agent responds only to the new user input.
+          stopPlayback();
           queuedBlobsRef.current = [];
           queuedTextRef.current = [];
 
@@ -235,6 +251,7 @@ export function useDeepgramVoiceAgent({
       onError,
       handleFunctionCall,
       isDuplicateConversationText,
+      stopPlayback,
     ],
   );
 

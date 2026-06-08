@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useEffect } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import UserDropdown from "../components/UserDropdown";
@@ -15,9 +15,55 @@ import HowItWorksSection from "../components/home/HowItWorksSection";
 import CTASection from "../components/home/CTASection";
 import Footer from "../components/home/Footer";
 import { LiquidMetalButton } from "../components/ui/liquid-metal-button";
-import { InteractiveNebulaShader } from "../components/ui/liquid-shader";
 import DatabaseWithRestApi from "../components/ui/database-with-rest-api";
-import { FadeIn } from "../components/ui/fade-in";
+
+// ── Inline FadeIn — fades + slides up when scrolled into view ─────────────────
+function FadeIn({ children, delay = 0, className = "" }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.08 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        transition: `opacity 0.65s ease ${delay}s, transform 0.65s ease ${delay}s`,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(28px)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ── Inline NebulaBlob — animated CSS gradient replacing the WebGL shader ──────
+function NebulaBlob({ isDark }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        inset: 0,
+        background: isDark
+          ? "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(234,88,12,0.18) 0%, rgba(120,40,4,0.10) 45%, transparent 75%)"
+          : "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(234,88,12,0.12) 0%, rgba(249,115,22,0.06) 45%, transparent 75%)",
+        animation: "nebula-pulse 7s ease-in-out infinite",
+      }}
+    />
+  );
+}
 
 const HOME_STYLE = `
   @keyframes marquee {
@@ -42,6 +88,10 @@ const HOME_STYLE = `
   }
   .animate-pulse-slow {
     animation: pulse-slow 5s ease-in-out infinite;
+  }
+  @keyframes nebula-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.06); }
   }
 `;
 
@@ -306,11 +356,7 @@ const HomePage = () => {
         <section className="relative pt-[120px] pb-12 flex flex-col items-center justify-center text-center px-4 w-full max-w-[1400px] mx-auto min-h-[70vh]">
           {/* Centered Liquid background */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] max-w-[100vw] max-h-[100vh] -z-10 rounded-full overflow-hidden pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_70%)]">
-            <InteractiveNebulaShader
-              isDark={theme === "dark"}
-              disableCenterDimming={true}
-              className="w-full h-full opacity-100 mix-blend-plus-lighter"
-            />
+            <NebulaBlob isDark={theme === "dark"} />
           </div>
 
           <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-gray-500 dark:text-[#ab9b95] mb-6 uppercase relative z-10">

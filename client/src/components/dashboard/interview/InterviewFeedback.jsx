@@ -168,6 +168,7 @@ export default function InterviewFeedback({
   const strengths = feedback?.strengths || [];
   const weaknesses = feedback?.weaknesses || [];
   const improvements = feedback?.improvements || [];
+  const insufficientData = feedback?.insufficientData || false;
 
   const existingUserFeedback = feedback?.userFeedback || null;
   const [rating, setRating] = useState(existingUserFeedback?.rating || 0);
@@ -224,6 +225,77 @@ export default function InterviewFeedback({
       setIsSubmitting(false);
     }
   };
+
+  // ── Insufficient data state ──────────────────────────────────────────────────
+  const answeredCount = feedback?.answeredCount ?? 0;
+  const requiredCount = feedback?.requiredCount ?? 5;
+
+  if (insufficientData) {
+    return (
+      <div className="max-w-3xl space-y-5">
+        {/* Header */}
+        <div className="bg-gray-100 dark:bg-[#0a0a0a] rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+          <div className="absolute bottom-0 right-0 w-56 h-56 bg-[#ea580c]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c] mb-2">
+              Interview Complete
+            </p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Not Enough Data for Analysis
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md leading-relaxed">
+              You answered{" "}
+              <span className="font-bold text-gray-900 dark:text-white">
+                {answeredCount}
+              </span>{" "}
+              out of the{" "}
+              <span className="font-bold text-gray-900 dark:text-white">
+                {requiredCount}
+              </span>{" "}
+              questions needed to generate a meaningful performance score and
+              detailed analysis.
+            </p>
+
+            {/* Progress bar */}
+            <div className="max-w-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Answers collected
+                </span>
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {answeredCount} / {requiredCount}
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-gray-200 dark:bg-[#2a2a2a] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#ea580c] transition-all duration-700"
+                  style={{
+                    width: `${Math.min(100, (answeredCount / requiredCount) * 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                Answer at least {requiredCount} questions to unlock full AI
+                analysis and scores
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="h-12 flex-1 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 flex items-center justify-center gap-2"
+          >
+            <RotateCcw size={14} />
+            Start Another Interview
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl space-y-5">

@@ -65,16 +65,18 @@ function isInterviewExpired(interview) {
   return Date.now() - startedAt >= INTERVIEW_DURATION_MS;
 }
 
+const MIN_ANSWERS_FOR_ANALYSIS = 5;
+
 async function completeInterview(interview, { skipFeedback = false } = {}) {
   let feedback = null;
   let overallScore = 0;
 
   if (!skipFeedback) {
-    const hasUserAnswers = (interview.conversation || []).some((turn) =>
+    const answeredTurns = (interview.conversation || []).filter((turn) =>
       Boolean(turn?.answer?.trim()),
     );
 
-    if (!hasUserAnswers) {
+    if (answeredTurns.length === 0) {
       feedback = {
         technicalScore: 0,
         communicationScore: 0,
@@ -86,6 +88,25 @@ async function completeInterview(interview, { skipFeedback = false } = {}) {
           "Provide at least one voice or text answer to generate meaningful analysis.",
         ],
         questionBreakdown: [],
+        insufficientData: true,
+        answeredCount: 0,
+        requiredCount: MIN_ANSWERS_FOR_ANALYSIS,
+      };
+      overallScore = 0;
+    } else if (answeredTurns.length < MIN_ANSWERS_FOR_ANALYSIS) {
+      // Not enough answers for a meaningful score analysis
+      feedback = {
+        technicalScore: 0,
+        communicationScore: 0,
+        strengths: [],
+        weaknesses: [],
+        improvements: [
+          `Answer at least ${MIN_ANSWERS_FOR_ANALYSIS} questions to unlock your performance score and detailed analysis.`,
+        ],
+        questionBreakdown: [],
+        insufficientData: true,
+        answeredCount: answeredTurns.length,
+        requiredCount: MIN_ANSWERS_FOR_ANALYSIS,
       };
       overallScore = 0;
     } else {

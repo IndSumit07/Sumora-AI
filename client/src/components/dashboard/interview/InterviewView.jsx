@@ -39,7 +39,7 @@ import {
 } from "../../../shared/companyInterviewProfiles";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
-import TokenConfirmModal from "../../TokenConfirmModal";
+import { TokenConfirmModal } from "../../TokenConfirmModal";
 import InterviewFeedback from "./InterviewFeedback";
 import InterviewHistoryDetail from "./InterviewHistoryDetail";
 import VoiceInterviewAgent from "./VoiceInterviewAgent";

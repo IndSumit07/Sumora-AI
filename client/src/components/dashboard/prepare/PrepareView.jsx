@@ -24,8 +24,10 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
+import { useAuth } from "../../../context/AuthContext";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
+import { TokenConfirmModal } from "../../TokenConfirmModal";
 import InterviewFeedback from "../interview/InterviewFeedback";
 import InterviewHistoryDetail from "../interview/InterviewHistoryDetail";
 import VoiceInterviewAgent from "../interview/VoiceInterviewAgent";
@@ -349,6 +351,10 @@ const PrepareCard = ({ interview, active, onClick, onDelete }) => {
 
 const SetupForm = ({ onStarted }) => {
   const { uploadResume, startPrepareInterview } = useInterview();
+  const { user } = useAuth();
+  const tokensAvailable = user?.tokens || 0;
+  const PREPARE_COST = 20;
+
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [topicInput, setTopicInput] = useState("");
@@ -356,6 +362,7 @@ const SetupForm = ({ onStarted }) => {
   const [resumeText, setResumeText] = useState("");
   const [uploadLoading, setUploadLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
   const fileInputRef = useRef(null);
   const topicInputRef = useRef(null);
@@ -431,7 +438,7 @@ const SetupForm = ({ onStarted }) => {
     }
   };
 
-  const handleStart = async () => {
+  const handleStartClick = () => {
     if (selectedSubjects.length === 0) {
       toast.error("Please select at least one subject.");
       return;
@@ -443,6 +450,14 @@ const SetupForm = ({ onStarted }) => {
     if (allTopics.length === 0) {
       toast.error("Please select or enter at least one topic.");
       return;
+    }
+    setTokenModalOpen(true);
+  };
+
+  const handleConfirmStart = async () => {
+    const allTopics = [...selectedTopics];
+    if (topicInput.trim() && !allTopics.includes(topicInput.trim())) {
+      allTopics.push(topicInput.trim());
     }
     const subjectString = selectedSubjects.map((s) => s.label).join(", ");
     const topicString = allTopics.join(", ");
@@ -468,6 +483,7 @@ const SetupForm = ({ onStarted }) => {
       toast.error(err.response?.data?.message || "Failed to start session.");
     } finally {
       setStartLoading(false);
+      setTokenModalOpen(false);
     }
   };
 
@@ -792,9 +808,10 @@ const SetupForm = ({ onStarted }) => {
           </div>
         </div>
 
+        {/* Start button */}
         <button
           type="button"
-          onClick={handleStart}
+          onClick={handleStartClick}
           disabled={!canStart}
           className="h-12 w-full rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] transition-all focus:outline-none focus:ring-2 focus:ring-[#ea580c] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
@@ -809,6 +826,16 @@ const SetupForm = ({ onStarted }) => {
           )}
         </button>
       </div>
+
+      <TokenConfirmModal
+        open={tokenModalOpen}
+        cost={PREPARE_COST}
+        tokens={tokensAvailable}
+        confirming={startLoading}
+        onCancel={() => setTokenModalOpen(false)}
+        onConfirm={handleConfirmStart}
+        serviceName="Prep Session"
+      />
     </div>
   );
 };

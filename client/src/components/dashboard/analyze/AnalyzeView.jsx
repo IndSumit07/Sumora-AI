@@ -21,8 +21,10 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
+import { useAuth } from "../../../context/AuthContext";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
+import { TokenConfirmModal } from "../../TokenConfirmModal";
 
 // ── Score ring ────────────────────────────────────────────────────────────────
 
@@ -394,6 +396,10 @@ const AnalysisForm = ({
   onCancelRequestChange,
 }) => {
   const { generateReport, fetchJobFromUrl } = useInterview();
+  const { user } = useAuth();
+  const tokensAvailable = user?.tokens || 0;
+  const REPORT_COST = 25;
+
   const [role, setRole] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
@@ -401,6 +407,7 @@ const AnalysisForm = ({
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [fetchLoading, setFetchLoading] = useState(false);
   const [fetchedCompany, setFetchedCompany] = useState("");
@@ -470,7 +477,7 @@ const AnalysisForm = ({
     setResumeFile(file);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!jobDescription.trim()) {
       toast.error("Job description is required.");
@@ -484,7 +491,11 @@ const AnalysisForm = ({
       toast.error("Please paste your resume text.");
       return;
     }
+    setTokenModalOpen(true);
+  };
 
+  const handleConfirmSubmit = async () => {
+    setTokenModalOpen(false);
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
@@ -733,6 +744,16 @@ const AnalysisForm = ({
           )}
         </button>
       </form>
+
+      <TokenConfirmModal
+        open={tokenModalOpen}
+        cost={REPORT_COST}
+        tokens={tokensAvailable}
+        confirming={loading}
+        onCancel={() => setTokenModalOpen(false)}
+        onConfirm={handleConfirmSubmit}
+        serviceName="AI Analysis Report"
+      />
     </div>
   );
 };

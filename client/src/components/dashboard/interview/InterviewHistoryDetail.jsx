@@ -572,6 +572,9 @@ export default function InterviewHistoryDetail({ interview }) {
   const userFeedback = interview.userFeedback || null;
   const isCompleted = interview.status === "completed";
   const hasConversation = (interview.conversation?.length ?? 0) > 0;
+  const insufficientData = feedback?.insufficientData === true;
+  const answeredCount = feedback?.answeredCount ?? 0;
+  const requiredCount = feedback?.requiredCount ?? 5;
 
   const { label, color, badgeClass } = overallConfig(score);
 
@@ -601,7 +604,32 @@ export default function InterviewHistoryDetail({ interview }) {
             {date} · {interview.conversation?.length ?? 0} questions
           </div>
 
-          {isCompleted ? (
+          {isCompleted && insufficientData ? (
+            <div className="max-w-xs">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
+                Only{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {answeredCount}
+                </span>{" "}
+                /{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {requiredCount}
+                </span>{" "}
+                answers recorded — not enough for a performance score.
+              </p>
+              <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-[#2a2a2a] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#ea580c]"
+                  style={{
+                    width: `${Math.min(100, (answeredCount / requiredCount) * 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                Answer at least {requiredCount} questions to unlock scores
+              </p>
+            </div>
+          ) : isCompleted ? (
             <div className="flex flex-wrap items-center gap-8">
               <div className="flex flex-col items-center gap-2">
                 <ScoreRing
@@ -681,8 +709,8 @@ export default function InterviewHistoryDetail({ interview }) {
         </div>
       </div>
 
-      {/* ── Feedback sections (only for completed interviews) ── */}
-      {isCompleted && feedback && (
+      {/* ── Feedback sections (only for completed interviews with sufficient data) ── */}
+      {isCompleted && feedback && !insufficientData && (
         <>
           <FeedbackSection
             title="Strengths"

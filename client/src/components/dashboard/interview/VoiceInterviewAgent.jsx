@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { useDeepgramVoiceAgent } from "../../../hooks/useDeepgramVoiceAgent";
 import { useInterview } from "../../../context/InterviewContext";
 import { LiquidMetalButton } from "../../ui/liquid-metal-button";
+import { EndInterviewModal } from "../../TokenConfirmModal";
 
 /**
  * VoiceInterviewAgent — Real-time voice interview using Deepgram Voice Agent
@@ -104,6 +105,7 @@ export default function VoiceInterviewAgent({
 }) {
   const { endInterview } = useInterview();
   const [isEnding, setIsEnding] = useState(false);
+  const [endModalOpen, setEndModalOpen] = useState(false);
   const [remainingMs, setRemainingMs] = useState(durationMs);
   const autoEndingRef = useRef(false);
 
@@ -342,6 +344,7 @@ export default function VoiceInterviewAgent({
       if (isEnding || autoEndingRef.current) return;
       autoEndingRef.current = true;
       setIsEnding(true);
+      setEndModalOpen(false);
       disconnect();
 
       try {
@@ -455,9 +458,9 @@ export default function VoiceInterviewAgent({
             </button>
           </div>
 
-          {/* End interview button — grows to fill remaining space on mobile */}
+          {/* End interview button */}
           <button
-            onClick={() => handleEndInterview()}
+            onClick={() => setEndModalOpen(true)}
             disabled={(!isConnected && !isLoading) || isEnding}
             className="flex items-center justify-center gap-2 h-9 px-4 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 sm:w-auto w-full"
           >
@@ -536,6 +539,13 @@ export default function VoiceInterviewAgent({
           </div>
         )}
       </div>
+      {/* End interview confirmation modal */}
+      <EndInterviewModal
+        open={endModalOpen}
+        ending={isEnding}
+        onCancel={() => setEndModalOpen(false)}
+        onConfirm={() => handleEndInterview()}
+      />
     </div>
   );
 }
