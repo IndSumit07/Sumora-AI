@@ -26,7 +26,7 @@ import {
   generateFeedback,
   analyzeQuestion,
 } from "../services/interviewService.js";
-import { resolveCompanyInterviewPrompt } from "../config/companyInterviewPrompts.js";
+import { resolveCompanyInterviewPrompt } from "../configs/companyInterviewPrompts.js";
 
 const COSTS = {
   LIVE_INTERVIEW: 20,

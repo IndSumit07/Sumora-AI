@@ -22,7 +22,7 @@ import {
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { resolveCompanyInterviewPrompt } from "../config/companyInterviewPrompts.js";
+import { resolveCompanyInterviewPrompt } from "../configs/companyInterviewPrompts.js";
 
 // ── In-memory registries ──────────────────────────────────────────────────────
 // Map<interviewId, InMemoryChatMessageHistory>

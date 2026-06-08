@@ -2,7 +2,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import User from "../models/user.model.js";
 import Transaction from "../models/transaction.model.js";
-import PRICING_PLANS from "../config/pricing.json" with { type: "json" };
+import PRICING_PLANS from "../configs/pricing.json" with { type: "json" };
 
 function getLiveRazorpayConfig() {
   const keyId = process.env.RAZORPAY_KEY_ID;
