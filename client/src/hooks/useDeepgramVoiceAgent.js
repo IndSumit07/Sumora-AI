@@ -85,14 +85,14 @@ export function useDeepgramVoiceAgent({
         playbackContextRef.current = new (
           window.AudioContext || window.webkitAudioContext
         )({
-          sampleRate: 48000,
+          sampleRate: 24000,
         });
         nextPlayTimeRef.current = playbackContextRef.current.currentTime;
       }
       const audioCtx = playbackContextRef.current;
 
       // Fill an AudioBuffer (convert Int16 straight to Float32)
-      const audioBuffer = audioCtx.createBuffer(1, view.length, 48000);
+      const audioBuffer = audioCtx.createBuffer(1, view.length, 24000);
       const channelData = audioBuffer.getChannelData(0);
       for (let i = 0; i < view.length; i++) {
         channelData[i] = view[i] / 32768;
@@ -485,7 +485,7 @@ export function useDeepgramVoiceAgent({
                 },
                 output: {
                   encoding: "linear16",
-                  sample_rate: 48000,
+                  sample_rate: 24000,
                 },
               },
               agent: {
@@ -499,13 +499,13 @@ export function useDeepgramVoiceAgent({
                 speak: {
                   provider: {
                     type: "deepgram",
-                    model: "aura-luna-en",
+                    model: "aura-asteria-en",
                   },
                 },
                 think: {
                   provider: {
-                    type: "google",
-                    model: "gemini-2.5-flash",
+                    type: "open_ai",
+                    model: "gpt-4o-mini",
                   },
                   prompt: finalPrompt,
                   functions: [
@@ -531,8 +531,8 @@ export function useDeepgramVoiceAgent({
                     },
                   ],
                 },
-                greeting: greetingMsg,
               },
+              greeting: greetingMsg,
             }),
           );
 
