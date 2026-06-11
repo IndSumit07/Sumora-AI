@@ -28,9 +28,25 @@ import { useInterview } from "../../../context/InterviewContext";
 import { useAuth } from "../../../context/AuthContext";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
-import { TokenConfirmModal } from "../../TokenConfirmModal";
+import { TokenConfirmModal, EndInterviewModal } from "../../TokenConfirmModal";
 import CodingInterviewFeedback from "./CodingInterviewFeedback";
 import CodingInterviewHistoryDetail from "./CodingInterviewHistoryDetail";
+
+// ── Parse problem from AI response ────────────────────────────────────────────
+
+function parseProblemFromResponse(text) {
+  const problemMatch = text.match(/---PROBLEM---\s*([\s\S]*?)(?=---EXAMPLES---|$)/i);
+  const examplesMatch = text.match(/---EXAMPLES---\s*([\s\S]*?)(?=---CONSTRAINTS---|$)/i);
+  const constraintsMatch = text.match(/---CONSTRAINTS---\s*([\s\S]*?)(?=---STARTER_CODE---|$)/i);
+  const starterCodeMatch = text.match(/---STARTER_CODE---\s*([\s\S]*?)$/i);
+
+  return {
+    problemStatement: problemMatch ? problemMatch[1].trim() : "",
+    examples: examplesMatch ? examplesMatch[1].trim() : "",
+    constraints: constraintsMatch ? constraintsMatch[1].trim() : "",
+    starterCode: starterCodeMatch ? starterCodeMatch[1].trim() : "",
+  };
+}
 
 // ── Difficulty badge ──────────────────────────────────────────────────────────
 
@@ -178,6 +194,7 @@ const CodingInterviewView = () => {
   const [timeLeft, setTimeLeft] = useState(45 * 60);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showTokenConfirm, setShowTokenConfirm] = useState(false);
+  const [awaitingNextQuestion, setAwaitingNextQuestion] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
 
@@ -289,9 +306,46 @@ const CodingInterviewView = () => {
         { role: "user", text: "Submitted solution", isCode: true },
         { role: "agent", text: data.analysis },
       ]);
+      setAwaitingNextQuestion(true);
       toast.success("Code submitted!");
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to submit code");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Request next question ───────────────────────────────────────────────────
+
+  const handleNextQuestion = async () => {
+    if (!activeInterview?.interviewId) return;
+    setAwaitingNextQuestion(false);
+
+    const msg = "Please give me the next problem.";
+    setChatMessages((prev) => [...prev, { role: "user", text: msg }]);
+
+    try {
+      setSubmitting(true);
+      const data = await sendCodingMessage({
+        interviewId: activeInterview.interviewId,
+        message: msg,
+      });
+
+      // Try to parse new problem from response
+      const parsed = parseProblemFromResponse(data.response || "");
+      if (parsed.problemStatement) {
+        setProblemStatement(parsed.problemStatement);
+        setExamples(parsed.examples || "");
+        setConstraints(parsed.constraints || "");
+        if (parsed.starterCode) {
+          setStarterCode(parsed.starterCode);
+          setCode(parsed.starterCode);
+        }
+      }
+
+      setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to get next question");
     } finally {
       setSubmitting(false);
     }
@@ -684,6 +738,22 @@ const CodingInterviewView = () => {
                     </div>
                   </div>
                 ))}
+                {awaitingNextQuestion && (
+                  <div className="flex justify-center py-2">
+                    <button
+                      onClick={handleNextQuestion}
+                      disabled={submitting}
+                      className="flex items-center gap-1.5 bg-[#ea580c] hover:bg-[#c2410c] disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                    >
+                      {submitting ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <ArrowRight size={12} />
+                      )}
+                      Next Question
+                    </button>
+                  </div>
+                )}
                 <div ref={chatEndRef} />
               </div>
 
@@ -772,6 +842,16 @@ const CodingInterviewView = () => {
             setShowExitConfirm(false);
             await handleEndInterview();
           }}
+        />
+
+        <EndInterviewModal
+          open={showEndConfirm}
+          onCancel={() => setShowEndConfirm(false)}
+          onConfirm={async () => {
+            setShowEndConfirm(false);
+            await handleEndInterview();
+          }}
+          ending={loading}
         />
       </div>
     );
