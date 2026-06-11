@@ -39,6 +39,7 @@ export function useDeepgramVoiceAgent({
   const lastUserTranscriptRef = useRef("");
   const functionCallTimeoutRef = useRef(null);
   const functionCallReceivedRef = useRef(false);
+  const fallbackTurnIdRef = useRef(0);
 
   const normalizeText = useCallback(
     (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
@@ -130,12 +131,13 @@ export function useDeepgramVoiceAgent({
   // Handle function calls from Deepgram Agent
   const handleFunctionCall = useCallback(
     async (message) => {
-      const { function_call_id, name, input, parameters } = message;
-      const args = input || parameters || {};
+      const function_call_id = message.function_call_id || message.functionCallId;
+      const functionName = message.name || message.function_name;
+      const args = message.input || message.parameters || {};
 
-      console.log("[Deepgram] Function call received:", name, args);
+      console.log("[Deepgram] Function call received:", functionName, args);
 
-      if (name === "get_ai_response") {
+      if (functionName === "get_ai_response") {
         try {
           const endpoint = apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
           const response = await fetch(endpoint, {
@@ -196,45 +198,6 @@ export function useDeepgramVoiceAgent({
 
         case "UserStoppedSpeaking":
           setIsUserSpeaking(false);
-          // Fallback: if Deepgram doesn't call our function within 2 seconds,
-          // call the backend manually and inject the response.
-          if (lastUserTranscriptRef.current) {
-            functionCallReceivedRef.current = false;
-            if (functionCallTimeoutRef.current) {
-              clearTimeout(functionCallTimeoutRef.current);
-            }
-            functionCallTimeoutRef.current = setTimeout(async () => {
-              if (!functionCallReceivedRef.current && lastUserTranscriptRef.current) {
-                console.log("[Deepgram] Fallback: calling backend manually");
-                const transcript = lastUserTranscriptRef.current;
-                lastUserTranscriptRef.current = "";
-                try {
-                  const endpoint = apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
-                  const response = await fetch(endpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({
-                      userMessage: transcript,
-                      context: contextRef.current || {},
-                    }),
-                  });
-                  const data = await response.json();
-                  const aiResponse = data.response || "I didn't understand that. Could you please repeat?";
-                  if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(
-                      JSON.stringify({
-                        type: "InjectAgentMessage",
-                        message: aiResponse,
-                      }),
-                    );
-                  }
-                } catch (err) {
-                  console.error("[Fallback] Error:", err);
-                }
-              }
-            }, 2000);
-          }
           break;
 
         case "AgentStartedSpeaking":
@@ -255,8 +218,54 @@ export function useDeepgramVoiceAgent({
             console.log("[Deepgram] User transcript:", message.content);
             lastUserTranscriptRef.current = message.content;
             onTranscript?.(message.content);
-          }
-          else if (message.role === "agent" || message.role === "assistant") {
+
+            // Start fallback timer: if Deepgram doesn't call our function
+            // within 5 seconds after receiving the transcript, call backend manually.
+            fallbackTurnIdRef.current += 1;
+            const currentTurnId = fallbackTurnIdRef.current;
+            functionCallReceivedRef.current = false;
+            if (functionCallTimeoutRef.current) {
+              clearTimeout(functionCallTimeoutRef.current);
+            }
+            functionCallTimeoutRef.current = setTimeout(async () => {
+              if (
+                !functionCallReceivedRef.current &&
+                fallbackTurnIdRef.current === currentTurnId &&
+                lastUserTranscriptRef.current
+              ) {
+                console.log("[Deepgram] Fallback: calling backend manually");
+                const transcript = lastUserTranscriptRef.current;
+                lastUserTranscriptRef.current = "";
+                try {
+                  const endpoint =
+                    apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
+                  const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                      userMessage: transcript,
+                      context: contextRef.current || {},
+                    }),
+                  });
+                  const data = await response.json();
+                  const aiResponse =
+                    data.response ||
+                    "I didn't understand that. Could you please repeat?";
+                  if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(
+                      JSON.stringify({
+                        type: "InjectAgentMessage",
+                        message: aiResponse,
+                      }),
+                    );
+                  }
+                } catch (err) {
+                  console.error("[Fallback] Error:", err);
+                }
+              }
+            }, 5000);
+          } else if (message.role === "agent" || message.role === "assistant") {
             if (isDuplicateConversationText("agent", message.content)) break;
             console.log("[Deepgram] Agent text:", message.content.slice(0, 100));
             if (window.speakMode !== "normal" && window.isSpacePressed) {
