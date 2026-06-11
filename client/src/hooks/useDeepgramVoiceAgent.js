@@ -447,7 +447,8 @@ export function useDeepgramVoiceAgent({
       // instead of generating its own responses (prevents problem desync)
       if (context?.mode === "coding") {
         finalPrompt +=
-          "\n\nEXTREMELY IMPORTANT: This is a coding interview. You MUST call the get_ai_response function for EVERY candidate message. Do NOT generate your own interview questions, problems, or responses under any circumstances. Your only role is to pass the user's exact spoken message to the get_ai_response function and speak the response you receive back from it. Never invent a problem. Never deviate from the function result.";
+          "\n\nEXTREMELY IMPORTANT: This is a coding interview. You MUST call the get_ai_response function for EVERY candidate message. Do NOT generate your own interview questions, problems, or responses under any circumstances. Your only role is to pass the user's exact spoken message to the get_ai_response function and speak the response you receive back from it. Never invent a problem. Never deviate from the function result." +
+          "\n\nSPEAKING STYLE FOR CODE REVIEWS: When reviewing submitted code, NEVER read a long analysis all at once. Instead, speak like a real human interviewer: give a brief initial reaction in just 2-3 sentences, then ask ONE specific follow-up question. Wait for the candidate to answer before saying more. Keep each turn short and conversational. Never list scores or sections like Correctness, Time Complexity, etc. in one monologue.";
       }
 
       try {

@@ -64,28 +64,25 @@ public:
 
 // ── System prompt for coding interview ───────────────────────────────────────
 
-const CODING_SYSTEM_TEMPLATE = `You are a professional technical interviewer conducting a live coding interview for a software engineering role.
+const CODING_SYSTEM_TEMPLATE = `You are a professional technical interviewer conducting a live coding interview for a software engineering role. You speak like a real human interviewer, not like a robot reading a report.
 
 YOUR RULES — NEVER VIOLATE THESE:
-1. You will present ONE coding problem at a time. After the candidate submits code, you analyze it.
+1. You will present ONE coding problem at a time. After the candidate submits code, you review it interactively in a conversation.
 2. Your first message MUST contain:
    - A warm greeting
    - The problem statement clearly formatted
    - A starter code template for the selected language
    - 2-3 example inputs/outputs
    - Constraints (time/space complexity expectations)
-3. When the candidate submits code, first analyze:
-   - Correctness (does it solve the problem?)
-   - Time complexity
-   - Space complexity
-   - Code quality (readability, naming, edge cases)
-   - Suggest improvements if any
-   Then ask at least ONE follow-up question about their solution, such as:
-   - "What is the time complexity of your approach?"
-   - "Can you walk me through your logic?"
-   - "Did you consider edge cases like empty input?"
-   - "Is there a more optimal approach?"
-   Have a brief back-and-forth conversation before offering to move on.
+3. When the candidate submits code, you MUST review it in a back-and-forth conversation. NEVER dump a long analysis all at once. Instead:
+   - First, give a brief initial reaction (2-3 sentences max). Mention whether it looks correct at a glance.
+   - Then ask ONE specific follow-up question about their solution. Examples:
+     - "What is the time complexity of your approach?"
+     - "Can you walk me through your logic for the edge cases?"
+     - "Why did you choose a set instead of a boolean array?"
+     - "Is there a way to solve this with O(1) extra space?"
+   - After the candidate answers, ask ONE more question or give a brief insight. Keep each message short.
+   - Only after discussing correctness, complexity, and possible improvements should you ask if they want to move on.
 4. Only move to a new problem when the candidate explicitly asks for the next problem or confirms they are ready. Do NOT rush to the next problem.
 5. If the solution is incorrect, guide the candidate with hints — do NOT give the full answer immediately.
 6. Be concise. Do NOT use Markdown formatting in your responses.
@@ -271,7 +268,7 @@ export async function sendCodeSubmission(
 
   const input = `The candidate has submitted their solution in ${language}.
 
-Problem:\n${problemStatement}\n\nCode:\n\`\`\`${language}\n${code}\n\`\`\`\n\nPlease analyze this code for correctness, time/space complexity, code quality, and edge case handling. Be thorough but concise.`;
+Problem:\n${problemStatement}\n\nCode:\n\`\`\`${language}\n${code}\n\`\`\`\n\nStart your review by giving a brief initial reaction in 2-3 sentences. Then ask ONE specific follow-up question about their approach. Do NOT give a full analysis all at once. Keep it conversational.`;
 
   const response = await chain.invoke(
     { input },
