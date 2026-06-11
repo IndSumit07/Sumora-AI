@@ -4,6 +4,14 @@ import User from "../models/user.model.js";
 import Transaction from "../models/transaction.model.js";
 import PRICING_PLANS from "../configs/pricing.json" with { type: "json" };
 import { CONFIG } from "../configs/app.config.js";
+import {
+  cacheGet,
+  cacheSet,
+  cacheDel,
+  CACHE_KEYS,
+  CACHE_TTL,
+  invalidateUserCache,
+} from "../services/redis.service.js";
 
 function getLiveRazorpayConfig() {
   const keyId = process.env.RAZORPAY_KEY_ID;
@@ -194,6 +202,9 @@ export const verifyPayment = async (req, res) => {
     user.tokens = (user.tokens || 0) + transaction.tokensAdded;
     await user.save();
 
+    // Invalidate user token cache
+    await invalidateUserCache(userId);
+
     res.status(200).json({
       success: true,
       message: "Payment verified, tokens added successfully!",
@@ -287,6 +298,9 @@ export const requestRefund = async (req, res) => {
       user.tokens -= transaction.tokensAdded;
       await user.save();
 
+      // Invalidate user token cache
+      await invalidateUserCache(userId);
+
       res.status(200).json({
         success: true,
         message: "Refund processed successfully. Tokens have been removed.",
@@ -315,16 +329,27 @@ export const requestRefund = async (req, res) => {
  */
 export const getUserTokens = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("tokens");
-    const transactions = await Transaction.find({ user: req.user.id }).sort({
-      createdAt: -1,
-    });
+    const userId = req.user.id;
+    const cacheKey = CACHE_KEYS.userTokens(userId);
 
-    res.status(200).json({
-      success: true,
-      tokens: user.tokens,
-      transactions: transactions,
-    });
+    let result = await cacheGet(cacheKey);
+
+    if (!result) {
+      const user = await User.findById(userId).select("tokens");
+      const transactions = await Transaction.find({ user: userId }).sort({
+        createdAt: -1,
+      });
+
+      result = {
+        success: true,
+        tokens: user.tokens,
+        transactions: transactions,
+      };
+
+      await cacheSet(cacheKey, result, CACHE_TTL.USER_TOKENS);
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     console.error("Get Tokens Error:", error);
     res

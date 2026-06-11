@@ -7,6 +7,16 @@ import {
   generateResumePdf,
 } from "../services/ai.service.js";
 import { CONFIG, parsePagination } from "../configs/app.config.js";
+import {
+  cacheGet,
+  cacheSet,
+  cacheDel,
+  cacheDelPattern,
+  CACHE_KEYS,
+  CACHE_TTL,
+  invalidateUserCache,
+} from "../services/redis.service.js";
+import crypto from "crypto";
 
 /**
  * POST /api/interview/
@@ -38,11 +48,24 @@ export async function generateInterViewReportController(req, res) {
       }
     }
 
-    const report = await generateInterviewReport({
-      resume: resumeText,
-      selfDescription: selfDescription.trim(),
-      jobDescription: jobDescription.trim(),
-    });
+    // Build cache key from inputs for deterministic AI responses
+    const cacheHash = crypto
+      .createHash("sha256")
+      .update(`${resumeText}:${selfDescription.trim()}:${jobDescription.trim()}`)
+      .digest("hex")
+      .slice(0, 32);
+    const aiCacheKey = CACHE_KEYS.aiReport(cacheHash);
+
+    let report = await cacheGet(aiCacheKey);
+
+    if (!report) {
+      report = await generateInterviewReport({
+        resume: resumeText,
+        selfDescription: selfDescription.trim(),
+        jobDescription: jobDescription.trim(),
+      });
+      await cacheSet(aiCacheKey, report, CACHE_TTL.AI_REPORT);
+    }
 
     const interviewReport = await InterviewReport.create({
       ...report,
@@ -55,6 +78,10 @@ export async function generateInterViewReportController(req, res) {
     // Deduct tokens
     user.tokens -= CONFIG.tokens.REPORT_GENERATION;
     await user.save();
+
+    // Invalidate user's report list cache
+    await cacheDelPattern(`reports:list:${req.user.id}:*`);
+    await invalidateUserCache(req.user.id);
 
     return res.status(201).json({
       message: "Interview report generated successfully",
@@ -78,12 +105,18 @@ export async function getInterviewReportByIdController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(interviewId))
       return res.status(400).json({ message: "Invalid interview report ID" });
 
-    const report = await InterviewReport.findOne({
-      _id: interviewId,
-      user: req.user.id,
-    });
-    if (!report)
-      return res.status(404).json({ message: "Interview report not found" });
+    const cacheKey = CACHE_KEYS.reportById(interviewId);
+    let report = await cacheGet(cacheKey);
+
+    if (!report) {
+      report = await InterviewReport.findOne({
+        _id: interviewId,
+        user: req.user.id,
+      });
+      if (!report)
+        return res.status(404).json({ message: "Interview report not found" });
+      await cacheSet(cacheKey, report, CACHE_TTL.REPORT);
+    }
 
     return res.status(200).json({ report });
   } catch (error) {
@@ -100,27 +133,36 @@ export async function getInterviewReportByIdController(req, res) {
 export async function getAllReportsController(req, res) {
   try {
     const { page, limit, skip } = parsePagination(req.query);
+    const cacheKey = CACHE_KEYS.reportsList(req.user.id, page, limit);
 
-    const [reports, total] = await Promise.all([
-      InterviewReport.find(
-        { user: req.user.id },
-        { _id: 1, title: 1, role: 1, matchScore: 1, createdAt: 1 },
-      )
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      InterviewReport.countDocuments({ user: req.user.id }),
-    ]);
+    let result = await cacheGet(cacheKey);
 
-    return res.status(200).json({
-      reports,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
+    if (!result) {
+      const [reports, total] = await Promise.all([
+        InterviewReport.find(
+          { user: req.user.id },
+          { _id: 1, title: 1, role: 1, matchScore: 1, createdAt: 1 },
+        )
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+        InterviewReport.countDocuments({ user: req.user.id }),
+      ]);
+
+      result = {
+        reports,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+
+      await cacheSet(cacheKey, result, CACHE_TTL.REPORTS_LIST);
+    }
+
+    return res.status(200).json(result);
   } catch (error) {
     console.error("Get all reports error:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -178,6 +220,10 @@ export async function deleteReportController(req, res) {
       user: req.user.id,
     });
     if (!report) return res.status(404).json({ message: "Report not found." });
+
+    // Invalidate caches
+    await cacheDel(CACHE_KEYS.reportById(interviewId));
+    await cacheDelPattern(`reports:list:${req.user.id}:*`);
 
     return res.status(200).json({ message: "Report deleted." });
   } catch (error) {

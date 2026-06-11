@@ -28,6 +28,16 @@ import {
 } from "../services/interviewService.js";
 import { resolveCompanyInterviewPrompt } from "../configs/companyInterviewPrompts.js";
 import { CONFIG, parsePagination } from "../configs/app.config.js";
+import {
+  cacheGet,
+  cacheSet,
+  cacheDel,
+  cacheDelPattern,
+  CACHE_KEYS,
+  CACHE_TTL,
+  invalidateUserCache,
+} from "../services/redis.service.js";
+import crypto from "crypto";
 
 // ── Helper: parse PDF buffer via pdf-parse ────────────────────────────────────
 
@@ -102,7 +112,21 @@ async function completeInterview(interview, { skipFeedback = false } = {}) {
       };
       overallScore = 0;
     } else {
-      feedback = await generateFeedback(interview.conversation || []);
+      // Check cache for feedback based on conversation hash
+      const conversationHash = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(interview.conversation))
+        .digest("hex")
+        .slice(0, 32);
+      const feedbackCacheKey = CACHE_KEYS.aiFeedback(conversationHash);
+
+      feedback = await cacheGet(feedbackCacheKey);
+
+      if (!feedback) {
+        feedback = await generateFeedback(interview.conversation || []);
+        await cacheSet(feedbackCacheKey, feedback, CACHE_TTL.AI_FEEDBACK);
+      }
+
       overallScore = Math.round(
         feedback.technicalScore * 6 + feedback.communicationScore * 4,
       );
@@ -224,6 +248,10 @@ export async function startInterviewController(req, res) {
     user.tokens -= CONFIG.tokens.LIVE_INTERVIEW;
     await user.save();
 
+    // Invalidate caches
+    await cacheDelPattern(`interviews:list:${req.user.id}:*`);
+    await invalidateUserCache(req.user.id);
+
     return res.status(201).json({
       interviewId: interview._id,
       question: firstQuestion,
@@ -293,6 +321,10 @@ export async function startPrepareController(req, res) {
     user.tokens -= CONFIG.tokens.PREPARE_INTERVIEW;
     await user.save();
 
+    // Invalidate caches
+    await cacheDelPattern(`interviews:list:${req.user.id}:*`);
+    await invalidateUserCache(req.user.id);
+
     return res.status(201).json({
       interviewId: interview._id,
       question: firstQuestion,
@@ -354,6 +386,11 @@ export async function answerInterviewController(req, res) {
       }
 
       const completed = await completeInterview(interview);
+
+      // Invalidate single interview cache
+      await cacheDel(CACHE_KEYS.interviewById(interviewId));
+      await cacheDelPattern(`interviews:list:${req.user.id}:*`);
+
       return res.status(200).json({
         interviewEnded: true,
         timedOut: true,
@@ -480,6 +517,11 @@ export async function endInterviewController(req, res) {
     }
 
     const completed = await completeInterview(interview, { skipFeedback });
+
+    // Invalidate caches
+    await cacheDel(CACHE_KEYS.interviewById(interviewId));
+    await cacheDelPattern(`interviews:list:${req.user.id}:*`);
+
     return res.status(200).json(completed);
   } catch (error) {
     console.error("End interview error:", error);
@@ -546,6 +588,9 @@ export async function submitInterviewFeedbackController(req, res) {
 
     await interview.save();
 
+    // Invalidate single interview cache
+    await cacheDel(CACHE_KEYS.interviewById(interviewId));
+
     return res.status(200).json({
       message: "Feedback submitted successfully.",
       userFeedback: interview.userFeedback,
@@ -568,28 +613,37 @@ export async function getLiveInterviewController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(interviewId))
       return res.status(400).json({ message: "Invalid interviewId." });
 
-    const interview = await LiveInterview.findOne({
-      _id: interviewId,
-      user: req.user.id,
-    });
-    if (!interview)
-      return res.status(404).json({ message: "Interview not found." });
+    const cacheKey = CACHE_KEYS.interviewById(interviewId);
+    let result = await cacheGet(cacheKey);
 
-    let parsedFeedback = null;
-    if (interview.feedback) {
-      try {
-        parsedFeedback = JSON.parse(interview.feedback);
-      } catch {
-        /* raw string */
+    if (!result) {
+      const interview = await LiveInterview.findOne({
+        _id: interviewId,
+        user: req.user.id,
+      });
+      if (!interview)
+        return res.status(404).json({ message: "Interview not found." });
+
+      let parsedFeedback = null;
+      if (interview.feedback) {
+        try {
+          parsedFeedback = JSON.parse(interview.feedback);
+        } catch {
+          /* raw string */
+        }
       }
+
+      result = {
+        interview: {
+          ...interview.toObject(),
+          feedback: parsedFeedback ?? interview.feedback,
+        },
+      };
+
+      await cacheSet(cacheKey, result, CACHE_TTL.INTERVIEW);
     }
 
-    return res.status(200).json({
-      interview: {
-        ...interview.toObject(),
-        feedback: parsedFeedback ?? interview.feedback,
-      },
-    });
+    return res.status(200).json(result);
   } catch (error) {
     console.error("Get live interview error:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -610,36 +664,50 @@ export async function getAllLiveInterviewsController(req, res) {
     if (req.query.mode) query.mode = req.query.mode;
 
     const { page, limit, skip } = parsePagination(req.query);
+    const cacheKey = CACHE_KEYS.interviewsList(
+      req.user.id,
+      req.query.mode,
+      page,
+      limit,
+    );
 
-    const [interviews, total] = await Promise.all([
-      LiveInterview.find(query, {
-        _id: 1,
-        mode: 1,
-        role: 1,
-        subject: 1,
-        topic: 1,
-        score: 1,
-        status: 1,
-        difficulty: 1,
-        companyKey: 1,
-        companyName: 1,
-        createdAt: 1,
-      })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      LiveInterview.countDocuments(query),
-    ]);
+    let result = await cacheGet(cacheKey);
 
-    return res.status(200).json({
-      interviews,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
+    if (!result) {
+      const [interviews, total] = await Promise.all([
+        LiveInterview.find(query, {
+          _id: 1,
+          mode: 1,
+          role: 1,
+          subject: 1,
+          topic: 1,
+          score: 1,
+          status: 1,
+          difficulty: 1,
+          companyKey: 1,
+          companyName: 1,
+          createdAt: 1,
+        })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+        LiveInterview.countDocuments(query),
+      ]);
+
+      result = {
+        interviews,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+
+      await cacheSet(cacheKey, result, CACHE_TTL.INTERVIEWS_LIST);
+    }
+
+    return res.status(200).json(result);
   } catch (error) {
     console.error("Get all live interviews error:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -666,6 +734,11 @@ export async function deleteLiveInterviewController(req, res) {
       return res.status(404).json({ message: "Interview not found." });
 
     cleanupChain(interviewId);
+
+    // Invalidate caches
+    await cacheDel(CACHE_KEYS.interviewById(interviewId));
+    await cacheDelPattern(`interviews:list:${req.user.id}:*`);
+
     return res.status(200).json({ message: "Interview deleted." });
   } catch (error) {
     console.error("Delete live interview error:", error);
@@ -870,7 +943,7 @@ export async function fetchJobController(req, res) {
   const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${jobId}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
+  const timer = setTimeout(() => controller.abort(), CONFIG.external.LINKEDIN_GUEST_JOB_TIMEOUT_MS);
 
   try {
     const response = await fetch(guestUrl, {

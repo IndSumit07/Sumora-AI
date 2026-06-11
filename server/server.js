@@ -2,12 +2,18 @@ import "dotenv/config";
 import app from "./src/app.js";
 import connectToMongoDB from "./src/configs/mongodb.config.js";
 import { initPdfCluster, closePdfCluster } from "./src/services/pdfPool.service.js";
+import { redis, closeRedis } from "./src/services/redis.service.js";
 
 connectToMongoDB();
 
 // Initialise Puppeteer cluster for PDF generation
 initPdfCluster().catch((err) => {
   console.error("Failed to initialise PDF cluster:", err.message);
+});
+
+// Connect Redis
+redis.connect().catch((err) => {
+  console.error("Failed to connect Redis:", err.message);
 });
 
 const PORT = process.env.PORT || 3000;
@@ -18,8 +24,8 @@ const server = app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, closing PDF cluster and server...");
-  await closePdfCluster();
+  console.log("SIGTERM received, closing resources...");
+  await Promise.all([closePdfCluster(), closeRedis()]);
   server.close(() => {
     console.log("Server closed.");
     process.exit(0);
@@ -27,8 +33,8 @@ process.on("SIGTERM", async () => {
 });
 
 process.on("SIGINT", async () => {
-  console.log("SIGINT received, closing PDF cluster and server...");
-  await closePdfCluster();
+  console.log("SIGINT received, closing resources...");
+  await Promise.all([closePdfCluster(), closeRedis()]);
   server.close(() => {
     console.log("Server closed.");
     process.exit(0);

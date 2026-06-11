@@ -6,6 +6,14 @@ import jwt from "jsonwebtoken";
 import { sendOtpEmail, generateOtp } from "../services/brevo.service.js";
 import { OAuth2Client } from "google-auth-library";
 import { verifyTurnstileToken } from "../services/turnstile.service.js";
+import {
+  cacheGet,
+  cacheSet,
+  cacheDel,
+  CACHE_KEYS,
+  CACHE_TTL,
+  invalidateUserCache,
+} from "../services/redis.service.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -180,9 +188,13 @@ export async function loginUserController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
+    // Cache user payload on login
+    const payload = userPayload(user);
+    await cacheSet(CACHE_KEYS.user(user._id), payload, CACHE_TTL.USER);
+
     res
       .status(200)
-      .json({ message: "Login successful", user: userPayload(user) });
+      .json({ message: "Login successful", user: payload });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -197,6 +209,12 @@ export async function logoutUserController(req, res) {
     const token = req.cookies.token;
     if (token) {
       await Blacklist.create({ token });
+      // Also cache the blacklist entry immediately
+      await cacheSet(
+        `blacklist:${token}`,
+        true,
+        86400,
+      );
     }
     res.clearCookie("token");
     res.status(200).json({ message: "Logout successful" });
@@ -211,11 +229,19 @@ export async function logoutUserController(req, res) {
  */
 export async function getCurrentUserController(req, res) {
   try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const cacheKey = CACHE_KEYS.user(req.user.id);
+    let payload = await cacheGet(cacheKey);
+
+    if (!payload) {
+      const user = await User.findById(req.user.id).select("-password");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      payload = userPayload(user);
+      await cacheSet(cacheKey, payload, CACHE_TTL.USER);
     }
-    res.status(200).json({ user: userPayload(user) });
+
+    res.status(200).json({ user: payload });
   } catch (error) {
     console.error("Get user error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -252,9 +278,14 @@ export async function updateProfileController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
+    // Invalidate user cache
+    await invalidateUserCache(userId);
+    const payload = userPayload(user);
+    await cacheSet(CACHE_KEYS.user(userId), payload, CACHE_TTL.USER);
+
     res.status(200).json({
       message: "Profile updated successfully",
-      user: userPayload(user),
+      user: payload,
     });
   } catch (error) {
     console.error("Update profile error:", error);
@@ -342,9 +373,14 @@ export async function verifyEmailChangeController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
+    // Invalidate user cache
+    await invalidateUserCache(userId);
+    const payload = userPayload(user);
+    await cacheSet(CACHE_KEYS.user(userId), payload, CACHE_TTL.USER);
+
     res
       .status(200)
-      .json({ message: "Email updated successfully", user: userPayload(user) });
+      .json({ message: "Email updated successfully", user: payload });
   } catch (error) {
     console.error("Verify email change error:", error);
     if (error.name === "ValidationError") {
@@ -398,6 +434,9 @@ export async function changePasswordController(req, res) {
 
     user.password = await bcrypt.hash(newPassword, 12);
     await user.save();
+
+    // Invalidate user cache
+    await invalidateUserCache(req.user.id);
 
     res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
@@ -522,9 +561,13 @@ export async function googleLoginController(req, res) {
     const token = signToken(user);
     setTokenCookie(res, token);
 
+    // Cache user payload
+    const userData = { ...userPayload(user), hasPassword: !!user.password };
+    await cacheSet(CACHE_KEYS.user(user._id), userData, CACHE_TTL.USER);
+
     res.status(200).json({
       message: "Google login successful",
-      user: { ...userPayload(user), hasPassword: !!user.password },
+      user: userData,
     });
   } catch (error) {
     console.error("Google login error:", error);
@@ -560,6 +603,9 @@ export async function setPasswordController(req, res) {
     user.authProvider = "local"; // they now have local auth
     await user.save();
 
+    // Invalidate user cache
+    await invalidateUserCache(req.user.id);
+
     res.status(200).json({ message: "Password set successfully" });
   } catch (error) {
     console.error("Set password error:", error);
@@ -579,9 +625,14 @@ export async function deleteAccountController(req, res) {
     }
     if (token) {
       await Blacklist.create({ token });
+      await cacheSet(`blacklist:${token}`, true, 86400);
     }
     await User.findByIdAndDelete(req.user.id);
     await Otp.deleteMany({ email: user.email });
+
+    // Invalidate all user caches
+    await invalidateUserCache(req.user.id);
+
     res.clearCookie("token");
     res.status(200).json({ message: "Account deleted successfully" });
   } catch (error) {
