@@ -315,11 +315,13 @@ const CodingInterviewView = () => {
       setChatMessages((prev) => [
         ...prev,
         { role: "user", text: "Submitted solution", isCode: true },
-        { role: "agent", text: data.analysis },
       ]);
-      // Speak the analysis via voice if connected
+      // If voice is connected, let the voice agent echo the response to chat.
+      // Otherwise, add it directly.
       if (isVoiceConnected && sendVoiceMessage) {
         sendVoiceMessage(data.analysis);
+      } else {
+        setChatMessages((prev) => [...prev, { role: "agent", text: data.analysis }]);
       }
       toast.success("Code submitted!");
     } catch (err) {
@@ -355,11 +357,13 @@ const CodingInterviewView = () => {
         }
       }
 
-      setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
-
-      // Speak response via voice if connected
+      // If voice is connected, only speak the problem statement (not examples/constraints/starter code).
+      // Let the voice agent echo the full response to chat.
       if (isVoiceConnected && sendVoiceMessage) {
-        sendVoiceMessage(data.response);
+        const voiceText = parsed.problemStatement || data.response;
+        sendVoiceMessage(voiceText);
+      } else {
+        setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to get next question");
@@ -393,11 +397,11 @@ const CodingInterviewView = () => {
         }
       }
 
-      setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
-
-      // Speak response via voice if connected
+      // If voice is connected, let the voice agent echo the response to chat.
       if (isVoiceConnected && sendVoiceMessage) {
         sendVoiceMessage(data.response);
+      } else {
+        setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to send message");
@@ -534,6 +538,7 @@ const CodingInterviewView = () => {
     connect: connectVoice,
     disconnect: disconnectVoice,
     sendMessage: sendVoiceMessage,
+    flushAgentQueues,
     isConnected: isVoiceConnected,
     isLoading: isVoiceLoading,
     isAgentSpeaking,
@@ -554,7 +559,9 @@ const CodingInterviewView = () => {
   const stopHolding = useCallback(() => {
     window.isSpacePressed = false;
     setIsHoldingToSpeak(false);
-  }, []);
+    // Release any queued agent responses that arrived while holding
+    flushAgentQueues?.();
+  }, [flushAgentQueues]);
 
   useEffect(() => {
     window.speakMode = speakMode;

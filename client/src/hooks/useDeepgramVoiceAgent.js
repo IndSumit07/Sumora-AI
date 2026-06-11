@@ -125,19 +125,21 @@ export function useDeepgramVoiceAgent({
   // Handle function calls from Deepgram Agent
   const handleFunctionCall = useCallback(
     async (message) => {
-      const { function_call_id, function_name, input } = message;
+      const { function_call_id, name, input, parameters } = message;
+      const args = input || parameters || {};
 
-      if (function_name === "get_ai_response") {
+      console.log("[Deepgram] Function call received:", name, args);
+
+      if (name === "get_ai_response") {
         try {
-          // Call our backend to get AI response
           const endpoint = apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
           const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({
-              userMessage: input.user_message,
-              context: contextRef.current || input.context || {},
+              userMessage: args.user_message || args.userMessage || "",
+              context: contextRef.current || args.context || {},
             }),
           });
 
@@ -146,7 +148,8 @@ export function useDeepgramVoiceAgent({
             data.response ||
             "I didn't understand that. Could you please repeat?";
 
-          // Send function result back to Deepgram
+          console.log("[Deepgram] Function call response:", aiResponse.slice(0, 100));
+
           wsRef.current?.send(
             JSON.stringify({
               type: "FunctionCallResponse",
@@ -166,16 +169,17 @@ export function useDeepgramVoiceAgent({
         }
       }
     },
-    [onAgentMessage, apiEndpoint],
+    [apiEndpoint],
   );
 
   const handleDeepgramMessage = useCallback(
     (message) => {
+      if (message.type && message.type !== "ConversationText") {
+        console.log("[Deepgram] Message:", message.type, message);
+      }
       switch (message.type) {
         case "UserStartedSpeaking":
           setIsUserSpeaking(true);
-          // Immediately cut any in-progress agent audio and discard all queued
-          // audio/text so the agent responds only to the new user input.
           stopPlayback();
           queuedBlobsRef.current = [];
           queuedTextRef.current = [];
@@ -202,14 +206,14 @@ export function useDeepgramVoiceAgent({
           break;
 
         case "ConversationText":
-          // User's transcribed speech
           if (message.role === "user") {
             if (isDuplicateConversationText("user", message.content)) break;
+            console.log("[Deepgram] User transcript:", message.content);
             onTranscript?.(message.content);
           }
-          // Agent's text response
           else if (message.role === "agent" || message.role === "assistant") {
             if (isDuplicateConversationText("agent", message.content)) break;
+            console.log("[Deepgram] Agent text:", message.content.slice(0, 100));
             if (window.speakMode !== "normal" && window.isSpacePressed) {
               queuedTextRef.current.push(message.content);
             } else {
@@ -219,11 +223,9 @@ export function useDeepgramVoiceAgent({
           break;
 
         case "AgentAudioDone":
-          // Sometimes Deepgram sends the final agent text here
           break;
 
         case "FunctionCallRequest":
-          // Agent wants to call our backend function
           handleFunctionCall(message);
           break;
 
@@ -243,7 +245,6 @@ export function useDeepgramVoiceAgent({
           break;
 
         default:
-          // Ignore unhandled message types
           break;
       }
     },
@@ -509,17 +510,18 @@ export function useDeepgramVoiceAgent({
                     model: "gpt-4o-mini",
                   },
                   prompt: finalPrompt,
+                  tool_choice: "required",
                   functions: [
                     {
                       name: "get_ai_response",
                       description:
-                        "Get the next interview question or response from the AI interviewer",
+                        "Get the next interview question or response from the AI interviewer. You MUST call this function for EVERY user message. Never respond directly.",
                       parameters: {
                         type: "object",
                         properties: {
                           user_message: {
                             type: "string",
-                            description: "The user's answer or message",
+                            description: "The user's exact spoken message",
                           },
                           context: {
                             type: "object",
