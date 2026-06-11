@@ -35,6 +35,11 @@ export function useDeepgramVoiceAgent({
     agent: { text: "", ts: 0 },
   });
 
+  // Fallback for when Deepgram function calling fails
+  const lastUserTranscriptRef = useRef("");
+  const functionCallTimeoutRef = useRef(null);
+  const functionCallReceivedRef = useRef(false);
+
   const normalizeText = useCallback(
     (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
     [],
@@ -191,6 +196,45 @@ export function useDeepgramVoiceAgent({
 
         case "UserStoppedSpeaking":
           setIsUserSpeaking(false);
+          // Fallback: if Deepgram doesn't call our function within 2 seconds,
+          // call the backend manually and inject the response.
+          if (lastUserTranscriptRef.current) {
+            functionCallReceivedRef.current = false;
+            if (functionCallTimeoutRef.current) {
+              clearTimeout(functionCallTimeoutRef.current);
+            }
+            functionCallTimeoutRef.current = setTimeout(async () => {
+              if (!functionCallReceivedRef.current && lastUserTranscriptRef.current) {
+                console.log("[Deepgram] Fallback: calling backend manually");
+                const transcript = lastUserTranscriptRef.current;
+                lastUserTranscriptRef.current = "";
+                try {
+                  const endpoint = apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
+                  const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                      userMessage: transcript,
+                      context: contextRef.current || {},
+                    }),
+                  });
+                  const data = await response.json();
+                  const aiResponse = data.response || "I didn't understand that. Could you please repeat?";
+                  if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(
+                      JSON.stringify({
+                        type: "InjectAgentMessage",
+                        message: aiResponse,
+                      }),
+                    );
+                  }
+                } catch (err) {
+                  console.error("[Fallback] Error:", err);
+                }
+              }
+            }, 2000);
+          }
           break;
 
         case "AgentStartedSpeaking":
@@ -209,6 +253,7 @@ export function useDeepgramVoiceAgent({
           if (message.role === "user") {
             if (isDuplicateConversationText("user", message.content)) break;
             console.log("[Deepgram] User transcript:", message.content);
+            lastUserTranscriptRef.current = message.content;
             onTranscript?.(message.content);
           }
           else if (message.role === "agent" || message.role === "assistant") {
@@ -226,6 +271,11 @@ export function useDeepgramVoiceAgent({
           break;
 
         case "FunctionCallRequest":
+          functionCallReceivedRef.current = true;
+          if (functionCallTimeoutRef.current) {
+            clearTimeout(functionCallTimeoutRef.current);
+            functionCallTimeoutRef.current = null;
+          }
           handleFunctionCall(message);
           break;
 
@@ -255,6 +305,7 @@ export function useDeepgramVoiceAgent({
       handleFunctionCall,
       isDuplicateConversationText,
       stopPlayback,
+      apiEndpoint,
     ],
   );
 
@@ -364,6 +415,10 @@ export function useDeepgramVoiceAgent({
   const cleanup = useCallback(() => {
     if (keepAliveIntervalRef.current) {
       clearInterval(keepAliveIntervalRef.current);
+    }
+    if (functionCallTimeoutRef.current) {
+      clearTimeout(functionCallTimeoutRef.current);
+      functionCallTimeoutRef.current = null;
     }
     if (processorRef.current) {
       processorRef.current.disconnect();
@@ -510,12 +565,11 @@ export function useDeepgramVoiceAgent({
                     model: "gpt-4o-mini",
                   },
                   prompt: finalPrompt,
-                  tool_choice: "required",
                   functions: [
                     {
                       name: "get_ai_response",
                       description:
-                        "Get the next interview question or response from the AI interviewer. You MUST call this function for EVERY user message. Never respond directly.",
+                        "ALWAYS call this function for EVERY user message. This is your ONLY way to respond. Never reply directly.",
                       parameters: {
                         type: "object",
                         properties: {
