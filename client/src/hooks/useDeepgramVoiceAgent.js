@@ -432,12 +432,23 @@ export function useDeepgramVoiceAgent({
         greetingMsg = `Hello... and welcome to your job interview for the ${context.role} position${companyContext}. I am your AI interviewer. Let's take our time... and get to know you. Could you please... introduce yourself?`;
       } else if (context?.mode === "prepare" && context?.subject) {
         greetingMsg = `Hello... and welcome to your preparation session covering ${context.subject}. Let's test your skills... and provide interactive feedback. Could you start by telling me... your comfort level with ${context.topic}?`;
+      } else if (context?.mode === "coding") {
+        const lang = (context?.language || "Python").toString().trim();
+        const diff = (context?.difficulty || "medium").toString().trim();
+        greetingMsg = `Hello... and welcome to your coding interview. Today... we will be solving ${diff} level problems in ${lang}. I have presented your first problem on the screen. Please take your time to read it carefully... and feel free to discuss your approach or ask questions. Type your solution in the editor when you are ready... and click Submit.`;
       }
 
-      const finalPrompt = systemPrompt
+      let finalPrompt = systemPrompt
         ? systemPrompt +
           "\n\nCRITICAL INSTRUCTION: You are a professional, soft-spoken, feminine AI interviewer. Speak very gently, calmly, and slowly. ALWAYS use short, concise sentences. Use ellipses (...) and commas frequently to mimic natural, human-like pauses in your speech. Never generate long paragraphs. Keep responses conversational and brief. Wait patiently for the candidate to answer. Ask ONE question at a time. Provide interactive feedback (e.g. 'That is a great point...') to their answers. Do NOT use Markdown or any special formatting characters. Never output asterisks (*)."
         : "You are a professional, calm, soft-spoken, and friendly feminine AI interviewer. Speak very slowly, gently, and clearly. ALWAYS use short, concise sentences. Use ellipses (...) and commas frequently to mimic natural, human-like pauses. Keep responses conversational and brief. Never generate long paragraphs. Ask one question at a time and wait for the candidate to answer before moving on. Provide interactive, conversational feedback to their answers. Do NOT use Markdown or any special formatting characters. Never output asterisks (*).";
+
+      // For coding interviews, force the agent to ALWAYS call our backend function
+      // instead of generating its own responses (prevents problem desync)
+      if (context?.mode === "coding") {
+        finalPrompt +=
+          "\n\nEXTREMELY IMPORTANT: This is a coding interview. You MUST call the get_ai_response function for EVERY candidate message. Do NOT generate your own interview questions, problems, or responses under any circumstances. Your only role is to pass the user's exact spoken message to the get_ai_response function and speak the response you receive back from it. Never invent a problem. Never deviate from the function result.";
+      }
 
       try {
         isConnectingRef.current = true;

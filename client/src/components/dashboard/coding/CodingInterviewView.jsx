@@ -195,7 +195,6 @@ const CodingInterviewView = () => {
   const [problemStatement, setProblemStatement] = useState("");
   const [examples, setExamples] = useState("");
   const [constraints, setConstraints] = useState("");
-  const [starterCode, setStarterCode] = useState("");
   const [code, setCode] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
@@ -261,7 +260,7 @@ const CodingInterviewView = () => {
   // ── Service exit guard ──────────────────────────────────────────────────────
 
   const isServiceActive = view === "active";
-  const { showExitConfirm, setShowExitConfirm, confirmExit } =
+  const { showExitConfirm, setShowExitConfirm } =
     useServiceExitGuard(isServiceActive, async () => {
       await handleEndInterview();
     });
@@ -289,7 +288,6 @@ const CodingInterviewView = () => {
       setProblemStatement(data.problemStatement || "");
       setExamples(data.examples || "");
       setConstraints(data.constraints || "");
-      setStarterCode(data.starterCode || "");
       setCode(data.starterCode || "");
       setChatMessages([
         { role: "agent", text: data.problemStatement || "Welcome to your coding interview!" },
@@ -352,7 +350,6 @@ const CodingInterviewView = () => {
         setExamples(parsed.examples || "");
         setConstraints(parsed.constraints || "");
         if (parsed.starterCode) {
-          setStarterCode(parsed.starterCode);
           setCode(parsed.starterCode);
         }
       }
@@ -481,6 +478,18 @@ const CodingInterviewView = () => {
   const handleVoiceAgentMessage = useCallback((text) => {
     const incoming = (text || "").trim();
     if (!incoming) return;
+
+    // Parse new problems from voice responses so text panel stays in sync
+    const parsed = parseProblemFromResponse(incoming);
+    if (parsed.problemStatement) {
+      setProblemStatement(parsed.problemStatement);
+      setExamples(parsed.examples || "");
+      setConstraints(parsed.constraints || "");
+      if (parsed.starterCode) {
+        setCode(parsed.starterCode);
+      }
+    }
+
     setChatMessages((prev) => {
       const last = prev[prev.length - 1];
       if (last && last.role === "agent" && last.isVoice) {
@@ -535,10 +544,14 @@ const CodingInterviewView = () => {
     }
     if (!activeInterview?.interviewId) return;
 
-    const systemPrompt = `You are a professional technical interviewer conducting a live coding interview. You will present ONE coding problem at a time. After the candidate submits code, you analyze it. Be concise. Do NOT use Markdown formatting. Never output asterisks (*). Interview Difficulty: ${selectedDifficulty}. Programming Language: ${selectedLanguage}.`;
+    // Voice agent proxy prompt — keep it generic so Deepgram's Gemini NEVER
+    // generates its own problems. All actual thinking happens in our backend
+    // Groq chain via the get_ai_response function.
+    const voiceSystemPrompt =
+      "You are a voice proxy for a live coding interview platform.";
 
     connectVoice({
-      systemPrompt,
+      systemPrompt: voiceSystemPrompt,
       context: {
         interviewId: activeInterview.interviewId,
         mode: "coding",

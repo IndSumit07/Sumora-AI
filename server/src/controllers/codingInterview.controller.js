@@ -524,14 +524,32 @@ export async function codingVoiceAgentResponseController(req, res) {
       // Already in memory
     }
 
-    const response = await sendMessage(
-      interview._id.toString(),
-      userMessage.trim(),
-    );
+    let response;
+    const trimmedMessage = userMessage.trim();
+
+    // Handle initial voice activation — return warm welcome that references
+    // the already-generated problem so voice and text stay in sync.
+    if (trimmedMessage === "[START]") {
+      const existingProblem = interview.problemStatement || "";
+      const lang = interview.language || "Python";
+      if (existingProblem) {
+        response = `Hello... and welcome to your coding interview in ${lang}. I have already presented your first problem on the screen. Please take your time to read it carefully... and feel free to ask questions or discuss your approach. Let me know when you are ready to share your thoughts.`;
+      } else {
+        response = await sendMessage(
+          interview._id.toString(),
+          "Please present the first coding problem.",
+        );
+      }
+    } else {
+      response = await sendMessage(
+        interview._id.toString(),
+        trimmedMessage,
+      );
+    }
 
     interview.conversation.push({
       role: "user",
-      text: userMessage.trim(),
+      text: trimmedMessage,
     });
     interview.conversation.push({
       role: "agent",
