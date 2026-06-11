@@ -567,6 +567,17 @@ const CodingInterviewView = () => {
             )}
           </button>
         </div>
+
+        <TokenConfirmModal
+          open={showTokenConfirm}
+          cost={35}
+          tokens={user?.tokens || 0}
+          onConfirm={confirmStart}
+          onCancel={() => setShowTokenConfirm(false)}
+          confirming={loading}
+          serviceName="Coding Interview"
+          description="Practice DSA and system design with a live AI coding interviewer."
+        />
       </div>
     );
   }
