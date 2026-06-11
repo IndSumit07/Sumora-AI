@@ -15,6 +15,7 @@ import DashboardHome from "./components/dashboard/DashboardHome";
 import InterviewView from "./components/dashboard/interview/InterviewView";
 import AnalyzeView from "./components/dashboard/analyze/AnalyzeView";
 import PrepareView from "./components/dashboard/prepare/PrepareView";
+import CodingInterviewView from "./components/dashboard/coding/CodingInterviewView";
 import BillingView from "./components/dashboard/billing/BillingView";
 import StatsView from "./components/dashboard/views/StatsView";
 import SeoManager from "./components/SeoManager";
@@ -105,6 +106,7 @@ const App = () => {
         >
           <Route index element={<DashboardHome />} />
           <Route path="interview" element={<InterviewView />} />
+          <Route path="coding" element={<CodingInterviewView />} />
           <Route path="analyze" element={<AnalyzeView />} />
           <Route path="prepare" element={<PrepareView />} />
           <Route path="stats" element={<StatsView />} />

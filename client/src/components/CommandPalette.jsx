@@ -8,6 +8,7 @@ import {
   Search,
   CreditCard,
   Activity,
+  Code2,
 } from "lucide-react";
 
 const ITEMS = [
@@ -22,6 +23,12 @@ const ITEMS = [
     icon: Mic,
     label: "Interview",
     description: "AI mock interviews",
+  },
+  {
+    to: "/dashboard/coding",
+    icon: Code2,
+    label: "Coding",
+    description: "DSA & system design practice",
   },
   {
     to: "/dashboard/analyze",

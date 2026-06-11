@@ -11,6 +11,7 @@ export const CONFIG = {
     RESUME_PDF: 5,
     LIVE_INTERVIEW: 20,
     PREPARE_INTERVIEW: 20,
+    CODING_INTERVIEW: 35,
   },
 
   // ── Interview Settings ──────────────────────────────────────────────────────

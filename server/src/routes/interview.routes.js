@@ -26,6 +26,16 @@ import {
   fetchJobController,
   voiceAgentResponseController,
 } from "../controllers/liveInterview.controller.js";
+import {
+  getLanguagesController,
+  startCodingInterviewController,
+  submitCodeController,
+  sendMessageController,
+  endCodingInterviewController,
+  getCodingInterviewController,
+  getAllCodingInterviewsController,
+  deleteCodingInterviewController,
+} from "../controllers/codingInterview.controller.js";
 
 const interviewRouter = express.Router();
 
@@ -151,6 +161,65 @@ interviewRouter.post(
   apiLimiter,
   authMiddleware,
   submitInterviewFeedbackController,
+);
+
+// ── Coding interview endpoints ────────────────────────────────────────────────
+
+// GET  /api/interview/coding/languages    — list supported programming languages
+interviewRouter.get(
+  "/coding/languages",
+  apiLimiter,
+  authMiddleware,
+  getLanguagesController,
+);
+// POST /api/interview/coding/start        — start a new coding interview session
+interviewRouter.post(
+  "/coding/start",
+  aiLimiter,
+  authMiddleware,
+  startCodingInterviewController,
+);
+// POST /api/interview/coding/submit       — submit code for analysis
+interviewRouter.post(
+  "/coding/submit",
+  apiLimiter,
+  authMiddleware,
+  submitCodeController,
+);
+// POST /api/interview/coding/message      — send a chat message during coding interview
+interviewRouter.post(
+  "/coding/message",
+  apiLimiter,
+  authMiddleware,
+  sendMessageController,
+);
+// POST /api/interview/coding/end          — end coding interview, generate feedback
+interviewRouter.post(
+  "/coding/end",
+  aiLimiter,
+  authMiddleware,
+  endCodingInterviewController,
+);
+// GET  /api/interview/coding              — list all coding interviews for user
+interviewRouter.get(
+  "/coding",
+  apiLimiter,
+  authMiddleware,
+  getAllCodingInterviewsController,
+);
+// GET  /api/interview/coding/:interviewId — get one coding interview by ID
+interviewRouter.get(
+  "/coding/:interviewId",
+  apiLimiter,
+  authMiddleware,
+  getCodingInterviewController,
+);
+// DELETE /api/interview/coding/:interviewId — delete a coding interview
+interviewRouter.delete(
+  "/coding/:interviewId",
+  apiLimiter,
+  authMiddleware,
+  deleteCodingInterviewController,
 );
 
 export default interviewRouter;

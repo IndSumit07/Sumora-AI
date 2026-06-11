@@ -14,6 +14,7 @@ import {
   CreditCard,
   Zap,
   Activity,
+  Code2,
 } from "lucide-react";
 import UserDropdown from "../components/UserDropdown";
 import AccountModal from "../components/AccountModal";
@@ -26,6 +27,7 @@ const NAV = [
   { to: "/dashboard", icon: Home, label: "Home", exact: true },
   { to: "/dashboard/prepare", icon: BookOpen, label: "Prepare" },
   { to: "/dashboard/interview", icon: Mic, label: "Interview" },
+  { to: "/dashboard/coding", icon: Code2, label: "Coding" },
   { to: "/dashboard/analyze", icon: BarChart2, label: "Analyze" },
   { to: "/dashboard/stats", icon: Activity, label: "Stats" },
   { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },

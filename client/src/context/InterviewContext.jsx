@@ -183,6 +183,47 @@ export const InterviewProvider = ({ children }) => {
     await api.delete(`/interview/report/${id}`);
   };
 
+  // ── Coding interview ────────────────────────────────────────────────────────
+
+  const getCodingLanguages = async () => {
+    const { data } = await api.get("/interview/coding/languages");
+    return data.languages;
+  };
+
+  const startCodingInterview = async (payload) => {
+    const { data } = await api.post("/interview/coding/start", payload);
+    return data;
+  };
+
+  const submitCode = async (payload) => {
+    const { data } = await api.post("/interview/coding/submit", payload);
+    return data;
+  };
+
+  const sendCodingMessage = async (payload) => {
+    const { data } = await api.post("/interview/coding/message", payload);
+    return data;
+  };
+
+  const endCodingInterview = async (interviewId) => {
+    const { data } = await api.post("/interview/coding/end", { interviewId });
+    return data;
+  };
+
+  const getAllCodingInterviews = async (page = 1, limit = 20) => {
+    const { data } = await api.get(`/interview/coding?page=${page}&limit=${limit}`);
+    return data;
+  };
+
+  const getCodingInterviewById = async (interviewId) => {
+    const { data } = await api.get(`/interview/coding/${interviewId}`);
+    return data;
+  };
+
+  const deleteCodingInterview = async (id) => {
+    await api.delete(`/interview/coding/${id}`);
+  };
+
   /**
    * fetchJobFromUrl — fetches job details from a LinkedIn job URL.
    * @param {string} url
@@ -216,6 +257,14 @@ export const InterviewProvider = ({ children }) => {
         deleteLiveInterview,
         deleteReport,
         fetchJobFromUrl,
+        getCodingLanguages,
+        startCodingInterview,
+        submitCode,
+        sendCodingMessage,
+        endCodingInterview,
+        getAllCodingInterviews,
+        getCodingInterviewById,
+        deleteCodingInterview,
       }}
     >
       {children}
