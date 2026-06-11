@@ -23,6 +23,7 @@ import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { resolveCompanyInterviewPrompt } from "../configs/companyInterviewPrompts.js";
+import { CONFIG } from "../configs/app.config.js";
 
 // ── In-memory registries ──────────────────────────────────────────────────────
 // Map<interviewId, InMemoryChatMessageHistory>
@@ -179,10 +180,10 @@ function getDifficultyInstructions(difficulty) {
 
 function buildLLM() {
   return new ChatGroq({
-    model: "llama-3.1-8b-instant",
+    model: CONFIG.ai.GROQ_MODEL,
     apiKey: process.env.GROQ_API_KEY,
-    temperature: 0.7,
-    maxRetries: 2,
+    temperature: CONFIG.ai.TEMPERATURE,
+    maxRetries: CONFIG.ai.MAX_RETRIES,
   });
 }
 

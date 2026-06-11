@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
-import puppeteer from "puppeteer";
+import { CONFIG } from "../configs/app.config.js";
+import { generatePdfFromHtml } from "./pdfPool.service.js";
 
 /**
  * Convert a Zod v4 schema to a Gemini-compatible JSON schema.
@@ -145,7 +146,7 @@ async function generateInterviewReport({
 `;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: CONFIG.ai.GEMINI_MODEL,
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -156,30 +157,6 @@ async function generateInterviewReport({
   const text = extractText(response);
   if (!text) throw new Error("Gemini returned an empty response");
   return JSON.parse(text);
-}
-
-async function generatePdfFromHtml(htmlContent) {
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-  const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    margin: {
-      top: "10mm",
-      bottom: "10mm",
-      left: "10mm",
-      right: "10mm",
-    },
-    pageRanges: "1",
-    scale: 0.85, // Scale down to help fit more content on one page
-  });
-
-  await browser.close();
-
-  return pdfBuffer;
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
@@ -205,7 +182,7 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                     `;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: CONFIG.ai.GEMINI_MODEL,
     contents: prompt,
     config: {
       responseMimeType: "application/json",

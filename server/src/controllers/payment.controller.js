@@ -3,6 +3,7 @@ import crypto from "crypto";
 import User from "../models/user.model.js";
 import Transaction from "../models/transaction.model.js";
 import PRICING_PLANS from "../configs/pricing.json" with { type: "json" };
+import { CONFIG } from "../configs/app.config.js";
 
 function getLiveRazorpayConfig() {
   const keyId = process.env.RAZORPAY_KEY_ID;
@@ -79,11 +80,11 @@ export const createOrder = async (req, res) => {
     const plan = TOKEN_PLANS[planId];
 
     // Amount in paise (multiply by 100)
-    const amountInPaise = plan.price * 100;
+    const amountInPaise = plan.price * CONFIG.payments.PAISE_MULTIPLIER;
 
     const options = {
       amount: amountInPaise,
-      currency: "INR",
+      currency: CONFIG.payments.CURRENCY,
       receipt: `receipt_${Date.now()}`,
       notes: {
         userId,
@@ -105,7 +106,7 @@ export const createOrder = async (req, res) => {
       user: userId,
       razorpay_order_id: order.id,
       amount: plan.price,
-      currency: "INR",
+      currency: CONFIG.payments.CURRENCY,
       tokensAdded: plan.tokens,
       planId: planId,
       status: "created",
@@ -235,12 +236,12 @@ export const requestRefund = async (req, res) => {
       });
     }
 
-    // Check if within 1 minute
+    // Check if within refund window
     const transactionTime = new Date(transaction.updatedAt).getTime();
     const currentTime = Date.now();
-    const oneMinuteInMs = 1 * 60 * 1000;
+    const refundWindowMs = CONFIG.payments.REFUND_WINDOW_MS;
 
-    if (currentTime - transactionTime > oneMinuteInMs) {
+    if (currentTime - transactionTime > refundWindowMs) {
       return res.status(400).json({
         success: false,
         message: "Refunds are only allowed within 1 minute of purchase.",
@@ -262,7 +263,7 @@ export const requestRefund = async (req, res) => {
       const refund = await paymentGateway.client.payments.refund(
         transaction.razorpay_payment_id,
         {
-          amount: transaction.amount * 100,
+          amount: transaction.amount * CONFIG.payments.PAISE_MULTIPLIER,
           speed: "normal",
           notes: {
             reason: "User requested refund inside 1 minute window",

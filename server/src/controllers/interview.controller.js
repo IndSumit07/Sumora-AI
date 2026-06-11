@@ -6,12 +6,7 @@ import {
   generateInterviewReport,
   generateResumePdf,
 } from "../services/ai.service.js";
-
-// Define Costs
-const COSTS = {
-  REPORT_GENERATION: 25,
-  RESUME_PDF: 5,
-};
+import { CONFIG, parsePagination } from "../configs/app.config.js";
 
 /**
  * POST /api/interview/
@@ -26,7 +21,7 @@ export async function generateInterViewReportController(req, res) {
       return res.status(400).json({ message: "jobDescription is required." });
 
     const user = await User.findById(req.user.id);
-    if (!user || user.tokens < COSTS.REPORT_GENERATION) {
+    if (!user || user.tokens < CONFIG.tokens.REPORT_GENERATION) {
       return res
         .status(402)
         .json({ message: "Insufficient tokens. Please purchase more." });
@@ -37,7 +32,7 @@ export async function generateInterViewReportController(req, res) {
       try {
         const parser = new PDFParse({ data: req.file.buffer });
         const result = await parser.getText();
-        resumeText = (result.text || "").trim().slice(0, 8000);
+        resumeText = (result.text || "").trim().slice(0, CONFIG.limits.RESUME_TEXT_MAX);
       } catch (parseErr) {
         console.warn("PDF text extraction failed:", parseErr.message);
       }
@@ -52,13 +47,13 @@ export async function generateInterViewReportController(req, res) {
     const interviewReport = await InterviewReport.create({
       ...report,
       user: req.user.id,
-      role: role.trim().slice(0, 150),
-      jobDescription: jobDescription.trim().slice(0, 5000),
-      selfDescription: selfDescription.trim().slice(0, 2000),
+      role: role.trim().slice(0, CONFIG.limits.ROLE_MAX_LENGTH),
+      jobDescription: jobDescription.trim().slice(0, CONFIG.limits.JOB_DESCRIPTION_MAX),
+      selfDescription: selfDescription.trim().slice(0, CONFIG.limits.SELF_DESCRIPTION_MAX),
     });
 
     // Deduct tokens
-    user.tokens -= COSTS.REPORT_GENERATION;
+    user.tokens -= CONFIG.tokens.REPORT_GENERATION;
     await user.save();
 
     return res.status(201).json({
@@ -99,16 +94,33 @@ export async function getInterviewReportByIdController(req, res) {
 
 /**
  * GET /api/interview/reports
- * Returns summary list of all reports for the current user, newest first.
+ * Returns paginated summary list of reports for the current user, newest first.
+ * Query: ?page=1&limit=20
  */
 export async function getAllReportsController(req, res) {
   try {
-    const reports = await InterviewReport.find(
-      { user: req.user.id },
-      { _id: 1, title: 1, role: 1, matchScore: 1, createdAt: 1 },
-    ).sort({ createdAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query);
 
-    return res.status(200).json({ reports });
+    const [reports, total] = await Promise.all([
+      InterviewReport.find(
+        { user: req.user.id },
+        { _id: 1, title: 1, role: 1, matchScore: 1, createdAt: 1 },
+      )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      InterviewReport.countDocuments({ user: req.user.id }),
+    ]);
+
+    return res.status(200).json({
+      reports,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Get all reports error:", error);
     return res.status(500).json({ message: "Internal server error" });

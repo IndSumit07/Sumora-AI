@@ -1,9 +1,10 @@
 import rateLimit from "express-rate-limit";
+import { CONFIG } from "../configs/app.config.js";
 
 // Strict: login, register, OTP verification — brute-force sensitive
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  windowMs: CONFIG.rateLimit.AUTH_WINDOW_MS,
+  max: CONFIG.rateLimit.AUTH_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many attempts, please try again in 15 minutes" },
@@ -11,8 +12,8 @@ export const authLimiter = rateLimit({
 
 // OTP sending — prevent spam
 export const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: CONFIG.rateLimit.OTP_WINDOW_MS,
+  max: CONFIG.rateLimit.OTP_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many OTP requests, please try again in 15 minutes" },
@@ -20,8 +21,8 @@ export const otpLimiter = rateLimit({
 
 // General API — loose limit for authenticated endpoints
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: CONFIG.rateLimit.API_WINDOW_MS,
+  max: CONFIG.rateLimit.API_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests, please slow down" },
@@ -29,8 +30,8 @@ export const apiLimiter = rateLimit({
 
 // AI endpoints — expensive calls, strict per-user limit
 export const aiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20,
+  windowMs: CONFIG.rateLimit.AI_WINDOW_MS,
+  max: CONFIG.rateLimit.AI_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "AI request limit reached, please try again in an hour" },

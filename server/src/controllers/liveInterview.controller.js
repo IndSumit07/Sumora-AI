@@ -27,13 +27,7 @@ import {
   analyzeQuestion,
 } from "../services/interviewService.js";
 import { resolveCompanyInterviewPrompt } from "../configs/companyInterviewPrompts.js";
-
-const COSTS = {
-  LIVE_INTERVIEW: 20,
-  PREPARE_INTERVIEW: 20,
-};
-
-const INTERVIEW_DURATION_MS = 30 * 60 * 1000;
+import { CONFIG, parsePagination } from "../configs/app.config.js";
 
 // ── Helper: parse PDF buffer via pdf-parse ────────────────────────────────────
 
@@ -41,7 +35,7 @@ async function parsePdf(buffer) {
   try {
     const parser = new PDFParse({ data: buffer });
     const result = await parser.getText();
-    return (result.text || "").trim().slice(0, 8000);
+    return (result.text || "").trim().slice(0, CONFIG.limits.RESUME_TEXT_MAX);
   } catch (err) {
     console.warn("PDF parse failed:", err.message);
     return "";
@@ -62,10 +56,8 @@ function isInterviewExpired(interview) {
   if (!interview?.createdAt) return false;
   const startedAt = new Date(interview.createdAt).getTime();
   if (!Number.isFinite(startedAt)) return false;
-  return Date.now() - startedAt >= INTERVIEW_DURATION_MS;
+  return Date.now() - startedAt >= CONFIG.interview.DURATION_MS;
 }
-
-const MIN_ANSWERS_FOR_ANALYSIS = 5;
 
 async function completeInterview(interview, { skipFeedback = false } = {}) {
   let feedback = null;
@@ -90,10 +82,10 @@ async function completeInterview(interview, { skipFeedback = false } = {}) {
         questionBreakdown: [],
         insufficientData: true,
         answeredCount: 0,
-        requiredCount: MIN_ANSWERS_FOR_ANALYSIS,
+        requiredCount: CONFIG.interview.MIN_ANSWERS_FOR_ANALYSIS,
       };
       overallScore = 0;
-    } else if (answeredTurns.length < MIN_ANSWERS_FOR_ANALYSIS) {
+    } else if (answeredTurns.length < CONFIG.interview.MIN_ANSWERS_FOR_ANALYSIS) {
       // Not enough answers for a meaningful score analysis
       feedback = {
         technicalScore: 0,
@@ -101,12 +93,12 @@ async function completeInterview(interview, { skipFeedback = false } = {}) {
         strengths: [],
         weaknesses: [],
         improvements: [
-          `Answer at least ${MIN_ANSWERS_FOR_ANALYSIS} questions to unlock your performance score and detailed analysis.`,
+          `Answer at least ${CONFIG.interview.MIN_ANSWERS_FOR_ANALYSIS} questions to unlock your performance score and detailed analysis.`,
         ],
         questionBreakdown: [],
         insufficientData: true,
         answeredCount: answeredTurns.length,
-        requiredCount: MIN_ANSWERS_FOR_ANALYSIS,
+        requiredCount: CONFIG.interview.MIN_ANSWERS_FOR_ANALYSIS,
       };
       overallScore = 0;
     } else {
@@ -183,7 +175,7 @@ export async function startInterviewController(req, res) {
       resolveCompanyInterviewPrompt(companyProfile);
 
     const user = await User.findById(req.user.id);
-    if (!user || user.tokens < COSTS.LIVE_INTERVIEW) {
+    if (!user || user.tokens < CONFIG.tokens.LIVE_INTERVIEW) {
       return res
         .status(402)
         .json({ message: "Insufficient tokens to start a live interview." });
@@ -193,17 +185,17 @@ export async function startInterviewController(req, res) {
     const interview = await LiveInterview.create({
       user: req.user.id,
       mode: "job",
-      resumeText: resumeText.trim().slice(0, 8000),
-      role: role.trim().slice(0, 150),
-      jobDescription: jobDescription.trim().slice(0, 5000),
+      resumeText: resumeText.trim().slice(0, CONFIG.limits.RESUME_TEXT_MAX),
+      role: role.trim().slice(0, CONFIG.limits.ROLE_MAX_LENGTH),
+      jobDescription: jobDescription.trim().slice(0, CONFIG.limits.JOB_DESCRIPTION_MAX),
       companyKey: resolvedCompanyProfile.companyKey,
       companyName: resolvedCompanyProfile.companyName,
       companyWebsite: resolvedCompanyProfile.companyWebsite,
       companyPromptTitle: resolvedCompanyProfile.promptTitle,
       companyPromptDescription: resolvedCompanyProfile.promptText,
-      difficulty: ["easy", "medium", "hard"].includes(difficulty)
+      difficulty: CONFIG.interview.DIFFICULTIES.includes(difficulty)
         ? difficulty
-        : "medium",
+        : CONFIG.interview.DEFAULT_DIFFICULTY,
       conversation: [],
     });
 
@@ -229,7 +221,7 @@ export async function startInterviewController(req, res) {
     await interview.save();
 
     // Deduct tokens
-    user.tokens -= COSTS.LIVE_INTERVIEW;
+    user.tokens -= CONFIG.tokens.LIVE_INTERVIEW;
     await user.save();
 
     return res.status(201).json({
@@ -237,9 +229,9 @@ export async function startInterviewController(req, res) {
       question: firstQuestion,
       startedAt: interview.createdAt,
       endsAt: new Date(
-        new Date(interview.createdAt).getTime() + INTERVIEW_DURATION_MS,
+        new Date(interview.createdAt).getTime() + CONFIG.interview.DURATION_MS,
       ),
-      durationSeconds: INTERVIEW_DURATION_MS / 1000,
+      durationSeconds: CONFIG.interview.DURATION_MS / 1000,
       tokensLeft: user.tokens,
     });
   } catch (error) {
@@ -269,7 +261,7 @@ export async function startPrepareController(req, res) {
       return res.status(400).json({ message: "topic is required." });
 
     const user = await User.findById(req.user.id);
-    if (!user || user.tokens < COSTS.PREPARE_INTERVIEW) {
+    if (!user || user.tokens < CONFIG.tokens.PREPARE_INTERVIEW) {
       return res
         .status(402)
         .json({ message: "Insufficient tokens for prepare mode." });
@@ -278,12 +270,12 @@ export async function startPrepareController(req, res) {
     const interview = await LiveInterview.create({
       user: req.user.id,
       mode: "prepare",
-      subject: subject.trim().slice(0, 100),
-      topic: topic.trim().slice(0, 200),
-      resumeText: resumeText.trim().slice(0, 8000),
-      difficulty: ["easy", "medium", "hard"].includes(difficulty)
+      subject: subject.trim().slice(0, CONFIG.limits.SUBJECT_MAX_LENGTH),
+      topic: topic.trim().slice(0, CONFIG.limits.TOPIC_MAX_LENGTH),
+      resumeText: resumeText.trim().slice(0, CONFIG.limits.RESUME_TEXT_MAX),
+      difficulty: CONFIG.interview.DIFFICULTIES.includes(difficulty)
         ? difficulty
-        : "medium",
+        : CONFIG.interview.DEFAULT_DIFFICULTY,
       conversation: [],
     });
 
@@ -298,7 +290,7 @@ export async function startPrepareController(req, res) {
     interview.conversation.push({ question: firstQuestion, answer: "" });
     await interview.save();
 
-    user.tokens -= COSTS.PREPARE_INTERVIEW;
+    user.tokens -= CONFIG.tokens.PREPARE_INTERVIEW;
     await user.save();
 
     return res.status(201).json({
@@ -306,9 +298,9 @@ export async function startPrepareController(req, res) {
       question: firstQuestion,
       startedAt: interview.createdAt,
       endsAt: new Date(
-        new Date(interview.createdAt).getTime() + INTERVIEW_DURATION_MS,
+        new Date(interview.createdAt).getTime() + CONFIG.interview.DURATION_MS,
       ),
-      durationSeconds: INTERVIEW_DURATION_MS / 1000,
+      durationSeconds: CONFIG.interview.DURATION_MS / 1000,
       tokensLeft: user.tokens,
     });
   } catch (error) {
@@ -527,10 +519,10 @@ export async function submitInterviewFeedbackController(req, res) {
     }
 
     const safeComment = (comment || "").toString().trim();
-    if (safeComment.length > 1000) {
+    if (safeComment.length > CONFIG.limits.FEEDBACK_COMMENT_MAX_LENGTH) {
       return res
         .status(400)
-        .json({ message: "comment must be at most 1000 characters." });
+        .json({ message: `comment must be at most ${CONFIG.limits.FEEDBACK_COMMENT_MAX_LENGTH} characters.` });
     }
 
     const interview = await LiveInterview.findOne({
@@ -608,30 +600,46 @@ export async function getLiveInterviewController(req, res) {
 
 /**
  * GET /api/interview/live
- * Optional query: ?mode=job|prepare
+ * Optional query: ?mode=job|prepare&page=1&limit=20
  *
- * Returns summary rows for all live interviews belonging to the current user.
+ * Returns paginated summary rows for all live interviews belonging to the current user.
  */
 export async function getAllLiveInterviewsController(req, res) {
   try {
     const query = { user: req.user.id };
     if (req.query.mode) query.mode = req.query.mode;
 
-    const interviews = await LiveInterview.find(query, {
-      _id: 1,
-      mode: 1,
-      role: 1,
-      subject: 1,
-      topic: 1,
-      score: 1,
-      status: 1,
-      difficulty: 1,
-      companyKey: 1,
-      companyName: 1,
-      createdAt: 1,
-    }).sort({ createdAt: -1 });
+    const { page, limit, skip } = parsePagination(req.query);
 
-    return res.status(200).json({ interviews });
+    const [interviews, total] = await Promise.all([
+      LiveInterview.find(query, {
+        _id: 1,
+        mode: 1,
+        role: 1,
+        subject: 1,
+        topic: 1,
+        score: 1,
+        status: 1,
+        difficulty: 1,
+        companyKey: 1,
+        companyName: 1,
+        createdAt: 1,
+      })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      LiveInterview.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      interviews,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Get all live interviews error:", error);
     return res.status(500).json({ message: "Internal server error" });
