@@ -202,7 +202,6 @@ const CodingInterviewView = () => {
   const [timeLeft, setTimeLeft] = useState(45 * 60);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showTokenConfirm, setShowTokenConfirm] = useState(false);
-  const [awaitingNextQuestion, setAwaitingNextQuestion] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
 
@@ -318,7 +317,10 @@ const CodingInterviewView = () => {
         { role: "user", text: "Submitted solution", isCode: true },
         { role: "agent", text: data.analysis },
       ]);
-      setAwaitingNextQuestion(true);
+      // Speak the analysis via voice if connected
+      if (isVoiceConnected && sendVoiceMessage) {
+        sendVoiceMessage(data.analysis);
+      }
       toast.success("Code submitted!");
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to submit code");
@@ -331,7 +333,6 @@ const CodingInterviewView = () => {
 
   const handleNextQuestion = async () => {
     if (!activeInterview?.interviewId) return;
-    setAwaitingNextQuestion(false);
 
     const msg = "Please give me the next problem.";
     setChatMessages((prev) => [...prev, { role: "user", text: msg }]);
@@ -355,6 +356,11 @@ const CodingInterviewView = () => {
       }
 
       setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
+
+      // Speak response via voice if connected
+      if (isVoiceConnected && sendVoiceMessage) {
+        sendVoiceMessage(data.response);
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to get next question");
     } finally {
@@ -376,7 +382,23 @@ const CodingInterviewView = () => {
         interviewId: activeInterview.interviewId,
         message: msg,
       });
+      // Parse new problem from any agent response
+      const parsed = parseProblemFromResponse(data.response || "");
+      if (parsed.problemStatement) {
+        setProblemStatement(parsed.problemStatement);
+        setExamples(parsed.examples || "");
+        setConstraints(parsed.constraints || "");
+        if (parsed.starterCode) {
+          setCode(parsed.starterCode);
+        }
+      }
+
       setChatMessages((prev) => [...prev, { role: "agent", text: data.response }]);
+
+      // Speak response via voice if connected
+      if (isVoiceConnected && sendVoiceMessage) {
+        sendVoiceMessage(data.response);
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to send message");
     } finally {
@@ -511,6 +533,7 @@ const CodingInterviewView = () => {
   const {
     connect: connectVoice,
     disconnect: disconnectVoice,
+    sendMessage: sendVoiceMessage,
     isConnected: isVoiceConnected,
     isLoading: isVoiceLoading,
     isAgentSpeaking,
@@ -563,7 +586,7 @@ const CodingInterviewView = () => {
     const handleKeyDown = (e) => {
       if (window.speakMode === "normal") return;
       if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
-      if (e.code === "Space" && !e.repeat) {
+      if ((e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
         e.preventDefault();
         startHolding();
       }
@@ -572,7 +595,7 @@ const CodingInterviewView = () => {
     const handleKeyUp = (e) => {
       if (window.speakMode === "normal") return;
       if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
-      if (e.code === "Space") {
+      if (e.code === "AltLeft" || e.code === "AltRight") {
         e.preventDefault();
         stopHolding();
       }
@@ -949,6 +972,19 @@ const CodingInterviewView = () => {
                     </button>
                   </div>
                 )}
+                {/* Next Problem button */}
+                <button
+                  onClick={handleNextQuestion}
+                  disabled={submitting}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#ea580c]/10 hover:bg-[#ea580c]/20 text-[#ea580c] text-[10px] font-bold transition-colors disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <Loader2 size={10} className="animate-spin" />
+                  ) : (
+                    <ArrowRight size={10} />
+                  )}
+                  Next Problem
+                </button>
               </div>
 
               {/* Chat messages */}
@@ -979,22 +1015,6 @@ const CodingInterviewView = () => {
                     </div>
                   </div>
                 ))}
-                {awaitingNextQuestion && (
-                  <div className="flex justify-center py-2">
-                    <button
-                      onClick={handleNextQuestion}
-                      disabled={submitting}
-                      className="flex items-center gap-1.5 bg-[#ea580c] hover:bg-[#c2410c] disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"
-                    >
-                      {submitting ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <ArrowRight size={12} />
-                      )}
-                      Next Question
-                    </button>
-                  </div>
-                )}
                 <div ref={chatEndRef} />
               </div>
 
@@ -1015,7 +1035,7 @@ const CodingInterviewView = () => {
                   >
                     <div className={`transition-transform duration-200 ${isHoldingToSpeak ? "scale-95" : "scale-100"}`}>
                       <LiquidMetalButton
-                        label={isHoldingToSpeak ? "Listening..." : "Hold Space to Speak"}
+                        label={isHoldingToSpeak ? "Listening..." : "Hold Alt to Speak"}
                       />
                     </div>
                   </div>
