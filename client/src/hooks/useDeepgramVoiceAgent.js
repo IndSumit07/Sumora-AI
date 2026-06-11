@@ -531,8 +531,8 @@ export function useDeepgramVoiceAgent({
                     },
                   ],
                 },
+                greeting: greetingMsg,
               },
-              greeting: greetingMsg,
             }),
           );
 
