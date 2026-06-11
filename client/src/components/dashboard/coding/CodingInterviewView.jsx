@@ -22,13 +22,22 @@ import {
   Settings,
   Languages,
   AlertTriangle,
+  Mic,
+  PhoneOff,
+  Radio,
+  Volume2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useInterview } from "../../../context/InterviewContext";
 import { useAuth } from "../../../context/AuthContext";
 import useServiceExitGuard from "../../../hooks/useServiceExitGuard";
+import { useDeepgramVoiceAgent } from "../../../hooks/useDeepgramVoiceAgent";
+import { API_BASE_URL } from "../../../lib/api";
 import ServiceExitConfirmModal from "../../ServiceExitConfirmModal";
+
+const CODING_VOICE_API_ENDPOINT = `${API_BASE_URL}/api/interview/coding/voice-agent-response`;
 import { TokenConfirmModal, EndInterviewModal } from "../../TokenConfirmModal";
+import { LiquidMetalButton } from "../../ui/liquid-metal-button";
 import CodingInterviewFeedback from "./CodingInterviewFeedback";
 import CodingInterviewHistoryDetail from "./CodingInterviewHistoryDetail";
 
@@ -197,6 +206,11 @@ const CodingInterviewView = () => {
   const [awaitingNextQuestion, setAwaitingNextQuestion] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [score, setScore] = useState(0);
+
+  // Voice agent state
+  const [speakMode, setSpeakMode] = useState("hold");
+  const [isHoldingToSpeak, setIsHoldingToSpeak] = useState(false);
+  const spacePressIdRef = useRef(0);
 
   const chatEndRef = useRef(null);
   const timerRef = useRef(null);
@@ -379,6 +393,7 @@ const CodingInterviewView = () => {
     if (!activeInterview?.interviewId) return;
     try {
       setLoading(true);
+      disconnectVoice();
       const data = await endCodingInterview(activeInterview.interviewId);
       setFeedback(data.feedback);
       setScore(data.score || 0);
@@ -423,6 +438,142 @@ const CodingInterviewView = () => {
       setLoading(false);
     }
   };
+
+  // ── Voice agent integration ─────────────────────────────────────────────────
+
+  const normalizeText = useCallback(
+    (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
+    [],
+  );
+
+  const mergeIncrementalText = useCallback(
+    (existingText, incomingText) => {
+      const existing = (existingText || "").trim();
+      const incoming = (incomingText || "").trim();
+      if (!incoming) return existing;
+      if (!existing) return incoming;
+      const normExisting = normalizeText(existing);
+      const normIncoming = normalizeText(incoming);
+      if (normExisting === normIncoming) return existing;
+      if (normIncoming.startsWith(normExisting)) return incoming;
+      if (normExisting.startsWith(normIncoming)) return existing;
+      return `${existing} ${incoming}`.trim();
+    },
+    [normalizeText],
+  );
+
+  const handleVoiceTranscript = useCallback((text) => {
+    const incoming = (text || "").trim();
+    if (!incoming) return;
+    setChatMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.role === "user" && last.isVoice) {
+        const merged = mergeIncrementalText(last.text, incoming);
+        if (normalizeText(merged) === normalizeText(last.text)) return prev;
+        const updated = [...prev];
+        updated[updated.length - 1] = { ...last, text: merged };
+        return updated;
+      }
+      return [...prev, { role: "user", text: incoming, isVoice: true }];
+    });
+  }, [mergeIncrementalText, normalizeText]);
+
+  const handleVoiceAgentMessage = useCallback((text) => {
+    const incoming = (text || "").trim();
+    if (!incoming) return;
+    setChatMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.role === "agent" && last.isVoice) {
+        const merged = mergeIncrementalText(last.text, incoming);
+        if (normalizeText(merged) === normalizeText(last.text)) return prev;
+        const updated = [...prev];
+        updated[updated.length - 1] = { ...last, text: merged };
+        return updated;
+      }
+      return [...prev, { role: "agent", text: incoming, isVoice: true }];
+    });
+  }, [mergeIncrementalText, normalizeText]);
+
+  const handleVoiceError = useCallback((error) => {
+    console.error("[Voice Agent Error]", error);
+    toast.error(error || "Voice agent error");
+  }, []);
+
+  const {
+    connect: connectVoice,
+    disconnect: disconnectVoice,
+    isConnected: isVoiceConnected,
+    isLoading: isVoiceLoading,
+    isAgentSpeaking,
+    isUserSpeaking,
+  } = useDeepgramVoiceAgent({
+    onTranscript: handleVoiceTranscript,
+    onAgentMessage: handleVoiceAgentMessage,
+    onError: handleVoiceError,
+    apiEndpoint: CODING_VOICE_API_ENDPOINT,
+  });
+
+  const startHolding = useCallback(() => {
+    window.isSpacePressed = true;
+    spacePressIdRef.current += 1;
+    setIsHoldingToSpeak(true);
+  }, []);
+
+  const stopHolding = useCallback(() => {
+    window.isSpacePressed = false;
+    setIsHoldingToSpeak(false);
+  }, []);
+
+  useEffect(() => {
+    window.speakMode = speakMode;
+  }, [speakMode]);
+
+  useEffect(() => {
+    if (view !== "active") {
+      disconnectVoice();
+      return;
+    }
+    if (!activeInterview?.interviewId) return;
+
+    const systemPrompt = `You are a professional technical interviewer conducting a live coding interview. You will present ONE coding problem at a time. After the candidate submits code, you analyze it. Be concise. Do NOT use Markdown formatting. Never output asterisks (*). Interview Difficulty: ${selectedDifficulty}. Programming Language: ${selectedLanguage}.`;
+
+    connectVoice({
+      systemPrompt,
+      context: {
+        interviewId: activeInterview.interviewId,
+        mode: "coding",
+        difficulty: selectedDifficulty,
+        language: selectedLanguage,
+      },
+    });
+
+    const handleKeyDown = (e) => {
+      if (window.speakMode === "normal") return;
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
+      if (e.code === "Space" && !e.repeat) {
+        e.preventDefault();
+        startHolding();
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (window.speakMode === "normal") return;
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        stopHolding();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      disconnectVoice();
+    };
+  }, [view, activeInterview?.interviewId, selectedDifficulty, selectedLanguage, connectVoice, disconnectVoice, startHolding, stopHolding]);
 
   // ── Scroll chat ───────────────────────────────────────────────────────────────
 
@@ -683,54 +834,131 @@ const CodingInterviewView = () => {
         {/* Main content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left panel: Problem + Chat */}
-          <div className="w-1/3 min-w-[320px] max-w-[420px] flex flex-col border-r border-gray-200 dark:border-[#222] bg-gray-50 dark:bg-[#0d0d0d]">
-            {/* Problem statement */}
-            <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-[#222] bg-white dark:bg-[#121212]">
-              <h3 className="text-xs font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-1.5">
-                <Terminal size={14} className="text-[#ea580c]" />
-                Problem Statement
-              </h3>
-              <div className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
-                {problemStatement}
+          <div className="w-1/3 min-w-[320px] max-w-[420px] flex flex-col border-r border-gray-200 dark:border-[#222] bg-gray-100 dark:bg-[#0a0a0a]">
+            {/* Problem statement — distinct card */}
+            <div className="flex-shrink-0 p-3">
+              <div className="bg-white dark:bg-[#161616] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-sm dark:shadow-none overflow-hidden">
+                {/* Problem header */}
+                <div className="px-4 py-2.5 border-b border-gray-100 dark:border-[#222] bg-gray-50/50 dark:bg-[#1a1a1a]/50 flex items-center gap-2">
+                  <Terminal size={14} className="text-[#ea580c]" />
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white">
+                    Problem Statement
+                  </h3>
+                  <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#ea580c]/10 text-[#ea580c]">
+                    {selectedDifficulty}
+                  </span>
+                </div>
+                {/* Problem body */}
+                <div className="p-4 space-y-3 max-h-[220px] overflow-y-auto">
+                  <div className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    {problemStatement}
+                  </div>
+                  {examples && (
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                        Examples
+                      </p>
+                      <pre className="text-[11px] text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-[#111] p-2.5 rounded-lg overflow-x-auto border border-gray-100 dark:border-[#222]">
+                        {examples}
+                      </pre>
+                    </div>
+                  )}
+                  {constraints && (
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                        Constraints
+                      </p>
+                      <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                        {constraints}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-              {examples && (
-                <div className="mt-2">
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Examples
-                  </p>
-                  <pre className="text-[11px] text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#1a1a1a] p-2 rounded-lg overflow-x-auto">
-                    {examples}
-                  </pre>
-                </div>
-              )}
-              {constraints && (
-                <div className="mt-2">
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Constraints
-                  </p>
-                  <p className="text-[11px] text-gray-600 dark:text-gray-400">
-                    {constraints}
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Chat */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {/* Chat — visually distinct zone */}
+            <div className="flex-1 flex flex-col min-h-0 px-3 pb-3">
+              {/* Chat header with voice controls */}
+              <div className="flex items-center justify-between mb-2 px-1">
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={14} className="text-gray-400 dark:text-gray-500" />
+                  <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Chat
+                  </span>
+                  {isVoiceLoading && (
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                      <Loader2 size={10} className="animate-spin" />
+                      Connecting voice...
+                    </span>
+                  )}
+                  {isVoiceConnected && !isVoiceLoading && (
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-green-600 dark:text-green-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Voice On
+                    </span>
+                  )}
+                  {isAgentSpeaking && (
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-[#ea580c]">
+                      <Volume2 size={10} className="animate-pulse" />
+                      Speaking
+                    </span>
+                  )}
+                  {isUserSpeaking && (
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-blue-500">
+                      <Mic size={10} className="animate-pulse" />
+                      Listening
+                    </span>
+                  )}
+                </div>
+                {/* Speak mode toggle */}
+                {isVoiceConnected && (
+                  <div className="flex items-center bg-gray-200 dark:bg-[#1a1a1a] rounded-lg p-0.5">
+                    <button
+                      onClick={() => setSpeakMode("hold")}
+                      className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors ${
+                        speakMode === "hold"
+                          ? "bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
+                      Hold
+                    </button>
+                    <button
+                      onClick={() => setSpeakMode("normal")}
+                      className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-colors ${
+                        speakMode === "normal"
+                          ? "bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white shadow-sm"
+                          : "text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
+                      Normal
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat messages */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-white dark:bg-[#121212] rounded-xl border border-gray-200 dark:border-[#222]">
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
                     className={[
                       "text-xs rounded-xl px-3 py-2 max-w-[95%]",
                       msg.role === "agent"
-                        ? "bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]"
+                        ? "bg-gray-50 dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-[#2a2a2a]"
                         : "bg-[#ea580c]/10 text-[#ea580c] ml-auto",
                     ].join(" ")}
                   >
                     {msg.isCode && (
                       <span className="text-[10px] font-bold opacity-70 block mb-1">
                         Submitted code
+                      </span>
+                    )}
+                    {msg.isVoice && (
+                      <span className="text-[10px] font-bold opacity-70 block mb-1 flex items-center gap-1">
+                        <Mic size={9} />
+                        Voice
                       </span>
                     )}
                     <div className="whitespace-pre-wrap leading-relaxed">
@@ -757,8 +985,32 @@ const CodingInterviewView = () => {
                 <div ref={chatEndRef} />
               </div>
 
+              {/* Voice hold button */}
+              {isVoiceConnected && speakMode === "hold" && (
+                <div className="mt-2 flex justify-center">
+                  <div
+                    onMouseDown={startHolding}
+                    onMouseUp={stopHolding}
+                    onMouseLeave={stopHolding}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      startHolding();
+                    }}
+                    onTouchEnd={stopHolding}
+                    onTouchCancel={stopHolding}
+                    className="cursor-pointer select-none"
+                  >
+                    <div className={`transition-transform duration-200 ${isHoldingToSpeak ? "scale-95" : "scale-100"}`}>
+                      <LiquidMetalButton
+                        label={isHoldingToSpeak ? "Listening..." : "Hold Space to Speak"}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Chat input */}
-              <div className="p-3 border-t border-gray-200 dark:border-[#222] bg-white dark:bg-[#121212]">
+              <div className="mt-2 p-2 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#222] rounded-xl">
                 <div className="flex items-center gap-2">
                   <input
                     type="text"

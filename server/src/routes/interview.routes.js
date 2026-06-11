@@ -35,6 +35,7 @@ import {
   getCodingInterviewController,
   getAllCodingInterviewsController,
   deleteCodingInterviewController,
+  codingVoiceAgentResponseController,
 } from "../controllers/codingInterview.controller.js";
 
 const interviewRouter = express.Router();
@@ -220,6 +221,14 @@ interviewRouter.delete(
   apiLimiter,
   authMiddleware,
   deleteCodingInterviewController,
+);
+
+// POST /api/interview/coding/voice-agent-response — Deepgram Voice Agent function call handler for coding interviews
+interviewRouter.post(
+  "/coding/voice-agent-response",
+  apiLimiter,
+  authMiddleware,
+  codingVoiceAgentResponseController,
 );
 
 export default interviewRouter;

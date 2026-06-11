@@ -7,6 +7,7 @@ export function useDeepgramVoiceAgent({
   onTranscript,
   onAgentMessage,
   onError,
+  apiEndpoint,
 }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
@@ -129,7 +130,8 @@ export function useDeepgramVoiceAgent({
       if (function_name === "get_ai_response") {
         try {
           // Call our backend to get AI response
-          const response = await fetch(`${API_BASE_URL}/api/interview/voice-agent-response`, {
+          const endpoint = apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
+          const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -164,7 +166,7 @@ export function useDeepgramVoiceAgent({
         }
       }
     },
-    [onAgentMessage],
+    [onAgentMessage, apiEndpoint],
   );
 
   const handleDeepgramMessage = useCallback(

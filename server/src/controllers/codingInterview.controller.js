@@ -485,3 +485,63 @@ export async function deleteCodingInterviewController(req, res) {
     return res.status(500).json({ message: "Internal server error" });
   }
 }
+
+// ── 9. Voice Agent Response (for Deepgram Voice Agent) ───────────────────────
+
+/**
+ * POST /api/interview/coding/voice-agent-response
+ * Body: { userMessage: string, context: { interviewId, ... } }
+ *
+ * Called by Deepgram Voice Agent via function calling.
+ * Returns the next AI response for the live voice conversation.
+ */
+export async function codingVoiceAgentResponseController(req, res) {
+  try {
+    const { userMessage, context = {} } = req.body;
+
+    if (!userMessage?.trim())
+      return res.status(400).json({ message: "userMessage is required." });
+
+    const { interviewId } = context;
+
+    if (!interviewId)
+      return res.status(400).json({ message: "interviewId is required in context." });
+    if (!mongoose.Types.ObjectId.isValid(interviewId))
+      return res.status(400).json({ message: "Invalid interviewId." });
+
+    const interview = await CodingInterview.findOne({
+      _id: interviewId,
+      user: req.user.id,
+    });
+    if (!interview)
+      return res.status(404).json({ message: "Interview not found." });
+    if (interview.status === "completed")
+      return res.status(400).json({ message: "This interview has already ended." });
+
+    try {
+      await recoverChain(interview, interview.difficulty, interview.language);
+    } catch (_) {
+      // Already in memory
+    }
+
+    const response = await sendMessage(
+      interview._id.toString(),
+      userMessage.trim(),
+    );
+
+    interview.conversation.push({
+      role: "user",
+      text: userMessage.trim(),
+    });
+    interview.conversation.push({
+      role: "agent",
+      text: response,
+    });
+    await interview.save();
+
+    return res.status(200).json({ response });
+  } catch (error) {
+    console.error("Coding voice agent response error:", error);
+    return res.status(500).json({ message: error?.message || "Internal server error" });
+  }
+}
