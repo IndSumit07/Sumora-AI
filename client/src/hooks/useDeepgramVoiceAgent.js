@@ -173,8 +173,9 @@ export function useDeepgramVoiceAgent({
           wsRef.current?.send(
             JSON.stringify({
               type: "FunctionCallResponse",
-              function_call_id,
-              output: aiResponse,
+              id: function_call_id,
+              name: functionName,
+              content: aiResponse,
             }),
           );
         } catch (err) {
@@ -182,8 +183,9 @@ export function useDeepgramVoiceAgent({
           wsRef.current?.send(
             JSON.stringify({
               type: "FunctionCallResponse",
-              function_call_id,
-              output: "I'm having trouble connecting. Please try again.",
+              id: function_call_id,
+              name: functionName,
+              content: "I'm having trouble connecting. Please try again.",
             }),
           );
         }
