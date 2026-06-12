@@ -37,9 +37,11 @@ export function useDeepgramVoiceAgent({
 
   // Fallback for when Deepgram function calling fails
   const lastUserTranscriptRef = useRef("");
+  const accumulatedTranscriptRef = useRef("");
   const functionCallTimeoutRef = useRef(null);
   const functionCallReceivedRef = useRef(false);
   const fallbackTurnIdRef = useRef(0);
+  const fallbackFiredRef = useRef(false);
 
   const normalizeText = useCallback(
     (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase(),
@@ -191,11 +193,9 @@ export function useDeepgramVoiceAgent({
           stopPlayback();
           queuedBlobsRef.current = [];
           queuedTextRef.current = [];
-          // Cancel any pending fallback timer so previous turn doesn't double-fire
-          if (functionCallTimeoutRef.current) {
-            clearTimeout(functionCallTimeoutRef.current);
-            functionCallTimeoutRef.current = null;
-          }
+          // Do NOT cancel the fallback timer here — the user may just be
+          // continuing to speak and we want to accumulate their full message.
+          // The debounced timer in ConversationText handles re-scheduling.
           if (window.speakMode === "normal") {
             window.speechTurnId = (window.speechTurnId || 0) + 1;
           }
@@ -222,25 +222,53 @@ export function useDeepgramVoiceAgent({
             if (isDuplicateConversationText("user", message.content)) break;
             console.log("[Deepgram] User transcript:", message.content);
             lastUserTranscriptRef.current = message.content;
+            // Accumulate transcript fragments so the fallback sends the full message
+            const incoming = (message.content || "").trim();
+            if (accumulatedTranscriptRef.current) {
+              const normAcc = normalizeText(accumulatedTranscriptRef.current);
+              const normInc = normalizeText(incoming);
+              if (normInc.startsWith(normAcc)) {
+                // Deepgram sent a longer version – replace
+                accumulatedTranscriptRef.current = incoming;
+              } else if (!normAcc.startsWith(normInc)) {
+                // Genuinely new fragment – append
+                accumulatedTranscriptRef.current += " " + incoming;
+              }
+            } else {
+              accumulatedTranscriptRef.current = incoming;
+            }
             onTranscript?.(message.content);
 
-            // Start fallback timer: if Deepgram doesn't call our function
-            // within 5 seconds after receiving the transcript, call backend manually.
-            fallbackTurnIdRef.current += 1;
+            // Debounced fallback: reset timer on each fragment so we wait
+            // until the user stops speaking before calling the backend.
+            // Only bump the turn ID on the *first* fragment (when fallback
+            // hasn't fired yet) to avoid canceling an in-flight fallback.
+            if (fallbackFiredRef.current) {
+              // Previous turn's fallback already ran — start a fresh turn
+              fallbackTurnIdRef.current += 1;
+              functionCallReceivedRef.current = false;
+              fallbackFiredRef.current = false;
+            } else if (!functionCallTimeoutRef.current) {
+              // Very first fragment for this turn
+              fallbackTurnIdRef.current += 1;
+              functionCallReceivedRef.current = false;
+            }
             const currentTurnId = fallbackTurnIdRef.current;
-            functionCallReceivedRef.current = false;
+
             if (functionCallTimeoutRef.current) {
               clearTimeout(functionCallTimeoutRef.current);
             }
             functionCallTimeoutRef.current = setTimeout(async () => {
+              functionCallTimeoutRef.current = null;
               if (
                 !functionCallReceivedRef.current &&
                 fallbackTurnIdRef.current === currentTurnId &&
-                lastUserTranscriptRef.current
+                accumulatedTranscriptRef.current
               ) {
                 console.log("[Deepgram] Fallback: calling backend manually (no function call received)");
-                const transcript = lastUserTranscriptRef.current;
-                lastUserTranscriptRef.current = "";
+                fallbackFiredRef.current = true;
+                const transcript = accumulatedTranscriptRef.current.trim();
+                // Don't clear accumulated yet — only clear after successful send
                 try {
                   const endpoint =
                     apiEndpoint || `${API_BASE_URL}/api/interview/voice-agent-response`;
@@ -261,6 +289,9 @@ export function useDeepgramVoiceAgent({
                   const aiResponse =
                     data.response ||
                     "I didn't understand that. Could you please repeat?";
+                  // Clear accumulated transcript now that we've successfully processed it
+                  accumulatedTranscriptRef.current = "";
+                  lastUserTranscriptRef.current = "";
                   // Only inject if we're still on the same turn and WS is open
                   if (
                     fallbackTurnIdRef.current === currentTurnId &&
@@ -277,7 +308,7 @@ export function useDeepgramVoiceAgent({
                   console.error("[Fallback] Error:", err);
                 }
               }
-            }, 3000);
+            }, 4000);
           } else if (message.role === "agent" || message.role === "assistant") {
             if (isDuplicateConversationText("agent", message.content)) break;
             console.log("[Deepgram] Agent text:", message.content.slice(0, 100));
@@ -294,10 +325,14 @@ export function useDeepgramVoiceAgent({
 
         case "FunctionCallRequest":
           functionCallReceivedRef.current = true;
+          fallbackFiredRef.current = true; // Prevent fallback from firing
           if (functionCallTimeoutRef.current) {
             clearTimeout(functionCallTimeoutRef.current);
             functionCallTimeoutRef.current = null;
           }
+          // Clear accumulated transcript since the function call will handle it
+          accumulatedTranscriptRef.current = "";
+          lastUserTranscriptRef.current = "";
           handleFunctionCall(message);
           break;
 
@@ -326,6 +361,7 @@ export function useDeepgramVoiceAgent({
       onError,
       handleFunctionCall,
       isDuplicateConversationText,
+      normalizeText,
       stopPlayback,
       apiEndpoint,
     ],
@@ -464,6 +500,10 @@ export function useDeepgramVoiceAgent({
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
     }
+    accumulatedTranscriptRef.current = "";
+    lastUserTranscriptRef.current = "";
+    fallbackFiredRef.current = false;
+    functionCallReceivedRef.current = false;
     setIsConnected(false);
     setIsAgentSpeaking(false);
     setIsUserSpeaking(false);
