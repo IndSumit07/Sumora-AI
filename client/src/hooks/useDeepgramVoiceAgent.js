@@ -187,10 +187,15 @@ export function useDeepgramVoiceAgent({
       switch (message.type) {
         case "UserStartedSpeaking":
           setIsUserSpeaking(true);
+          // Stop agent audio and clear any queued output when user starts speaking
           stopPlayback();
           queuedBlobsRef.current = [];
           queuedTextRef.current = [];
-
+          // Cancel any pending fallback timer so previous turn doesn't double-fire
+          if (functionCallTimeoutRef.current) {
+            clearTimeout(functionCallTimeoutRef.current);
+            functionCallTimeoutRef.current = null;
+          }
           if (window.speakMode === "normal") {
             window.speechTurnId = (window.speechTurnId || 0) + 1;
           }
@@ -233,7 +238,7 @@ export function useDeepgramVoiceAgent({
                 fallbackTurnIdRef.current === currentTurnId &&
                 lastUserTranscriptRef.current
               ) {
-                console.log("[Deepgram] Fallback: calling backend manually");
+                console.log("[Deepgram] Fallback: calling backend manually (no function call received)");
                 const transcript = lastUserTranscriptRef.current;
                 lastUserTranscriptRef.current = "";
                 try {
@@ -248,11 +253,19 @@ export function useDeepgramVoiceAgent({
                       context: contextRef.current || {},
                     }),
                   });
+                  if (!response.ok) {
+                    console.error("[Fallback] Backend returned error:", response.status);
+                    return;
+                  }
                   const data = await response.json();
                   const aiResponse =
                     data.response ||
                     "I didn't understand that. Could you please repeat?";
-                  if (wsRef.current?.readyState === WebSocket.OPEN) {
+                  // Only inject if we're still on the same turn and WS is open
+                  if (
+                    fallbackTurnIdRef.current === currentTurnId &&
+                    wsRef.current?.readyState === WebSocket.OPEN
+                  ) {
                     wsRef.current.send(
                       JSON.stringify({
                         type: "InjectAgentMessage",
@@ -264,7 +277,7 @@ export function useDeepgramVoiceAgent({
                   console.error("[Fallback] Error:", err);
                 }
               }
-            }, 5000);
+            }, 3000);
           } else if (message.role === "agent" || message.role === "assistant") {
             if (isDuplicateConversationText("agent", message.content)) break;
             console.log("[Deepgram] Agent text:", message.content.slice(0, 100));

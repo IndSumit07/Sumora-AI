@@ -206,7 +206,7 @@ const CodingInterviewView = () => {
   const [score, setScore] = useState(0);
 
   // Voice agent state
-  const [speakMode, setSpeakMode] = useState("hold");
+  const [speakMode, setSpeakMode] = useState("normal");
   const [isHoldingToSpeak, setIsHoldingToSpeak] = useState(false);
   const spacePressIdRef = useRef(0);
 
