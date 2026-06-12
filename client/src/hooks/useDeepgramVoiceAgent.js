@@ -132,10 +132,21 @@ export function useDeepgramVoiceAgent({
 
   // Handle function calls from Deepgram Agent
   const handleFunctionCall = useCallback(
-    async (message) => {
-      const function_call_id = message.function_call_id || message.functionCallId;
-      const functionName = message.name || message.function_name;
-      const args = message.input || message.parameters || {};
+    async (fnData) => {
+      const function_call_id = fnData.id || fnData.function_call_id || fnData.functionCallId;
+      const functionName = fnData.name || fnData.function_name;
+
+      // Deepgram sends `arguments` as a JSON string; also support pre-parsed objects
+      let args = {};
+      if (typeof fnData.arguments === "string") {
+        try {
+          args = JSON.parse(fnData.arguments);
+        } catch {
+          args = {};
+        }
+      } else {
+        args = fnData.input || fnData.parameters || fnData.arguments || {};
+      }
 
       console.log("[Deepgram] Function call received:", functionName, args);
 
@@ -333,7 +344,15 @@ export function useDeepgramVoiceAgent({
           // Clear accumulated transcript since the function call will handle it
           accumulatedTranscriptRef.current = "";
           lastUserTranscriptRef.current = "";
-          handleFunctionCall(message);
+          // Deepgram sends function calls in a `functions` array
+          if (Array.isArray(message.functions)) {
+            for (const fn of message.functions) {
+              handleFunctionCall(fn);
+            }
+          } else {
+            // Fallback: treat the message itself as function call data
+            handleFunctionCall(message);
+          }
           break;
 
         case "Welcome":
