@@ -91,9 +91,9 @@ const FeatureSummaryCard = ({ title, avgValue, maxValue, total, icon, color = "#
   const IconComponent = icon;
   return (
     <div
-      className="relative rounded-2xl border-2 border-transparent p-4 overflow-hidden group hover:shadow-md transition-all duration-200"
+      className="relative rounded-2xl border-2 border-transparent p-4 overflow-hidden group hover:shadow-md transition-all duration-200 bg-white dark:bg-[#161616]"
       style={{
-        background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${color}40, ${color}10) border-box`,
+        backgroundImage: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${color}40, ${color}10) border-box`,
       }}
     >
       <div
