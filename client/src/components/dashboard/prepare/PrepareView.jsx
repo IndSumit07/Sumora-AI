@@ -530,14 +530,35 @@ const SetupForm = ({ onStarted }) => {
                     ? "border-transparent shadow-lg scale-[1.02]"
                     : "border-gray-100 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] hover:border-transparent hover:shadow-md hover:scale-[1.01]",
                 ].join(" ")}
-                style={active ? { background: s.gradient } : {}}
               >
-                {/* Subtle bg on hover for inactive */}
+                {/* Background gradient — light and dark variants */}
+                <div
+                  className="absolute inset-0 block dark:hidden transition-opacity duration-200"
+                  style={{
+                    background: s.gradient,
+                    opacity: active ? 1 : 0,
+                  }}
+                />
+                <div
+                  className="absolute inset-0 hidden dark:block transition-opacity duration-200"
+                  style={{
+                    background: s.darkGradient,
+                    opacity: active ? 1 : 0,
+                  }}
+                />
+
+                {/* Hover overlay for inactive */}
                 {!active && (
-                  <div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    style={{ background: s.gradient }}
-                  />
+                  <>
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 block dark:hidden"
+                      style={{ background: s.gradient }}
+                    />
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden dark:block"
+                      style={{ background: s.darkGradient }}
+                    />
+                  </>
                 )}
 
                 {/* Active glow ring */}
