@@ -1,64 +1,92 @@
 import { UploadCloud, MessageSquare, BarChart } from "lucide-react";
 
-export default function HowItWorksSection() {
-  const steps = [
-    {
-      icon: UploadCloud,
-      title: "1. Setup & Context",
-      desc: "Provide your resume or LinkedIn profile, along with the job description you're targeting. Sumora instantly analyzes the core requirements.",
-      color: "text-[#ea580c]",
-      bg: "bg-[#ea580c]/10",
-      border: "border-[#ea580c]/20",
-    },
-    {
-      icon: MessageSquare,
-      title: "2. The AI Interview",
-      desc: "Jump into an interactive voice or text session. Sumora's AI acts as the hiring manager, seamlessly adapting questions based on your background.",
-      color: "text-[#0ea5e9]",
-      bg: "bg-[#0ea5e9]/10",
-      border: "border-[#0ea5e9]/20",
-    },
-    {
-      icon: BarChart,
-      title: "3. Feedback & Scoring",
-      desc: "Receive deep performance metrics. Find out exactly where you excelled, which topics need work, and how a real recruiter would view your answers.",
-      color: "text-[#7c3aed]",
-      bg: "bg-[#7c3aed]/10",
-      border: "border-[#7c3aed]/20",
-    },
-  ];
+const steps = [
+  {
+    num: "01",
+    icon: UploadCloud,
+    title: "Upload",
+    headline: "Drop your resume. Paste the JD.",
+    desc: "Sumora's AI maps your experience against the job description in seconds — finding the gaps most candidates miss.",
+  },
+  {
+    num: "02",
+    icon: MessageSquare,
+    title: "Interview",
+    headline: "Face a live AI interviewer.",
+    desc: "A real-time voice conversation that adapts to your background, probes your weak spots, and mirrors how actual companies interview.",
+  },
+  {
+    num: "03",
+    icon: BarChart,
+    title: "Improve",
+    headline: "Know exactly where you stand.",
+    desc: "Question-by-question scoring, communication ratings, and a prep plan built around your real deficiencies — not generic advice.",
+  },
+];
 
+export default function HowItWorksSection() {
   return (
     <section className="py-24 px-6 md:px-12 w-full max-w-[1400px] mx-auto z-10 relative">
+      {/* ── Heading ── */}
       <div className="text-center mb-16">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-          How Sumora Works
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <span className="h-px w-12 bg-gradient-to-r from-transparent to-[#ea580c]/40" />
+          <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#ea580c]">
+            The Process
+          </p>
+          <span className="h-px w-12 bg-gradient-to-l from-transparent to-[#ea580c]/40" />
+        </div>
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          How Sumora works
         </h2>
-        <p className="text-gray-600 dark:text-[#a8a19b] max-w-2xl mx-auto text-lg leading-relaxed">
-          Three simple steps to landing your dream job. Say goodbye to general
-          advice and hello to personalized, actionable prep.
+        <p className="text-base text-gray-500 dark:text-gray-400 max-w-lg mx-auto">
+          From upload to offer — three steps, zero guesswork.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative max-w-6xl mx-auto">
-        {/* Connecting Line */}
-        <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-[#ea580c]/20 via-[#0ea5e9]/20 to-[#7c3aed]/20 z-0"></div>
 
-        {steps.map((step, idx) => (
+      {/* ── Steps Grid ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+        {steps.map((step) => (
           <div
-            key={idx}
-            className="relative z-10 flex flex-col items-center text-center p-8 rounded-3xl border border-gray-100 dark:border-[#2a2a2a] bg-white/60 dark:bg-[#161616]/60 backdrop-blur-sm shadow-sm transition-transform duration-300 hover:-translate-y-2"
+            key={step.num}
+            className="group relative rounded-3xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:border-gray-300 dark:hover:border-[#333] overflow-hidden"
           >
-            <div
-              className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg border ${step.border} ${step.bg} ${step.color}`}
-            >
-              <step.icon size={36} strokeWidth={1.5} />
+            {/* Decorative blob on hover */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#ea580c] opacity-0 blur-[80px] rounded-full transition-opacity duration-500 group-hover:opacity-[0.06] pointer-events-none" />
+
+            {/* Top section — big number + icon */}
+            <div className="relative px-8 pt-10 pb-6">
+              {/* Huge number */}
+              <span className="block text-[8rem] sm:text-[9rem] font-black text-gray-100 dark:text-white/[0.04] leading-[0.8] select-none transition-colors duration-500 group-hover:text-[#ea580c]/[0.1] dark:group-hover:text-[#ea580c]/[0.08]">
+                {step.num}
+              </span>
+
+              {/* Icon — positioned bottom-right of the number */}
+              <div className="absolute bottom-4 right-8 w-12 h-12 rounded-xl bg-[#ea580c]/10 flex items-center justify-center text-[#ea580c] transition-all duration-300 group-hover:bg-[#ea580c] group-hover:text-white group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-[#ea580c]/20">
+                <step.icon size={22} strokeWidth={1.5} />
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              {step.title}
-            </h3>
-            <p className="text-[15px] text-gray-600 dark:text-[#a8a19b] leading-relaxed">
-              {step.desc}
-            </p>
+
+            {/* Divider */}
+            <div className="mx-8 h-px bg-gray-100 dark:bg-[#222]" />
+
+            {/* Content */}
+            <div className="px-8 py-8">
+              {/* Label */}
+              <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-[#ea580c] mb-2">
+                {step.title}
+              </p>
+
+              {/* Headline */}
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">
+                {step.headline}
+              </h3>
+
+              {/* Description */}
+              <p className="text-[15px] text-gray-500 dark:text-[#7a7570] leading-relaxed">
+                {step.desc}
+              </p>
+            </div>
           </div>
         ))}
       </div>
