@@ -8,7 +8,7 @@ import axios from "axios";
  * For production:
  *   VITE_API_URL=https://api.yourdomain.com
  */
-export const API_BASE_URL = "https://api.sumoraai.in";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 /**
  * Pre-configured axios instance pointing at /api on the backend.
