@@ -7,8 +7,6 @@ import {
   X,
   FileText,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -114,50 +112,33 @@ const MatchScoreRing = ({ score }) => {
   );
 };
 
-// ── Question accordion ────────────────────────────────────────────────────────
+// ── Progress bar component ─────────────────────────────────────────────────────
 
-const QuestionCard = ({ q, index, open, onToggle }) => (
-  <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden">
-    <button
-      onClick={onToggle}
-      className="w-full flex items-start justify-between gap-3 p-4 text-left bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
-    >
-      <div className="flex items-start gap-3 flex-1 min-w-0">
-        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-[#ea580c]/10 text-[#ea580c] text-xs font-bold flex items-center justify-center mt-0.5">
-          {index + 1}
-        </span>
-        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">
-          {q.question}
-        </span>
-      </div>
-      {open ? (
-        <ChevronUp size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
-      ) : (
-        <ChevronDown size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
-      )}
-    </button>
-    {open && (
-      <div className="px-4 pb-4 bg-gray-50 dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-[#222] space-y-3">
-        <div className="pt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ea580c] mb-1">
-            Why they ask this
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-            {q.intention}
-          </p>
-        </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
-            How to answer
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-            {q.answer}
-          </p>
-        </div>
-      </div>
-    )}
+const ProgressBar = ({ score, label, color = "#ea580c" }) => (
+  <div className="space-y-1.5">
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
+      <span
+        className="text-xs font-semibold"
+        style={{ color }}
+      >
+        {score}/100
+      </span>
+    </div>
+    <div className="h-2 rounded-full bg-gray-200 dark:bg-[#2a2a2a] overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all duration-700"
+        style={{ width: `${score}%`, background: color }}
+      />
+    </div>
   </div>
 );
+
+const sectionColor = (score) => {
+  if (score >= 75) return "#22c55e";
+  if (score >= 50) return "#f59e0b";
+  return "#ef4444";
+};
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
@@ -191,14 +172,21 @@ const severityStyle = {
 // ── Full report display ───────────────────────────────────────────────────────
 
 const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
-  const [openTechIdx, setOpenTechIdx] = useState(null);
-  const [openBehavIdx, setOpenBehavIdx] = useState(null);
-
   const date = new Date(report.createdAt).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
+
+  const atsIssues = report.atsCompatibility?.issues || [];
+  const matching = report.keywordAnalysis?.matchedKeywords || [];
+  const missing = report.keywordAnalysis?.missingKeywords || [];
+  const overused = report.keywordAnalysis?.overusedKeywords || [];
+  const cq = report.contentQuality || {};
+  const gaps = report.skillGaps || [];
+  const plan = report.preparationPlan || [];
+  const suggestions = report.atsResumeSuggestions || [];
+  const rm = report.roleMatch || {};
 
   return (
     <div className="space-y-5 max-w-4xl">
@@ -208,10 +196,10 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[#ea580c] mb-2">
-              Analysis Report
+              Resume Analysis
             </p>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white leading-snug mb-1">
-              {report.title || report.role || "Interview Analysis"}
+              {report.title || report.role || "Resume Analysis"}
             </h2>
             {report.role && report.role !== report.title && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
@@ -229,108 +217,517 @@ const ReportDisplay = ({ report, onDownloadPdf, pdfLoading }) => {
         </div>
       </div>
 
-      {/* Technical Questions */}
+      {/* Section Scores */}
       <Section
-        title="Technical Questions"
-        badge={report.technicalQuestions?.length}
-        icon={Briefcase}
+        title="Section-by-Section Scores"
+        badge={`${(report.sectionScores || []).length} sections`}
+        icon={BarChart2}
       >
-        <div className="space-y-3">
-          {report.technicalQuestions?.map((q, i) => (
-            <QuestionCard
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(report.sectionScores || []).map((s, i) => (
+            <div
               key={i}
-              q={q}
-              index={i}
-              open={openTechIdx === i}
-              onToggle={() => setOpenTechIdx(openTechIdx === i ? null : i)}
-            />
+              className="rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4"
+            >
+              <ProgressBar
+                label={s.name}
+                score={s.score ?? 0}
+                color={sectionColor(s.score ?? 0)}
+              />
+              {s.feedback && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  {s.feedback}
+                </p>
+              )}
+            </div>
           ))}
         </div>
       </Section>
 
-      {/* Behavioral Questions */}
+      {/* ATS Compatibility */}
       <Section
-        title="Behavioral Questions"
-        badge={report.behavioralQuestions?.length}
-        icon={User}
+        title="ATS Compatibility"
+        badge={`${report.atsCompatibility?.overallScore ?? 0}/100`}
+        icon={FileText}
       >
-        <div className="space-y-3">
-          {report.behavioralQuestions?.map((q, i) => (
-            <QuestionCard
-              key={i}
-              q={q}
-              index={i}
-              open={openBehavIdx === i}
-              onToggle={() => setOpenBehavIdx(openBehavIdx === i ? null : i)}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <ProgressBar
+                label="ATS Parsing Score"
+                score={report.atsCompatibility?.overallScore ?? 0}
+                color={sectionColor(report.atsCompatibility?.overallScore ?? 0)}
+              />
+            </div>
+            <div className="flex-1 rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <ProgressBar
+                label="Readability"
+                score={report.atsCompatibility?.readability ?? 0}
+                color={sectionColor(report.atsCompatibility?.readability ?? 0)}
+              />
+            </div>
+          </div>
+          {report.atsCompatibility?.keywordDensity && (
+            <div className="rounded-xl border border-gray-100 dark:border-[#222] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+                Keyword Density
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {report.atsCompatibility.keywordDensity}
+              </p>
+            </div>
+          )}
+          {atsIssues.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Parsing Issues Found ({atsIssues.length})
+              </p>
+              {atsIssues.map((issue, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-xl border border-gray-100 dark:border-[#222] p-3 bg-white dark:bg-[#161616]"
+                >
+                  <span
+                    className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${
+                      issue.severity === "high"
+                        ? "bg-red-500"
+                        : issue.severity === "medium"
+                          ? "bg-amber-500"
+                          : "bg-green-500"
+                    }`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {issue.issue}
+                    </p>
+                    {issue.fix && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                        Fix: {issue.fix}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Keyword Analysis */}
+      <Section
+        title="Keyword Analysis"
+        badge={`${matching.length} matched · ${missing.length} missing`}
+        icon={CheckCircle2}
+      >
+        <div className="space-y-4">
+          {matching.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">
+                Matched Keywords
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {matching.map((k, i) => (
+                  <span
+                    key={i}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20"
+                  >
+                    {k.keyword}
+                    {k.relevance === "high" && (
+                      <span className="ml-1 opacity-60">★</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {missing.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                Missing Keywords — Add These
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {missing.map((k, i) => (
+                  <span
+                    key={i}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border ${
+                      k.relevance === "high"
+                        ? "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20"
+                        : k.relevance === "medium"
+                          ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20"
+                          : "bg-gray-50 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-500/20"
+                    }`}
+                  >
+                    {k.keyword}
+                    {k.relevance === "high" && (
+                      <span className="ml-1 opacity-60">★</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {overused.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
+                Overused Keywords
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {overused.map((k, i) => (
+                  <span
+                    key={i}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20"
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Content Quality */}
+      <Section title="Content Quality" icon={User}>
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <ProgressBar
+                label="Action Verb Usage"
+                score={cq.actionVerbScore ?? 0}
+                color={sectionColor(cq.actionVerbScore ?? 0)}
+              />
+            </div>
+            <div className="flex-1 rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <ProgressBar
+                label="Quantifiable Impact"
+                score={cq.quantifiableScore ?? 0}
+                color={sectionColor(cq.quantifiableScore ?? 0)}
+              />
+            </div>
+          </div>
+          {cq.strengths?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">
+                Strengths
+              </p>
+              <ul className="space-y-1">
+                {cq.strengths.map((s, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    <CheckCircle2
+                      size={13}
+                      className="text-green-500 flex-shrink-0 mt-0.5"
+                    />
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {cq.weaknesses?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                Weaknesses
+              </p>
+              <ul className="space-y-1">
+                {cq.weaknesses.map((w, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    <AlertTriangle
+                      size={13}
+                      className="text-red-500 flex-shrink-0 mt-0.5"
+                    />
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {cq.redundancyFlags?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
+                Redundancy Detected
+              </p>
+              <ul className="space-y-1">
+                {cq.redundancyFlags.map((r, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400"
+                  >
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {cq.overallAssessment && (
+            <div className="rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+                Overall Content Assessment
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {cq.overallAssessment}
+              </p>
+            </div>
+          )}
         </div>
       </Section>
 
       {/* Skill Gaps */}
       <Section
-        title="Skill Gaps"
-        badge={report.skillGaps?.length}
+        title="Skill Gaps & Learning Resources"
+        badge={gaps.length}
         icon={AlertTriangle}
       >
-        {report.skillGaps?.length === 0 ? (
+        {gaps.length === 0 ? (
           <div className="flex items-center gap-2 text-sm text-green-600">
-            <CheckCircle2 size={16} /> No significant skill gaps identified!
+            <CheckCircle2 size={16} /> No significant skill gaps — you&apos;re well-prepared!
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {report.skillGaps?.map((sg, i) => (
+          <div className="space-y-3">
+            {gaps.map((sg, i) => (
               <div
                 key={i}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${severityStyle[sg.severity] || severityStyle.medium}`}
+                className="rounded-xl border border-gray-100 dark:border-[#222] bg-white dark:bg-[#161616] p-4"
               >
-                {sg.skill}
-                <span className="opacity-60 capitalize">· {sg.severity}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {sg.skill}
+                  </p>
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                      severityStyle[sg.severity] || severityStyle.medium
+                    }`}
+                  >
+                    {sg.severity}
+                  </span>
+                </div>
+                {sg.recommendation && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                    {sg.recommendation}
+                  </p>
+                )}
+                {sg.learningResources?.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ea580c] mb-1.5">
+                      Learning Resources
+                    </p>
+                    <ul className="space-y-1">
+                      {sg.learningResources.map((r, j) => (
+                        <li
+                          key={j}
+                          className="flex items-start gap-1.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#ea580c] flex-shrink-0" />
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </Section>
 
-      {/* Preparation Plan */}
+      {/* ATS Resume Suggestions */}
       <Section
-        title="Preparation Plan"
-        badge={`${report.preparationPlan?.length} days`}
-        icon={CheckCircle2}
+        title="ATS-Optimized Rewrites"
+        badge={`${suggestions.length} suggestions`}
+        icon={FileText}
       >
         <div className="space-y-3">
-          {report.preparationPlan?.map((day, i) => (
-            <div key={i} className="flex gap-4">
-              <div className="flex flex-col items-center flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-[#ea580c] flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">
-                    {day.day}
-                  </span>
-                </div>
-                {i < report.preparationPlan.length - 1 && (
-                  <div className="w-px flex-1 bg-gray-200 dark:bg-[#333] mt-1" />
-                )}
-              </div>
-              <div className="pb-5 flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  {day.focus}
+          {suggestions.map((sug, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-gray-100 dark:border-[#222] bg-white dark:bg-[#161616] overflow-hidden"
+            >
+              <div className="p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  {sug.section}
                 </p>
-                <ul className="space-y-1.5">
-                  {day.tasks?.map((task, j) => (
-                    <li
-                      key={j}
-                      className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
-                    >
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#ea580c] flex-shrink-0" />
-                      {task}
-                    </li>
-                  ))}
-                </ul>
+                {sug.original && (
+                  <div className="mb-3">
+                    <p className="text-[10px] font-semibold text-red-500 uppercase tracking-wider mb-1">
+                      Current
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 bg-red-50 dark:bg-red-500/5 rounded-lg p-2.5 italic">
+                      &ldquo;...{sug.original}...&rdquo;
+                    </p>
+                  </div>
+                )}
+                {sug.improved && (
+                  <div className="mb-2">
+                    <p className="text-[10px] font-semibold text-green-500 uppercase tracking-wider mb-1">
+                      Suggested
+                    </p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 bg-green-50 dark:bg-green-500/5 rounded-lg p-2.5">
+                      {sug.improved}
+                    </p>
+                  </div>
+                )}
+                {sug.reason && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 leading-relaxed">
+                    Why: {sug.reason}
+                  </p>
+                )}
               </div>
             </div>
           ))}
         </div>
       </Section>
+
+      {/* Role Match */}
+      <Section title="Career Fit &amp; Role Match" icon={Briefcase}>
+        <div className="space-y-4">
+          {rm.levelAssessment && (
+            <div className="rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+                Seniority Level
+              </p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                {rm.levelAssessment}
+              </p>
+            </div>
+          )}
+          {rm.careerPath && (
+            <div className="rounded-xl border border-gray-100 dark:border-[#222] bg-gray-50 dark:bg-[#0f0f0f] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+                Career Path
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {rm.careerPath}
+              </p>
+            </div>
+          )}
+          {rm.fittingRoles?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                Other Fitting Roles
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {rm.fittingRoles.map((r, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#161616]"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {r.title}
+                    </span>
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        (r.matchPercentage ?? 0) >= 75
+                          ? "bg-green-50 text-green-700"
+                          : (r.matchPercentage ?? 0) >= 50
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-600"
+                      }`}
+                    >
+                      {r.matchPercentage ?? 0}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Preparation Roadmap */}
+      <Section
+        title="Preparation Roadmap"
+        badge={`${plan.length} phases`}
+        icon={CheckCircle2}
+      >
+        <div className="space-y-4">
+          {plan.map((phase, i) => (
+            <div
+              key={i}
+              className="flex gap-4 rounded-xl border border-gray-100 dark:border-[#222] bg-white dark:bg-[#161616] p-4"
+            >
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-[#ea580c] flex items-center justify-center">
+                  <span className="text-sm font-bold text-white">
+                    {phase.phase}
+                  </span>
+                </div>
+                {i < plan.length - 1 && (
+                  <div className="w-px flex-1 bg-gray-200 dark:bg-[#333] mt-1" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0 pb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {phase.focus}
+                  </p>
+                  {phase.duration && (
+                    <span className="text-[10px] font-medium text-[#ea580c] bg-[#ea580c]/10 px-2 py-0.5 rounded-full">
+                      {phase.duration}
+                    </span>
+                  )}
+                </div>
+                {phase.tasks?.length > 0 && (
+                  <ul className="space-y-1 mb-2">
+                    {phase.tasks.map((t, j) => (
+                      <li
+                        key={j}
+                        className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#ea580c] flex-shrink-0" />
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {phase.milestones?.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1">
+                      Milestones
+                    </p>
+                    <ul className="space-y-0.5">
+                      {phase.milestones.map((m, j) => (
+                        <li
+                          key={j}
+                          className="flex items-start gap-1.5 text-xs text-green-700 dark:text-green-400"
+                        >
+                          <CheckCircle2 size={11} className="flex-shrink-0 mt-0.5" />
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Download Resume PDF */}
+      <div className="flex justify-center pt-2 pb-6">
+        <button
+          type="button"
+          onClick={onDownloadPdf}
+          disabled={pdfLoading}
+          className="flex items-center gap-2 h-11 px-6 rounded-xl bg-[#ea580c] text-sm font-medium text-white hover:bg-[#d24e0b] disabled:opacity-50 transition-all"
+        >
+          {pdfLoading ? (
+            <>
+              <Loader2 size={15} className="animate-spin" /> Generating PDF&hellip;
+            </>
+          ) : (
+            <>
+              <Download size={15} /> Download ATS-Optimized Resume PDF
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 };

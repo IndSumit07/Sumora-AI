@@ -1,40 +1,58 @@
 import mongoose from "mongoose";
 
-const technicalQuestionSchema = new mongoose.Schema(
+const sectionScoreSchema = new mongoose.Schema(
   {
-    question: { type: String, required: [true, "Question is required"] },
-    intention: { type: String, required: [true, "Intention is required"] },
-    answer: { type: String, required: [true, "Answer is required"] },
+    name: { type: String, required: true },
+    score: { type: Number, min: 0, max: 100, required: true },
+    feedback: { type: String, default: "" },
   },
   { _id: false },
 );
 
-const behavioralQuestionSchema = new mongoose.Schema(
+const atsIssueSchema = new mongoose.Schema(
   {
-    question: { type: String, required: [true, "Question is required"] },
-    intention: { type: String, required: [true, "Intention is required"] },
-    answer: { type: String, required: [true, "Answer is required"] },
+    issue: { type: String, required: true },
+    severity: { type: String, enum: ["low", "medium", "high"], required: true },
+    fix: { type: String, default: "" },
   },
   { _id: false },
 );
 
-const skillGapsSchema = new mongoose.Schema(
+const keywordEntrySchema = new mongoose.Schema(
   {
-    skill: { type: String, required: [true, "Skill is required"] },
-    severity: {
-      type: String,
-      enum: ["low", "medium", "high"],
-      required: [true, "Severity is required"],
-    },
+    keyword: { type: String, required: true },
+    relevance: { type: String, enum: ["high", "medium", "low"], required: true },
   },
   { _id: false },
 );
 
-const preparationPlanSchema = new mongoose.Schema(
+const skillGapSchema = new mongoose.Schema(
   {
-    day: { type: Number, required: [true, "Day is required"] },
-    focus: { type: String, required: [true, "Focus is required"] },
-    tasks: [{ type: String, required: [true, "Task is required"] }],
+    skill: { type: String, required: true },
+    severity: { type: String, enum: ["low", "medium", "high"], required: true },
+    recommendation: { type: String, default: "" },
+    learningResources: [{ type: String }],
+  },
+  { _id: false },
+);
+
+const preparationPhaseSchema = new mongoose.Schema(
+  {
+    phase: { type: Number, required: true },
+    focus: { type: String, required: true },
+    duration: { type: String, default: "" },
+    tasks: [{ type: String }],
+    milestones: [{ type: String }],
+  },
+  { _id: false },
+);
+
+const atsSuggestionSchema = new mongoose.Schema(
+  {
+    section: { type: String, required: true },
+    original: { type: String, default: "" },
+    improved: { type: String, default: "" },
+    reason: { type: String, default: "" },
   },
   { _id: false },
 );
@@ -53,18 +71,48 @@ const interviewReportSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
-    // Direct context fields (stored with report, no session needed)
     role: { type: String, default: "", trim: true, maxlength: 150 },
     jobDescription: { type: String, default: "", trim: true, maxlength: 5000 },
     selfDescription: { type: String, default: "", trim: true, maxlength: 2000 },
-    title: { type: String, trim: true }, // AI-derived job title label
+    title: { type: String, trim: true },
     matchScore: { type: Number, min: 0, max: 100 },
-    technicalQuestions: [technicalQuestionSchema],
-    behavioralQuestions: [behavioralQuestionSchema],
-    skillGaps: [skillGapsSchema],
-    preparationPlan: [preparationPlanSchema],
+
+    sectionScores: [sectionScoreSchema],
+    atsCompatibility: {
+      overallScore: { type: Number, min: 0, max: 100 },
+      issues: [atsIssueSchema],
+      readability: { type: Number, min: 0, max: 100 },
+      keywordDensity: { type: String, default: "" },
+    },
+    keywordAnalysis: {
+      matchedKeywords: [keywordEntrySchema],
+      missingKeywords: [keywordEntrySchema],
+      overusedKeywords: [{ type: String }],
+    },
+    contentQuality: {
+      strengths: [{ type: String }],
+      weaknesses: [{ type: String }],
+      actionVerbScore: { type: Number, min: 0, max: 100 },
+      quantifiableScore: { type: Number, min: 0, max: 100 },
+      redundancyFlags: [{ type: String }],
+      overallAssessment: { type: String, default: "" },
+    },
+    skillGaps: [skillGapSchema],
+    preparationPlan: [preparationPhaseSchema],
+    atsResumeSuggestions: [atsSuggestionSchema],
+    roleMatch: {
+      fittingRoles: [
+        {
+          title: String,
+          matchPercentage: { type: Number, min: 0, max: 100 },
+        },
+      ],
+      careerPath: { type: String, default: "" },
+      levelAssessment: { type: String, default: "" },
+    },
+
     resumePdfUrl: {
-      type: String, // Cloudinary URL for the AI-generated resume PDF
+      type: String,
       default: null,
     },
   },
