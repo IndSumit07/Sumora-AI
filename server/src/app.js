@@ -22,6 +22,8 @@ const ALLOWED_ORIGINS = [
   "https://www.sumoraai.in",
   "https://sumoraai.in",
   "http://localhost:5173",
+  "http://localhost",       // Docker: Nginx serves client on port 80
+  "http://localhost:80",
 ];
 
 app.use(

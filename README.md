@@ -1,334 +1,565 @@
-﻿# Sumora AI - AI Workflow and Models Documentation
+<div align="center">
 
-This document explains only the AI system in Sumora AI: models, orchestration, prompts, data flow, token consumption points, and how each AI endpoint works.
+# 🤖 Sumora AI
 
-## 1. AI System Overview
+### Ace Your Next Interview with AI-Powered Coaching
 
-Sumora AI uses multiple model providers for different tasks:
+**AI-driven mock interviews, resume analysis, coding challenges, and personalized preparation plans — all in one platform.**
 
-- Google Gemini (`gemini-2.5-flash`) for structured report generation and resume HTML generation.
-- Groq via LangChain (`llama-3.1-8b-instant`) for live interview conversations, follow-up questioning, question analysis, and end-of-interview feedback generation.
-- Deepgram for voice agent streaming and text-to-speech in the live voice interview flow.
+[![Live](https://img.shields.io/badge/🌐_Live-sumoraai.in-orange?style=for-the-badge)](https://sumoraai.in)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![Express](https://img.shields.io/badge/Express-5-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
 
-The backend orchestrates all AI calls. The frontend never directly calls LLM APIs for core interview/report decisions.
-
-## 2. Model-to-Task Mapping
-
-### 2.1 Gemini Tasks (`server/src/services/ai.service.js`)
-
-Model:
-- `gemini-2.5-flash`
-
-Used for:
-- Interview report generation (`generateInterviewReport`)
-- Resume HTML generation for PDF (`generateResumePdf`)
-
-Output strategy:
-- Uses JSON schema-constrained output with Zod schema conversion.
-- `responseMimeType: application/json`
-- Response parsed and validated as strict structured JSON.
-
-Why Gemini here:
-- Reliable structured JSON generation for long, multi-field outputs.
-- Better fit for deterministic schema-based report objects.
-
-### 2.2 Groq + LangChain Tasks (`server/src/services/interviewService.js`)
-
-Model:
-- `llama-3.1-8b-instant` via `ChatGroq`
-
-Used for:
-- Live job interview questioning loop.
-- Prepare-mode topic-locked interview loop.
-- Question analysis/teaching response (`analyzeQuestion`).
-- Final interview feedback object (`generateFeedback`).
-
-Orchestration strategy:
-- `RunnableWithMessageHistory` + `InMemoryChatMessageHistory`
-- One in-memory chain per `interviewId`.
-- Chains can be rebuilt from database transcript after server restart (`recoverChain`).
-
-Why Groq here:
-- Low-latency conversational turn generation.
-- Strong fit for iterative back-and-forth interview flow.
-
-### 2.3 Deepgram Tasks (Client Hooks + Backend Voice Handler)
-
-Frontend files:
-- `client/src/hooks/useDeepgramVoiceAgent.js`
-- `client/src/hooks/useDeepgramTTS.js`
-
-Backend route:
-- `POST /api/interview/voice-agent-response`
-
-Used for:
-- Real-time microphone streaming and agent audio playback.
-- Function-call driven agent response through backend interview chain.
-- TTS synthesis of agent output.
-
-## 3. End-to-End AI Workflows
-
-### 3.1 AI Interview Report Workflow
-
-Entry point:
-- `POST /api/interview/`
-- Controller: `generateInterViewReportController`
-
-Flow:
-1. Validate inputs (`jobDescription` required, optional resume PDF).
-2. Check user token balance (`REPORT_GENERATION` cost = 25).
-3. If resume exists, extract text from PDF.
-4. Call `generateInterviewReport` (Gemini).
-5. Gemini returns strict JSON with:
-   - `matchScore`
-   - `technicalQuestions[]`
-   - `behavioralQuestions[]`
-   - `skillGaps[]`
-   - `preparationPlan[]`
-   - `title`
-6. Persist as `InterviewReport` in MongoDB.
-7. Deduct tokens and return report + `tokensLeft`.
-
-Prompt design notes:
-- Explicitly forces exactly 10 technical and 10 behavioral questions.
-- Includes resume/self-description/job description context.
-
-### 3.2 Resume PDF Generation Workflow
-
-Entry point:
-- `POST /api/interview/resume/pdf/:interviewReportId`
-- Controller: `generateResumePdfController`
-
-Flow:
-1. Fetch stored interview report context.
-2. Call `generateResumePdf` (Gemini) to produce concise ATS-friendly HTML.
-3. Render HTML to PDF with Puppeteer.
-4. Stream PDF buffer as downloadable response.
-
-Model behavior:
-- Gemini returns JSON `{ html: "..." }`.
-- Server converts HTML to A4 PDF (`--no-sandbox` launch args).
-
-### 3.3 Live Interview (Job Mode) Workflow
-
-Entry points:
-- `POST /api/interview/start`
-- `POST /api/interview/answer`
-- `POST /api/interview/end`
-
-Start flow (`startInterviewController`):
-1. Validate role + job description.
-2. Check tokens (`LIVE_INTERVIEW` cost = 20).
-3. Create `LiveInterview` document.
-4. Initialize chain via `initInterview`.
-5. Generate first question from Groq chain.
-6. Save question in conversation array.
-7. Deduct tokens.
-
-Answer flow (`answerInterviewController`):
-1. Validate interview ownership/status.
-2. Recover in-memory chain if missing (`recoverChain`).
-3. Save user answer in last conversation turn.
-4. Send answer to chain (`sendAnswer`) for next question.
-5. Append new AI question turn and persist.
-
-End flow (`endInterviewController`):
-1. Generate structured feedback from full transcript (`generateFeedback`).
-2. Compute overall score:
-   - `overall = technicalScore * 6 + communicationScore * 4` (0-100)
-3. Mark interview completed.
-4. Cleanup in-memory chain (`cleanupChain`).
-
-### 3.4 Prepare Mode Workflow (Topic-Locked)
-
-Entry points:
-- `POST /api/interview/prepare/start`
-- `POST /api/interview/answer`
-- `POST /api/interview/end`
-
-Prepare start differences:
-- Uses `initPrepareInterview` with strict topic lock system prompt.
-- Cost = `PREPARE_INTERVIEW` (20 tokens).
-- System prompt enforces one-question-per-turn and no off-topic drift.
-
-### 3.5 Analyze Question Workflow
-
-Entry point:
-- `POST /api/interview/analyze-question`
-- Controller: `analyzeQuestionController`
-
-Flow:
-1. Validate `interviewId` and `questionIndex`.
-2. Fetch target question + user answer from stored conversation.
-3. Call `analyzeQuestion` (Groq).
-4. Return structured teaching JSON:
-   - `why`
-   - `structure[]`
-   - `sampleAnswer`
-   - `tip`
-
-### 3.6 Voice Interview Workflow
-
-Entry points:
-- Frontend Deepgram WS session.
-- Backend: `POST /api/interview/voice-agent-response`.
-
-Flow:
-1. Client captures microphone audio and streams to Deepgram agent.
-2. Deepgram function call requests app-level response.
-3. Backend `voiceAgentResponseController`:
-   - validates user + interview
-   - recovers chain if needed
-   - pushes user utterance to transcript
-   - calls `sendAnswer` for next question
-   - persists updated conversation
-4. Client receives/plays agent speech (Deepgram audio).
-
-Special handling:
-- `[START]` trigger can bootstrap first AI turn for voice sessions.
-
-## 4. Prompt and Control Logic
-
-### 4.1 Job Interview Prompt Controls
-
-System constraints include:
-- Exactly one question per turn.
-- Ask follow-up if answer is weak.
-- Increase difficulty gradually.
-- Ask only question text (no acknowledgments like "Got it").
-
-Difficulty modifiers:
-- `easy`: beginner-focused, lighter probing.
-- `medium`: balanced fundamentals + applied scenarios.
-- `hard`: advanced deep probing with edge cases and internals.
-
-### 4.2 Prepare Prompt Controls
-
-Prepare system prompt has hard rules:
-- Topic lock to specified subject/topic.
-- One question per response, strict.
-- No filler acknowledgments.
-- No teaching unless user asks for hint explicitly.
-- Off-topic redirection behavior.
-- Difficulty arc over question progression.
-
-### 4.3 Structured Output Reliability
-
-Current safeguards:
-- Gemini: JSON schema constraints from Zod.
-- Groq: JSON-extraction and cleanup fallback for malformed blocks.
-- `safeJsonParse` attempts to repair invalid escape sequences.
-- Fallback objects returned when JSON parsing fails.
-
-## 5. AI Session State and Persistence
-
-In-memory state:
-- `activeChains: Map<interviewId, RunnableWithMessageHistory>`
-- `messageHistories: Map<interviewId, InMemoryChatMessageHistory>`
-
-Persistent state:
-- `LiveInterview.conversation[]` stores every AI question/user answer turn.
-
-Recovery strategy:
-- If server restarts and memory is lost, `recoverChain(interview)` rebuilds state from MongoDB transcript and context fields.
-
-Cleanup strategy:
-- `cleanupChain(interviewId)` on interview completion/deletion.
-
-## 6. AI Data Contracts
-
-### 6.1 Interview Report Object (Gemini)
-
-Fields:
-- `title: string`
-- `matchScore: number (0-100)`
-- `technicalQuestions[]: { question, intention, answer }`
-- `behavioralQuestions[]: { question, intention, answer }`
-- `skillGaps[]: { skill, severity(low|medium|high) }`
-- `preparationPlan[]: { day, focus, tasks[] }`
-
-### 6.2 End Feedback Object (Groq)
-
-Fields:
-- `technicalScore: integer 0-10`
-- `communicationScore: integer 0-10`
-- `strengths[]`
-- `weaknesses[]`
-- `improvements[]`
-
-Stored as serialized JSON in `LiveInterview.feedback`.
-
-### 6.3 Question Analysis Object (Groq)
-
-Fields:
-- `why`
-- `structure[]`
-- `sampleAnswer`
-- `tip`
-
-## 7. Cost and Token Enforcement (AI-Relevant)
-
-Token checks happen before expensive AI actions:
-- Report generation: 25
-- Live interview start: 20
-- Prepare interview start: 20
-
-If insufficient:
-- API returns HTTP 402 with appropriate message.
-
-Token deduction occurs after successful start/generation events.
-
-## 8. AI-Related Environment Variables
-
-Server:
-- `GOOGLE_API_KEY` (Gemini)
-- `GROQ_API_KEY` (Groq via LangChain)
-
-Client:
-- `VITE_DEEPGRAM_API_KEY` (Deepgram WS/TTS)
-
-Supporting auth/payment envs exist but are outside core AI inference paths.
-
-## 9. Failure Modes and Current Mitigations
-
-Malformed model JSON:
-- Clean + regex extraction + fallback default objects.
-
-Server restart during interview:
-- Reconstruct chain from stored conversation with `recoverChain`.
-
-Voice endpoint context errors:
-- Strict validation on `interviewId` and user ownership.
-
-Provider/network errors:
-- Caught and surfaced as `500`/specific messages.
-
-## 10. AI Workflow Sequence Summary
-
-### Report path
-Input context -> Gemini structured generation -> Mongo persist -> token deduction -> response
-
-### Live interview path
-Start -> create interview doc -> build chain -> first question -> iterative answer/question loop -> feedback generation -> score -> cleanup
-
-### Voice path
-Mic stream -> Deepgram agent -> backend function call -> Groq chain response -> Deepgram playback -> transcript persistence
-
-## 11. Files to Read for AI Internals
-
-Core files:
-- `server/src/services/ai.service.js`
-- `server/src/services/interviewService.js`
-- `server/src/controllers/interview.controller.js`
-- `server/src/controllers/liveInterview.controller.js`
-- `client/src/hooks/useDeepgramVoiceAgent.js`
-- `client/src/hooks/useDeepgramTTS.js`
-
-Related models:
-- `server/src/models/interviewReport.model.js`
-- `server/src/models/liveInterview.model.js`
-- `server/src/models/user.model.js`
+</div>
 
 ---
 
-If needed, the next step is generating a dedicated `AI_API_EXAMPLES.md` with request/response examples for every AI endpoint (`/interview/*` + voice flow) and expected error payloads.
+## 📖 Table of Contents
+
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [API Reference](#-api-reference)
+- [AI Models & Workflows](#-ai-models--workflows)
+- [Token Economy](#-token-economy)
+- [Deployment](#-deployment)
+- [Docker](#-docker)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## 🔍 Overview
+
+Sumora AI is a full-stack AI interview preparation platform that helps job seekers practice, analyze, and improve their interview skills. It combines multiple AI models to provide realistic mock interviews (text & voice), intelligent resume analysis, coding challenges with a live editor, and structured feedback — all behind a modern, responsive UI.
+
+**Live at:** [sumoraai.in](https://sumoraai.in)
+
+---
+
+## ✨ Key Features
+
+### 🎤 Live AI Interviews
+- Real-time AI-powered mock interviews with adaptive questioning
+- Three difficulty levels: **Easy**, **Medium**, **Hard**
+- Contextual follow-up questions based on your responses
+- End-of-interview feedback with technical & communication scores
+- **Voice interview mode** with Deepgram real-time audio streaming
+
+### 📄 Resume Analyzer & Report Generation
+- Upload your resume (PDF) and job description for AI-powered analysis
+- Get a **match score (0-100)**, skill gap analysis, and tailored preparation plan
+- Auto-generated **10 technical + 10 behavioral questions** with sample answers
+- ATS-optimized resume PDF generation powered by Gemini
+
+### 📚 Prepare Mode (Topic-Locked)
+- Study specific subjects/topics with focused AI questioning
+- Strict topic enforcement — no off-topic drift
+- Progressive difficulty throughout the session
+- Analyze individual questions with structured breakdowns
+
+### 💻 Coding Interview
+- In-browser **Monaco code editor** (same as VS Code)
+- AI-generated coding problems based on role and difficulty
+- Real-time code evaluation and feedback
+
+### 📊 Dashboard & Stats
+- Personal interview history and performance tracking
+- Detailed report views with expandable Q&A sections
+- Token balance and billing management
+
+### 🔐 Authentication & Security
+- Email/password registration with OTP verification
+- Google OAuth integration
+- JWT-based session management with HTTP-only cookies
+- Cloudflare Turnstile bot protection
+- Helmet security headers, CORS whitelisting, rate limiting
+
+### 💳 Payments
+- Razorpay integration for token purchases (INR)
+- Multiple pricing tiers with transaction history
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+| Technology | Purpose |
+|---|---|
+| **React 19** | UI framework |
+| **Vite 8** | Build tool & dev server |
+| **React Router 7** | Client-side routing |
+| **Tailwind CSS 3** | Utility-first styling |
+| **Framer Motion** | Animations & transitions |
+| **GSAP** | Advanced scroll animations |
+| **Lenis** | Smooth scrolling |
+| **Monaco Editor** | In-browser code editor |
+| **Three.js** | 3D visual effects |
+| **Lucide React** | Icon system |
+| **Axios** | HTTP client |
+| **React Hot Toast** | Toast notifications |
+
+### Backend
+| Technology | Purpose |
+|---|---|
+| **Node.js 20** | Runtime |
+| **Express 5** | Web framework |
+| **MongoDB + Mongoose 9** | Database & ODM |
+| **Redis (ioredis)** | Rate limiting & caching |
+| **LangChain** | LLM orchestration & chat memory |
+| **Google Generative AI** | Gemini model integration |
+| **Groq SDK** | Llama model integration |
+| **Deepgram SDK** | Voice agent & TTS |
+| **Puppeteer** | PDF generation |
+| **Razorpay** | Payment processing |
+| **Helmet** | Security headers |
+| **Zod** | Schema validation |
+| **JWT + bcrypt** | Authentication |
+| **Multer** | File upload handling |
+
+### AI Models
+| Model | Provider | Used For |
+|---|---|---|
+| `gemini-2.5-flash` | Google | Report generation, resume PDF |
+| `llama-3.1-8b-instant` | Groq | Live interview, prepare mode, feedback, question analysis |
+| Deepgram Agent | Deepgram | Real-time voice interviews & TTS |
+
+### Infrastructure
+| Technology | Purpose |
+|---|---|
+| **Vercel** | Frontend hosting |
+| **AWS EC2** | Backend hosting |
+| **Docker + Docker Compose** | Containerized deployment |
+| **Nginx** | Reverse proxy (Docker) |
+| **PM2** | Process management (production) |
+| **GitHub Actions** | CI/CD pipeline |
+| **Brevo** | Transactional emails |
+
+---
+
+## 🏗 Architecture
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                         Client                             │
+│  React 19 + Vite + Tailwind + Framer Motion                │
+│  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌───────────┐ │
+│  │ HomePage  │  │ Dashboard │  │ Auth     │  │ Billing   │ │
+│  │ (Landing) │  │ + Views   │  │ Pages    │  │ View      │ │
+│  └──────────┘  └───────────┘  └──────────┘  └───────────┘ │
+│        ↓ Axios          ↓ Deepgram WS                      │
+├────────────────────────────────────────────────────────────┤
+│                     Express 5 API                          │
+│  ┌────────┐  ┌───────────┐  ┌─────────┐  ┌────────────┐  │
+│  │ Auth   │  │ Interview │  │ Payment │  │ Feedback   │  │
+│  │ Routes │  │ Routes    │  │ Routes  │  │ Routes     │  │
+│  └────┬───┘  └─────┬─────┘  └────┬────┘  └─────┬──────┘  │
+│       │            │             │              │          │
+│  ┌────┴────────────┴─────────────┴──────────────┴───────┐  │
+│  │               Middleware Layer                        │  │
+│  │  Auth · Validation · Rate Limiting · File Upload      │  │
+│  └───────────────────────────────────────────────────────┘  │
+│       │            │             │                          │
+│  ┌────┴───┐  ┌─────┴──────┐  ┌──┴────────┐                │
+│  │ AI     │  │ Interview  │  │ Coding    │                │
+│  │Service │  │ Service    │  │ Service   │                │
+│  │(Gemini)│  │(LangChain) │  │(Gemini)   │                │
+│  └────────┘  └────────────┘  └───────────┘                │
+├────────────────────────────────────────────────────────────┤
+│  MongoDB         Redis          Puppeteer Cluster          │
+│  (Data Store)    (Rate Limit)   (PDF Generation)           │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📁 Project Structure
+
+```
+sumora-ai/
+├── client/                          # React frontend
+│   ├── public/                      # Static assets
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── home/                # Landing page sections
+│   │   │   │   ├── FeatureSection.jsx
+│   │   │   │   ├── HowItWorksSection.jsx
+│   │   │   │   ├── PricingSection.jsx
+│   │   │   │   ├── FAQSection.jsx
+│   │   │   │   ├── CTASection.jsx
+│   │   │   │   └── Footer.jsx
+│   │   │   ├── dashboard/           # Dashboard features
+│   │   │   │   ├── interview/       # Live interview UI
+│   │   │   │   ├── coding/          # Coding interview UI
+│   │   │   │   ├── analyze/         # Question analysis UI
+│   │   │   │   ├── prepare/         # Prepare mode UI
+│   │   │   │   ├── billing/         # Token purchase UI
+│   │   │   │   ├── views/           # Stats & analytics
+│   │   │   │   ├── DashboardHome.jsx
+│   │   │   │   └── Sidebar.jsx
+│   │   │   └── ui/                  # Shared UI primitives
+│   │   ├── context/                 # React context (Auth)
+│   │   ├── hooks/                   # Custom hooks
+│   │   │   ├── useDeepgramVoiceAgent.js
+│   │   │   ├── useDeepgramTTS.js
+│   │   │   └── useServiceExitGuard.js
+│   │   ├── pages/                   # Route pages
+│   │   │   ├── HomePage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   └── ...
+│   │   ├── lib/                     # Utilities
+│   │   ├── App.jsx                  # Router & layout
+│   │   └── main.jsx                 # Entry point
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── package.json
+│
+├── server/                          # Express backend
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js
+│   │   │   ├── interview.controller.js
+│   │   │   ├── liveInterview.controller.js
+│   │   │   ├── codingInterview.controller.js
+│   │   │   ├── payment.controller.js
+│   │   │   └── feedback.controller.js
+│   │   ├── services/
+│   │   │   ├── ai.service.js             # Gemini integration
+│   │   │   ├── interviewService.js       # LangChain + Groq orchestration
+│   │   │   ├── codingInterviewService.js # Coding challenge AI
+│   │   │   ├── redis.service.js          # Redis client
+│   │   │   ├── pdfPool.service.js        # Puppeteer cluster
+│   │   │   ├── brevo.service.js          # Email service
+│   │   │   └── turnstile.service.js      # Bot protection
+│   │   ├── models/                  # Mongoose schemas
+│   │   │   ├── user.model.js
+│   │   │   ├── interviewReport.model.js
+│   │   │   ├── liveInterview.model.js
+│   │   │   ├── codingInterview.model.js
+│   │   │   ├── transaction.model.js
+│   │   │   └── ...
+│   │   ├── routes/                  # Express route definitions
+│   │   ├── middlewares/             # Auth, validation, rate limiting
+│   │   └── configs/
+│   │       ├── app.config.js        # Centralized constants
+│   │       ├── pricing.json         # Pricing tiers
+│   │       └── companyInterviewPrompts.js
+│   ├── server.js                    # Entry point
+│   ├── Dockerfile
+│   └── package.json
+│
+├── .github/workflows/
+│   └── deploy.yml                   # Auto-deploy to EC2 on push
+├── docker-compose.yml               # Full-stack containerization
+└── README.md
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** ≥ 20
+- **MongoDB** (local or [Atlas](https://www.mongodb.com/atlas))
+- **Redis** (local or cloud)
+- API keys for: [Google AI](https://aistudio.google.com/apikey), [Groq](https://console.groq.com/keys), [Deepgram](https://console.deepgram.com)
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/IndSumit07/Sumora-AI.git
+cd Sumora-AI
+```
+
+### 2. Setup the Server
+
+```bash
+cd server
+npm install
+```
+
+Create `server/.env` (see [Environment Variables](#-environment-variables)):
+
+```bash
+cp .env.example .env   # if available, or create manually
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Server runs at `http://localhost:3000`.
+
+### 3. Setup the Client
+
+```bash
+cd client
+npm install
+```
+
+Create `client/.env`:
+
+```env
+VITE_API_URL=http://localhost:3000
+VITE_DEEPGRAM_API_KEY=your_deepgram_api_key
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
+VITE_LOGO_DEV_TOKEN=your_logo_dev_token
+```
+
+Start the development client:
+
+```bash
+npm run dev
+```
+
+Client runs at `http://localhost:5173`.
+
+---
+
+## 🔐 Environment Variables
+
+### Server (`server/.env`)
+
+| Variable | Description | Required |
+|---|---|---|
+| `PORT` | Server port (default: `3000`) | No |
+| `MONGODB_URI` | MongoDB connection string | ✅ |
+| `JWT_SECRET` | Secret for JWT signing | ✅ |
+| `GOOGLE_API_KEY` | Google Gemini API key | ✅ |
+| `GROQ_API_KEY` | Groq API key (LangChain) | ✅ |
+| `RAZORPAY_KEY_ID` | Razorpay key ID | ✅ |
+| `RAZORPAY_KEY_SECRET` | Razorpay secret | ✅ |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | ✅ |
+| `BREVO_API_KEY` | Brevo transactional email key | ✅ |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret | ✅ |
+| `REDIS_HOST` | Redis host (default: `localhost`) | No |
+| `REDIS_PORT` | Redis port (default: `6379`) | No |
+| `NODE_ENV` | `development` or `production` | No |
+
+### Client (`client/.env`)
+
+| Variable | Description | Required |
+|---|---|---|
+| `VITE_API_URL` | Backend API URL | ✅ |
+| `VITE_DEEPGRAM_API_KEY` | Deepgram API key for voice | ✅ |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID | ✅ |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key | ✅ |
+| `VITE_LOGO_DEV_TOKEN` | Logo.dev API token | No |
+
+---
+
+## 📡 API Reference
+
+### Authentication (`/api/auth`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/register` | Register with email, username, password |
+| `POST` | `/verify-otp` | Verify email OTP |
+| `POST` | `/resend-otp` | Resend verification OTP |
+| `POST` | `/login` | Login with email & password |
+| `POST` | `/google` | Google OAuth login |
+| `POST` | `/forgot-password` | Send password reset OTP |
+| `POST` | `/reset-password` | Reset password with OTP |
+| `POST` | `/logout` | Clear session cookie |
+| `GET` | `/me` | Get current authenticated user |
+
+### Interview (`/api/interview`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/` | Generate AI interview report (Gemini) |
+| `GET` | `/` | List user's interview reports |
+| `GET` | `/:id` | Get specific interview report |
+| `DELETE` | `/:id` | Delete interview report |
+| `POST` | `/resume/pdf/:id` | Generate ATS resume PDF |
+| `POST` | `/start` | Start live AI interview (job mode) |
+| `POST` | `/prepare/start` | Start prepare mode interview |
+| `POST` | `/answer` | Submit answer in live interview |
+| `POST` | `/end` | End interview & get feedback |
+| `POST` | `/analyze-question` | Analyze a specific question |
+| `POST` | `/voice-agent-response` | Voice interview turn handler |
+| `GET` | `/live-sessions` | List live interview sessions |
+| `GET` | `/live-sessions/:id` | Get specific live session |
+| `DELETE` | `/live-sessions/:id` | Delete live session |
+| `POST` | `/coding/start` | Start coding interview |
+| `POST` | `/coding/submit` | Submit code solution |
+| `POST` | `/coding/end` | End coding interview |
+| `GET` | `/coding/sessions` | List coding sessions |
+
+### Payments (`/api/payment`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/create-order` | Create Razorpay order |
+| `POST` | `/verify` | Verify payment & credit tokens |
+
+### Feedback (`/api/feedback`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/` | Submit site feedback |
+
+### Health
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Health check (used for cold-start detection) |
+
+---
+
+## 🧠 AI Models & Workflows
+
+### Gemini (`gemini-2.5-flash`)
+
+Used for tasks requiring **structured JSON output** with schema constraints:
+
+- **Interview Report Generation** — Produces match score, 10 technical + 10 behavioral questions, skill gaps, and a preparation plan. Output validated against Zod schemas.
+- **Resume PDF Generation** — Generates ATS-friendly HTML that's rendered to A4 PDF via Puppeteer.
+
+### Groq/LangChain (`llama-3.1-8b-instant`)
+
+Used for **low-latency conversational AI** with in-memory chat history:
+
+- **Live Interview Loop** — Maintains per-session chains via `RunnableWithMessageHistory`. Asks one question per turn, adapts difficulty, and probes weak answers.
+- **Prepare Mode** — Topic-locked questioning with strict system prompt enforcement.
+- **Question Analysis** — Returns structured teaching breakdowns (`why`, `structure`, `sampleAnswer`, `tip`).
+- **End Feedback** — Generates technical/communication scores, strengths, weaknesses, and improvement suggestions.
+
+### Deepgram
+
+Used for **real-time voice interactions**:
+
+- Microphone audio streaming → Deepgram agent → backend function call → Groq chain → Deepgram TTS playback.
+
+### Chain Recovery
+
+If the server restarts mid-interview, `recoverChain()` reconstructs the LangChain session from the MongoDB-persisted transcript — no data loss.
+
+---
+
+## 🪙 Token Economy
+
+Users receive **100 free tokens** on signup. Actions cost tokens:
+
+| Action | Token Cost |
+|---|---|
+| Interview Report Generation | 25 |
+| Live Interview (Job Mode) | 20 |
+| Prepare Interview | 20 |
+| Coding Interview | 35 |
+| Resume PDF Generation | 5 |
+
+Insufficient tokens return **HTTP 402**. Tokens are deducted only after successful action initiation.
+
+### Pricing Plans
+
+| Plan | Price (₹) | Tokens |
+|---|---|---|
+| **Free** | 0 | 100 (on signup) |
+| **Starter Pack** | 49 | 200 |
+| **Pro Pack** | 199 | 1,000 |
+
+---
+
+## 🚢 Deployment
+
+### Production Architecture
+
+| Component | Host | Details |
+|---|---|---|
+| **Frontend** | Vercel | Auto-deployed from `client/` |
+| **Backend** | AWS EC2 | PM2 managed, auto-deployed via GitHub Actions |
+| **Database** | MongoDB Atlas | Cloud-hosted |
+| **Cache** | Redis | In-memory rate limiting & caching |
+
+### CI/CD Pipeline
+
+On every push to `main`, the GitHub Actions workflow:
+
+1. SSHs into the EC2 instance
+2. Pulls latest code from `main`
+3. Installs dependencies
+4. Restarts the server via PM2
+
+---
+
+## 🐳 Docker
+
+Run the full stack locally with Docker Compose:
+
+```bash
+# From the project root
+docker-compose up --build
+```
+
+This starts three services:
+
+| Service | Container | Port | Description |
+|---|---|---|---|
+| **Redis** | `sumora-redis` | `6379` | In-memory cache with AOF persistence |
+| **Server** | `sumora-server` | `3000` | Express API with Chromium for PDF gen |
+| **Client** | `sumora-client` | `80` | Nginx serving the Vite build |
+
+### Docker Environment
+
+Set these in the root `.env` for Docker Compose:
+
+```env
+VITE_API_URL=http://localhost:3000
+VITE_DEEPGRAM_API_KEY=your_key
+VITE_GOOGLE_CLIENT_ID=your_key
+VITE_TURNSTILE_SITE_KEY=your_key
+VITE_LOGO_DEV_TOKEN=your_key
+```
+
+Server-specific env vars go in `server/.env`.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! To get started:
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/your-feature`
+3. **Commit** your changes: `git commit -m "Add your feature"`
+4. **Push** to the branch: `git push origin feature/your-feature`
+5. **Open** a Pull Request
+
+### Development Tips
+
+- Server hot-reloads with **nodemon** (`npm run dev`)
+- Client hot-reloads with **Vite** (`npm run dev`)
+- The server uses ES modules (`"type": "module"`)
+- All configuration constants are centralized in `server/src/configs/app.config.js`
+
+---
+
+## 📄 License
+
+This project is licensed under the [ISC License](https://opensource.org/licenses/ISC).
+
+---
+
+<div align="center">
+
+**Built with ❤️ by [Sumit](https://github.com/IndSumit07)**
+
+[🌐 Live Demo](https://sumoraai.in) · [🐛 Report Bug](https://github.com/IndSumit07/Sumora-AI/issues) · [💡 Request Feature](https://github.com/IndSumit07/Sumora-AI/issues)
+
+</div>
