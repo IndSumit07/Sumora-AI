@@ -74,7 +74,7 @@ export const CONFIG = {
 
   // ── AI / LLM ──────────────────────────────────────────────────────────────
   ai: {
-    GROQ_MODEL: "llama-3.1-8b-instant",
+    GROQ_MODEL: "openai/gpt-oss-120b",
     GEMINI_MODEL: "gemini-2.5-flash",
     MAX_RETRIES: 2,
     TEMPERATURE: 0.7,

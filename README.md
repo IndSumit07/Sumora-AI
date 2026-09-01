@@ -127,7 +127,7 @@ Sumora AI is a full-stack AI interview preparation platform that helps job seeke
 | Model | Provider | Used For |
 |---|---|---|
 | `gemini-2.5-flash` | Google | Report generation, resume PDF |
-| `llama-3.1-8b-instant` | Groq | Live interview, prepare mode, feedback, question analysis |
+| `openai/gpt-oss-120b` | Groq | Live interview, prepare mode, feedback, question analysis |
 | Deepgram Agent | Deepgram | Real-time voice interviews & TTS |
 
 ### Infrastructure
@@ -431,7 +431,7 @@ Used for tasks requiring **structured JSON output** with schema constraints:
 - **Interview Report Generation** — Produces match score, 10 technical + 10 behavioral questions, skill gaps, and a preparation plan. Output validated against Zod schemas.
 - **Resume PDF Generation** — Generates ATS-friendly HTML that's rendered to A4 PDF via Puppeteer.
 
-### Groq/LangChain (`llama-3.1-8b-instant`)
+### Groq/LangChain (`openai/gpt-oss-120b`)
 
 Used for **low-latency conversational AI** with in-memory chat history:
 
