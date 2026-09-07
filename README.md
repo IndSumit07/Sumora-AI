@@ -114,7 +114,7 @@ Sumora AI is a full-stack AI interview preparation platform that helps job seeke
 | **Redis (ioredis)** | Rate limiting & caching |
 | **LangChain** | LLM orchestration & chat memory |
 | **Google Generative AI** | Gemini model integration |
-| **Groq SDK** | Llama model integration |
+| **Groq SDK** | LLM orchestration (GPT-OSS / Llama 3.3) |
 | **Deepgram SDK** | Voice agent & TTS |
 | **Puppeteer** | PDF generation |
 | **Razorpay** | Payment processing |
@@ -341,6 +341,8 @@ Client runs at `http://localhost:5173`.
 | `JWT_SECRET` | Secret for JWT signing | ✅ |
 | `GOOGLE_API_KEY` | Google Gemini API key | ✅ |
 | `GROQ_API_KEY` | Groq API key (LangChain) | ✅ |
+| `GROQ_MODEL` | Groq model override (default: `openai/gpt-oss-120b`) | No |
+| `GEMINI_MODEL` | Gemini model override (default: `gemini-2.5-flash`) | No |
 | `RAZORPAY_KEY_ID` | Razorpay key ID | ✅ |
 | `RAZORPAY_KEY_SECRET` | Razorpay secret | ✅ |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | ✅ |

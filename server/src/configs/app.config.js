@@ -74,8 +74,13 @@ export const CONFIG = {
 
   // ── AI / LLM ──────────────────────────────────────────────────────────────
   ai: {
-    GROQ_MODEL: "openai/gpt-oss-120b",
-    GEMINI_MODEL: "gemini-2.5-flash",
+    // Supported Groq models:
+    // - "openai/gpt-oss-120b" (default: recommended replacement, 120B MoE, 131k context)
+    // - "openai/gpt-oss-20b" (ultra-fast 1000 t/s, 131k context)
+    // - "llama-3.3-70b-versatile" (Meta Llama 3.3 70B)
+    // - "qwen/qwen3.6-27b"
+    GROQ_MODEL: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
+    GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     MAX_RETRIES: 2,
     TEMPERATURE: 0.7,
   },

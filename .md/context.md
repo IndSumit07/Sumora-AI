@@ -288,7 +288,7 @@ sumora-ai/
 ### `server/src/configs/app.config.js`
 Central configuration object exporting `CONFIG`:
 - **ai.GEMINI_MODEL:** `gemini-2.5-flash`
-- **ai.GROQ_MODEL:** `llama-3.1-8b-instant`
+- **ai.GROQ_MODEL:** `process.env.GROQ_MODEL || "openai/gpt-oss-120b"`
 - **ai.TEMPERATURE:** 0.7
 - **ai.MAX_RETRIES:** 3
 - **tokens.REPORT_GENERATION:** 25
@@ -984,7 +984,7 @@ jobs:
 | Model | Provider | Used For |
 |---|---|---|
 | `gemini-2.5-flash` | Google GenAI | Interview report generation, resume PDF HTML |
-| `llama-3.1-8b-instant` | Groq (via LangChain) | Live interview conversations, question analysis, feedback |
+| `openai/gpt-oss-120b` | Groq (via LangChain) | Live interview conversations, question analysis, feedback |
 | `aura-asteria-en` | Deepgram | Voice agent TTS (interview) |
 | `aura-2-ophelia-en` | Deepgram | Standalone TTS |
 | `nova-2` | Deepgram | Speech-to-text (voice agent) |
