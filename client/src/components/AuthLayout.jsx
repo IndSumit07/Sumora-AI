@@ -25,7 +25,7 @@ const AuthLayout = ({ leftText, heading, subheading, children, footer }) => {
       <button
         onClick={() => setIsDark((d) => !d)}
         title="Toggle theme"
-        className="fixed top-4 right-4 z-50 w-9 h-9 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors"
+        className="fixed top-4 right-4 z-50 w-9 h-9 rounded-xl flex items-center justify-center bg-black/5 hover:bg-black/10 text-gray-900 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white backdrop-blur-sm transition-colors"
       >
         {isDark ? <Sun size={17} /> : <Moon size={17} />}
       </button>
