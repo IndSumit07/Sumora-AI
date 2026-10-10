@@ -1,25 +1,9 @@
 version: "3.9"
 
 services:
-  # ── Redis ──────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: sumora-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - sumora-network
-
   # ── Server (Express + Puppeteer) ───────────────────────────────────────────
+  # Redis runs locally on the host machine (not in Docker).
+  # On Linux, host.docker.internal resolves via the extra_hosts entry below.
   server:
     build:
       context: ./server
@@ -32,13 +16,11 @@ services:
       - ./server/.env
     environment:
       - NODE_ENV=production
-      - REDIS_HOST=redis
+      - REDIS_HOST=host.docker.internal
       - REDIS_PORT=6379
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - sumora-network
+    # Allows the container to reach the host machine's Redis on Linux
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ── Client (Vite/React → Nginx) ───────────────────────────────────────────
   client:
@@ -57,13 +39,3 @@ services:
       - "80:80"
     depends_on:
       - server
-    networks:
-      - sumora-network
-
-volumes:
-  redis_data:
-    driver: local
-
-networks:
-  sumora-network:
-    driver: bridge
