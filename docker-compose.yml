@@ -1,41 +1,21 @@
 version: "3.9"
 
 services:
-  # ── Server (Express + Puppeteer) ───────────────────────────────────────────
-  # Redis runs locally on the host machine (not in Docker).
-  # On Linux, host.docker.internal resolves via the extra_hosts entry below.
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: sumora-server
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     env_file:
       - ./server/.env
     environment:
       - NODE_ENV=production
-      - REDIS_HOST=host.docker.internal
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
-    # Allows the container to reach the host machine's Redis on Linux
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    shm_size: "512mb"
+    networks: [appnet]
 
-  # ── Client (Vite/React → Nginx) ───────────────────────────────────────────
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-        VITE_DEEPGRAM_API_KEY: ${VITE_DEEPGRAM_API_KEY:-}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
-        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
-        VITE_LOGO_DEV_TOKEN: ${VITE_LOGO_DEV_TOKEN:-}
-    container_name: sumora-client
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - server
+networks:
+  appnet:
+    external: true

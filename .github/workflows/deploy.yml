@@ -20,7 +20,7 @@ jobs:
 
           script: |
             cd ~/Sumora-AI
-            git pull origin main
-            cd server
-            npm install
-            pm2 restart sumora-api
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf client
+            docker compose up -d --build
